@@ -14,23 +14,23 @@ export interface CustomerData {
 
 // Define the structure of the AI-generated response
 export interface AIResponse {
-  customer_role: string;
-  customer_department: string;
-  customer_name: string;
-  customer_age: string;
-  customer_occupation: string;
-  customer_location: string;
-  customer_education: string;
-  customer_responsibilities: string;
-  customer_income_level: string;
+  role: string;
+  department: string;
+  name: string;
+  age_range: string;
+  occupation: string;
+  locations: string;
+  education: string;
+  responsibilities: string;
+  income_level: string;
   business_model: string;
-  customer_challenges: string;
-  customer_goals: string;
-  customer_buying_power: string;
-  customer_objections: string;
-  customer_preferred_communication_channel: string;
-  customer_motivation: string;
-  customer_buying_trigger: string;
+  challenges: string;
+  goals: string;
+  buying_power: string;
+  objections: string;
+  preferred_communication_channel: string;
+  motivation: string;
+  buying_trigger: string;
   industry: string;
   company_size: string;
   geographical_focus: string;
@@ -82,24 +82,24 @@ export async function getCRMInsights(
       - Country: ${country || "N/A"}
       - Website Content: ${websiteContent || "N/A"}
     
-      Based on this company, generate an Ideal Customer Profile (ICP) and Buyer Persona for an ideal target customer with a random Fictional Name and age range and top 3 locations by city, country. The business model description should be that of the target customer base. The response should strictly follow this JSON structure:
+      Based on this company, generate an Ideal Customer Profile (ICP) and Buyer Persona for an ideal target customer with a random Fictional Name, age range and top 3 locations by city, country. The response should strictly follow this JSON structure:
       {
-        "customer_name": "",
-        "customer_role": "",
-        "customer_department": "",
-        "customer_age_range": "",
-        "customer_occupation": "",
-        "customer_locations": "",
-        "customer_education": "",
-        "customer_responsibilities": "",
-        "customer_income_level": "",
+        "name": "",
+        "role": "",
+        "department": "",
+        "age_range": "",
+        "occupation": "",
+        "locations": "",
+        "education": "",
+        "responsibilities": "",
+        "income_level": "",
         "business_model": "",
-        "customer_challenges": "",
-        "customer_goals": "",
-        "customer_buying_power": "",
-        "customer_objections": "",
-        "customer_preferred_communication_channel": "",
-        "customer_motivation": "",
+        "challenges": "",
+        "goals": "",
+        "buying_power": "",
+        "objections": "",
+        "preferred_communication_channel": "",
+        "motivation": "",
         "buying_trigger": "",
         "industry": "",
         "company_size": "",
@@ -113,7 +113,7 @@ export async function getCRMInsights(
         "decision_making_process": ""
       }
     
-      Ensure the response is **only** valid JSON with no extra text. Any missing values should be an empty string.`,
+      Ensure the response is **only** valid JSON with no extra text or space. Any missing values should be an empty string.`,
     },
   ];
 
@@ -127,8 +127,8 @@ export async function getCRMInsights(
     );
 
     // Ensure response data exists before parsing
-    const aiContent = response.data?.choices?.[0]?.message?.content?.trim();
-    if (!aiContent) throw new Error("Invalid AI response");
+    let aiContent = response.data?.choices?.[0]?.message?.content?.trim();
+    
     console.log(aiContent);
     return JSON.parse(aiContent) as AIResponse;
   } catch (error: any) {
@@ -143,11 +143,8 @@ export const scrapeController = async (req: Request, res: Response) => {
   try {
     const insights = await getCRMInsights(companyName, role, website, country);
     
-    if (insights) {
-      res.status(200).json(insights);
-    } else {
-      res.status(500).json({ error: "Failed to fetch CRM insights" });
-    }
+   res.status(200).json(insights);
+    
   } catch (error: any) {
     console.error("Error in scrapeController:", error.message);
     res.status(500).json({ error: "Internal server error" });
