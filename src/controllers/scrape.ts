@@ -141,8 +141,10 @@ export const scrapeController = async (req: Request, res: Response) => {
   const { companyName, role, website, country } = req.body;
   
   try {
-    const insights = await getCRMInsights(companyName, role, website, country);
-    
+    let insights: AIResponse | null = null;
+    do{
+      insights = await getCRMInsights(companyName, role, website, country);
+    }while(insights === null)
    res.status(200).json(insights);
     
   } catch (error: any) {
