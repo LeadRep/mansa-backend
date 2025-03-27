@@ -144,7 +144,7 @@ export const scrapeController = async (req: Request, res: Response) => {
     let insights: AIResponse | null = null;
     do{
       insights = await getCRMInsights(companyName, role, website, country);
-    }while(insights === null)
+    }while(insights === null || typeof insights !== 'object');
    res.status(200).json(insights);
     
   } catch (error: any) {
