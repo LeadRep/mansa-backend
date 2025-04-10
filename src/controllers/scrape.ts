@@ -83,7 +83,7 @@ export async function getCRMInsights(
       - Country: ${country || "N/A"}
       - Website Content: ${websiteContent || "N/A"}
     
-      Based on this company, generate an Ideal Customer Profile (ICP) and Buyer Persona for an ideal target customer with a random Fictional Name, age range and top 2 locations by city, country (add a fullstop with a space before the next city and country). gender should be male or female. The response should strictly follow this JSON structure:
+      Based on this company, generate an Ideal Customer Profile (ICP) and Buyer Persona for an ideal target customer with a random Fictional Name, gender(must match the name and must be male or female), age range and top 2 locations by city, country (add a fullstop with a space before the next city and country). The response should strictly follow this JSON structure:
       {
         "name": "",
         "role": "",
