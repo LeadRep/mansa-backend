@@ -41,6 +41,7 @@ export interface AIResponse {
   pain_points: string;
   buying_triggers: string;
   decision_making_process: string;
+  gender: string;
 }
 
 const apiKey = process.env.OPENAI_API_KEY;
