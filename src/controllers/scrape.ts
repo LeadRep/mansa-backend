@@ -1,8 +1,8 @@
 import axios from "axios";
 import { Request, Response } from "express";
 import puppeteer from "puppeteer";
-import dotenv from "dotenv";
-dotenv.config();
+import dotenv from 'dotenv'
+dotenv.config()
 
 // Define the expected structure of customer data
 export interface CustomerData {
@@ -71,7 +71,7 @@ export async function getCRMInsights(
   const messages = [
     {
       role: "system",
-      content: `You are an AI expert in B2B marketing and sales intelligence. Your task is to analyze the provided company information and infer the characteristics of its **Ideal Customer Profile (ICP)** and a key **Buyer Persona** within that ideal customer organization. Base your inferences on the company name, website, website content, and any other provided details. Ensure the response is strictly in **valid JSON format** without extra text, explanations, or markdown.`,
+      content: "You are a specialized AI designed to enrich CRM systems by analyzing company data to generate an Ideal Customer Profile (ICP) and a fictional Buyer Persona. You must research and infer missing details using available company information including website content. Your response must be ONLY in *valid compact JSON* with no comments or explanation. Use structured thinking and market knowledge to complete all fields. Leave a field blank only if absolutely no information can be inferred.",
     },
     {
       role: "user",
@@ -83,31 +83,7 @@ export async function getCRMInsights(
       - Country: ${country || "N/A"}
       - Website Content: ${websiteContent || "N/A"}
     
-      Based on this information, generate an *Ideal Customer Profile (ICP)* describing the characteristics of the most likely target organization for this company, and a *Buyer Persona* representing a typical individual within that organization who would be involved in the purchasing decision.
-    
-      The *ICP* should include:
-      - industry: (Infer the primary industry or industries the company targets)
-      - company_size: (Infer the likely size range of target companies, e.g., "Small to Medium-sized Businesses (SMBs)", "Enterprise")
-      - geographical_focus: (Infer the primary geographic regions the company targets)
-      - business_model: (Describe the likely business model of their ideal customers, e.g., "eCommerce", "SaaS", "Manufacturing")
-      - revenue: (Infer the likely revenue range of their ideal customers)
-      - pain_points: (Infer the key challenges and problems faced by their ideal customers that the company's offerings might solve)
-      - buying_triggers: (Infer the events or situations that might prompt their ideal customers to seek a solution like the company's)
-      The *Buyer Persona* should represent a key decision-maker or influencer within the ICP organization and include:
-      - name: (Generate a plausible fictional name with a matching gender - Male or Female)
-      - role: (Infer their likely job title or role within the organization)
-      - gender: (Must match the generated name)
-      - department: (Infer the relevant department they likely belong to)
-      - age_range: (Generate a plausible age range)
-      - locations: (Infer the top 2 likely city, country locations. Add a fullstop with a space before the next city and country)
-      - responsibilities: (Infer their key responsibilities and tasks)
-      - challenges: (Infer their specific professional challenges and pain points)
-      - goals: (Infer their key professional goals and objectives)
-      - preferred_communication_channel: (Infer their likely preferred methods of communication for business purposes)
-      - motivation: (Infer what primarily motivates them in their role)
-      - decision_making_process: (Infer their likely role and influence in the purchasing process)
-    
-      Ensure the response is *only* valid JSON with no extra text or space. Any missing values due to lack of information should be an empty string. The JSON structure should be:
+      Analyze the business based on this data. Then generate a realistic Ideal Customer Profile and fictional Buyer Persona, following this exact JSON structure. Choose a fitting fictional name, gender (male or female, matching name), and infer all fields. Locations should include top 2 cities with countries, separated by a period and space. Output must be valid JSON only:
       {
         "name": "",
         "role": "",
@@ -154,7 +130,7 @@ export async function getCRMInsights(
 
     // Ensure response data exists before parsing
     let aiContent = response.data?.choices?.[0]?.message?.content?.trim();
-
+    
     console.log(aiContent);
     return JSON.parse(aiContent) as AIResponse;
   } catch (error: any) {
@@ -165,15 +141,17 @@ export async function getCRMInsights(
 
 export const scrapeController = async (req: Request, res: Response) => {
   const { companyName, role, website, country } = req.body;
-
+  
   try {
     let insights: AIResponse | null = null;
-    do {
+    do{
       insights = await getCRMInsights(companyName, role, website, country);
-    } while (insights === null || typeof insights !== "object");
-    res.status(200).json(insights);
+    }while(insights === null || typeof insights !== 'object');
+   res.status(200).json(insights);
+    
   } catch (error: any) {
     console.error("Error in scrapeController:", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
-};
+    
+}
