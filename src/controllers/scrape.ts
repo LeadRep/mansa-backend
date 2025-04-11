@@ -71,7 +71,7 @@ export async function getCRMInsights(
   const messages = [
     {
       role: "system",
-      content: "You are a specialized AI designed to enrich CRM systems by analyzing company data to generate an Ideal Customer Profile (ICP) and a fictional Buyer Persona. You must research and infer missing details using available company information including website content. Your response must be ONLY in *valid compact JSON* with no comments or explanation. Use structured thinking and market knowledge to complete all fields. Leave a field blank only if absolutely no information can be inferred.",
+      content: "You are a specialized AI designed to enrich CRM systems by analyzing company data to generate a fitting realistic Ideal Customer Profile (ICP) organization and a fitting fictional Buyer Persona within the ideal target organization as customers the company should target. You must research and infer missing details using available company information including website content. Your response must be ONLY in *valid compact JSON* with no comments or explanation. Use structured thinking and market knowledge to complete all fields. Leave a field blank only if absolutely no information can be inferred.",
     },
     {
       role: "user",
