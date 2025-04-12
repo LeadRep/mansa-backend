@@ -1,8 +1,8 @@
 import axios from "axios";
 import { Request, Response } from "express";
 import puppeteer from "puppeteer";
-import dotenv from 'dotenv'
-dotenv.config()
+import dotenv from "dotenv";
+dotenv.config();
 
 // Define the expected structure of customer data
 export interface CustomerData {
@@ -11,12 +11,23 @@ export interface CustomerData {
   website?: string;
   country: string;
 }
-
-// Define the structure of the AI-generated response
-export interface AIResponse {
-  role: string;
-  department: string;
+interface ICP {
+  industry: string;
+  company_size: string;
+  geographical_focus: string;
+  business_model: string;
+  revenue: string;
+  tech_stack: string;
+  growth_stage: string;
+  pain_points: string;
+  buying_triggers: string;
+  decision_making_process: string;
+}
+interface BP {
   name: string;
+  role: string;
+  gender: string;
+  department: string;
   age_range: string;
   occupation: string;
   locations: string;
@@ -31,17 +42,11 @@ export interface AIResponse {
   preferred_communication_channel: string;
   motivation: string;
   buying_trigger: string;
-  industry: string;
-  company_size: string;
-  geographical_focus: string;
-  business_model_description: string;
-  revenue: string;
-  tech_stack: string;
-  growth_stage: string;
-  pain_points: string;
-  buying_triggers: string;
-  decision_making_process: string;
-  gender: string;
+}
+// Define the structure of the AI-generated response
+export interface AIResponse {
+  ideal_customer_profile: ICP;
+  buyer_persona: BP;
 }
 
 const apiKey = process.env.OPENAI_API_KEY;
@@ -71,7 +76,8 @@ export async function getCRMInsights(
   const messages = [
     {
       role: "system",
-      content: "You are a specialized AI designed to enrich CRM systems by analyzing company data to generate a fitting realistic Ideal Customer Profile (ICP) organization and a fitting fictional Buyer Persona within the ideal target organization as customers the company should target. You must research and infer missing details using available company information including website content. Your response must be ONLY in *valid compact JSON* with no comments or explanation. Use structured thinking and market knowledge to complete all fields. Leave a field blank only if absolutely no information can be inferred.",
+      content:
+        "You are a CRM intelligence assistant that enriches contact profiles based on company data. Your job is to analyze the company below and generate an Ideal Customer Profile (ICP) and a fictional Buyer Persona for that company's *target customers*. Do not describe the company itself. Use website content to infer the business model and target users. The result must be in valid JSON and contain no extra text or markdown.",
     },
     {
       role: "user",
@@ -82,37 +88,45 @@ export async function getCRMInsights(
       - Website: ${website || "N/A"}
       - Country: ${country || "N/A"}
       - Website Content: ${websiteContent || "N/A"}
-    
-      Analyze the business based on this data. Then generate a realistic Ideal Customer Profile and fictional Buyer Persona, following this exact JSON structure. Choose a fitting fictional name, gender (male or female, matching name), and infer all fields. Locations should include top 2 cities with countries, separated by a period and space. Output must be valid JSON only:
+
+      Based on this information, generate:
+      1. An *Ideal Customer Profile (ICP)* — this describes the typical organization or user that the company targets.
+      2. A *fictional Buyer Persona* — a decision-maker or user inside that ICP.
+
+      Use the following JSON structure exactly. Use "or" only where it makes sense (e.g. in occupation or education), but *never* in the "name" or "gender" fields. If you can't infer a value, leave it as an empty string. Output valid JSON only, no text or explanation.
       {
-        "name": "",
-        "role": "",
-        "gender":"",
-        "department": "",
-        "age_range": "",
-        "occupation": "",
-        "locations": "",
-        "education": "",
-        "responsibilities": "",
-        "income_level": "",
-        "business_model": "",
-        "challenges": "",
-        "goals": "",
-        "buying_power": "",
-        "objections": "",
-        "preferred_communication_channel": "",
-        "motivation": "",
-        "buying_trigger": "",
-        "industry": "",
-        "company_size": "",
-        "geographical_focus": "",
-        "business_model_description": "",
-        "revenue": "",
-        "tech_stack": "",
-        "growth_stage": "",
-        "pain_points": "",
-        "buying_triggers": "",
-        "decision_making_process": ""
+        "ideal_customer_profile": {
+          "industry": "",
+          "company_size": "",
+          "geographical_focus": "",
+          "business_model": "",
+          "revenue": "",
+          "tech_stack": "",
+          "growth_stage": "",
+          "pain_points": "",
+          "buying_triggers": "",
+          "decision_making_process": ""
+        },
+        "buyer_persona": {
+          "name": "",
+          "role": "",
+          "gender": "",
+          "department": "",
+          "age_range": "",
+          "occupation": "",
+          "locations": "",
+          "education": "",
+          "responsibilities": "",
+          "income_level": "",
+          "business_model": "",
+          "challenges": "",
+          "goals": "",
+          "buying_power": "",
+          "objections": "",
+          "preferred_communication_channel": "",
+          "motivation": "",
+          "buying_trigger": ""
+        }
       }
     
       Ensure the response is **only** valid JSON with no extra text or space. Any missing values should be an empty string.`,
@@ -128,9 +142,8 @@ export async function getCRMInsights(
       { headers }
     );
 
-    // Ensure response data exists before parsing
     let aiContent = response.data?.choices?.[0]?.message?.content?.trim();
-    
+
     console.log(aiContent);
     return JSON.parse(aiContent) as AIResponse;
   } catch (error: any) {
@@ -141,17 +154,15 @@ export async function getCRMInsights(
 
 export const scrapeController = async (req: Request, res: Response) => {
   const { companyName, role, website, country } = req.body;
-  
+
   try {
     let insights: AIResponse | null = null;
-    do{
+    do {
       insights = await getCRMInsights(companyName, role, website, country);
-    }while(insights === null || typeof insights !== 'object');
-   res.status(200).json(insights);
-    
+    } while (insights === null || typeof insights !== "object");
+    res.status(200).json(insights);
   } catch (error: any) {
     console.error("Error in scrapeController:", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
-    
-}
+};
