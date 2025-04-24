@@ -152,7 +152,7 @@ export async function getCRMInsights(
   }
 }
 
-export const scrapeController = async (req: Request, res: Response) => {
+export const customerPreference = async (req: Request, res: Response) => {
   const { companyName, role, website, country } = req.body;
 
   try {
