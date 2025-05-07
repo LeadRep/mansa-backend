@@ -6,36 +6,54 @@ import {
   generateRefreshToken,
   generateToken,
 } from "../../utils/services/token";
+import { verifyGoogleToken } from "../../utils/services/verifyGoogleToken";
+import { verifyMicrosoftToken } from "../../utils/services/verifyMicrosoftToken";
 
 export const loginUser = async (request: Request, response: Response) => {
-  const { email, password } = request.body;
   try {
-    const user = await Users.findOne({ where: { email } });
-    if (!user) {
-      sendResponse(response, 400, `${email} not found`);
-      return;
+    const { email, password, google, microsoft } = request.body;
+
+    let userEmail = email;
+
+    // Handle Google Login
+    if (google) {
+      const googleDetails = await verifyGoogleToken(google);
+      userEmail = googleDetails.email;
     }
 
-    const isPasswordValid = await verifyPassword(password, user?.password);
-    if (!isPasswordValid) {
-      sendResponse(response, 400, "Incorrect password");
-      return;
+    // Handle Microsoft Login
+    if (microsoft) {
+      const microsoftDetails = await verifyMicrosoftToken(microsoft);
+      userEmail = microsoftDetails.preferred_username || "";
+    }
+
+    const user = await Users.findOne({ where: { email: userEmail } });
+
+    if (!user) {
+      return sendResponse(response, 400, `${userEmail} not found`);
+    }
+
+    // If it's an OAuth login, skip password check
+    if (!google && !microsoft) {
+      const isPasswordValid = await verifyPassword(password, user.password);
+      if (!isPasswordValid) {
+        return sendResponse(response, 400, "Incorrect password");
+      }
     }
 
     const data = { id: user.id, email: user.email, role: user.role };
     const token = generateToken(data);
     const refreshToken = generateRefreshToken(data);
-    user.password = undefined;
 
-    sendResponse(response, 200, "Login successful", {
-      user: user,
+    const userResponse = { ...user.get(), password: undefined };
+
+    return sendResponse(response, 200, "Login successful", {
+      user: userResponse,
       token,
       refreshToken,
     });
-    return;
   } catch (error: any) {
     console.error("Login Error:", error.message);
-    sendResponse(response, 500, "Internal Server Error");
-    return;
+    return sendResponse(response, 500, "Internal Server Error");
   }
 };

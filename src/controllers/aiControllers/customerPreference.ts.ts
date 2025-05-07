@@ -50,8 +50,7 @@ export interface AIResponse {
 }
 
 const apiKey = process.env.OPENAI_API_KEY;
-const endpoint =
-  "https://mansacrm.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-02-15-preview";
+const endpoint = process.env.OPENAI_ENDPOINT;
 
 export async function scrapeWebsiteContent(url: string): Promise<string> {
   const browser = await puppeteer.launch();
@@ -137,7 +136,7 @@ export async function getCRMInsights(
     const headers = { "Content-Type": "application/json", "api-key": apiKey };
 
     const response = await axios.post(
-      endpoint,
+      `${endpoint}`,
       { messages, max_tokens: 500 },
       { headers }
     );
