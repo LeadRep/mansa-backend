@@ -63,8 +63,8 @@ export const registerUser = async (req: Request, res: Response) => {
       userData = await Users.create({
         ...commonFields,
         email,
-        firstName: fullName.firstName,
-        lastName: fullName.lastName,
+        firstName: fullName.firstName || "",
+        lastName: fullName.lastName || "",
         password: autoPassword,
         isVerified: true,
       });
@@ -73,8 +73,8 @@ export const registerUser = async (req: Request, res: Response) => {
       userData = await Users.create({
         ...commonFields,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
         password: hashedPassword,
         isVerified: false,
       });
