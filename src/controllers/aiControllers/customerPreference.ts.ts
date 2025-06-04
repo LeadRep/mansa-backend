@@ -71,7 +71,13 @@ export async function getCRMInsights(
   website: string = "N/A",
   country: string
 ): Promise<AIResponse | null> {
-  const websiteContent = await scrapeWebsiteContent(website);
+  let websiteContent = "";
+  try {
+    websiteContent = await scrapeWebsiteContent(website);
+  } catch (error:any) {
+    console.warn("Unable to scrape website content, proceeding with website info only:", error.message);
+  }
+
   const messages = [
     {
       role: "system",
