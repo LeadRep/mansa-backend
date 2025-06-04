@@ -98,6 +98,7 @@ export async function getCRMInsights(
       1. An *Ideal Customer Profile (ICP)* — this describes the typical organization or user that the company targets.
       2. A *fictional Buyer Persona* — a decision-maker or user inside that ICP.
 
+      if there is no website content, search the internet for info about the website and get the content from there.
       Use the following JSON structure exactly. Use "or" only where it makes sense (e.g. in occupation or education), but *never* in the "name" or "gender" fields. If you can't infer a value, leave it as an empty string. Output valid JSON only, no text or explanation.
       {
         "ideal_customer_profile": {
