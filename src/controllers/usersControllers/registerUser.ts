@@ -10,7 +10,7 @@ import {
   generateRefreshToken,
   generateToken,
 } from "../../utils/services/token";
-import { findLeads } from "../aiControllers/findPeople";
+import { findLeads } from "../aiControllers/findLeads";
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
