@@ -64,7 +64,7 @@ Leads.init(
       defaultValue: null,
     },
     linkedin_url: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
       defaultValue: null,
     },
@@ -74,7 +74,7 @@ Leads.init(
       defaultValue: null,
     },
     photo_url: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
       defaultValue: null,
     },
@@ -94,7 +94,7 @@ Leads.init(
       defaultValue: null,
     },
     headline: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
       defaultValue: null,
     },
@@ -139,7 +139,7 @@ Leads.init(
       defaultValue: null,
     },
     reason: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
       defaultValue: null,
     },

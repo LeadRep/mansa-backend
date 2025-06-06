@@ -6,7 +6,10 @@
   "scripts": {
     "start": "nodemon dist/app.js",
     "build": "tsc",
-    "compile": "tsc -w"
+    "compile": "tsc -w",
+    "migrate": "npx sequelize-cli db:migrate --config dist/configs/database/migration.js",
+    "migration:generate": "npx sequelize-cli migration:generate --name",
+    "migrate:undo": "npx sequelize-cli db:migrate:undo"
   },
   "keywords": [],
   "author": "",

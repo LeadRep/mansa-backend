@@ -10,8 +10,7 @@ import {
   generateRefreshToken,
   generateToken,
 } from "../../utils/services/token";
-import { token } from "morgan";
-import { findLeadsForUser } from "../../utils/findLeads";
+import { findLeads } from "../aiControllers/findPeople";
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -112,7 +111,7 @@ export const registerUser = async (req: Request, res: Response) => {
       "Account created successfully and verification email sent",
       data
     );
-    findLeadsForUser(userId);
+    findLeads(userId);
     return;
   } catch (error: any) {
     console.error("User Registration Error:", error.message);

@@ -1,14 +1,10 @@
-import { Request, Response } from "express";
-import sendResponse from "../../utils/http/sendResponse";
-import axios from "axios";
 import { CustomerPref } from "../../models/CustomerPref";
 import { organizationSearch } from "../../utils/services/apollo/organizationSearch";
 import { orgSearchQueryPrompt } from "../../utils/services/ai/orgSearchQueryPrompt";
 import { peopleSearch } from "../../utils/services/apollo/peopleSearch";
 import { peopleSearchQueryPrompt } from "../../utils/services/ai/peopleSearchQueryPrompt";
-
-const apiKey = process.env.OPENAI_API_KEY;
-const endpoint = process.env.OPENAI_ENDPOINT;
+import { enrichPeople } from "../../utils/services/apollo/enrichPeople";
+import { evaluateLeadsWithAI } from "../../utils/services/ai/evaluateLeadsQuery";
 
 const getCustomerPrefByUserId = async (userId: string) => {
   const pref = await CustomerPref.findOne({ where: { userId } });
@@ -16,44 +12,48 @@ const getCustomerPrefByUserId = async (userId: string) => {
   return pref;
 };
 
-export const findPeople = async (req: Request, res: Response) => {
+export const findLeads = async (userId: string) => {
   try {
-    // const poepleFound = await peopleSearch(
-    //   { person_titles: ["CEO", "software engineer"] },
-    //   1
-    // );
-
-    // const enrichAPerson = await enrichPerson({
-    //   id: "54a29a9e7468693cdd7a5a2f",
-    // });
-
-    // const bulkPeople = await enrichPeople({
-    //   details: [
-    //     { id: "54a29a9e7468693cdd7a5a2f" },
-    //     { id: "54a32c917468693318819259" },
-    //     { id: "54a406f97468693b8c0e3e26" },
-    //   ],
-    // });
-    // const action = await organizationSearch(
-    //   { q_organization_keyword_tags: ["fintech"] },
-    //   1
-    // );
-    // console.log(action);
-    const userInfo = await getCustomerPrefByUserId(
-      "04149691-d7a6-4d5c-9130-e81f6c4a3d9f"
+    //get customer preferences by userId
+    const customerPref = await getCustomerPrefByUserId(userId);
+    //get organization search query from AI
+    const orgSearchQuery = await orgSearchQueryPrompt(customerPref);
+    const peopleSearchQuery = await peopleSearchQueryPrompt(customerPref);
+    let organizationIds: string[] = [];
+    let peopleIds: string[] = [];
+    let organizationPages = 0;
+    let interation = 1;
+    do {
+      const organizations = await organizationSearch(
+        orgSearchQuery,
+        interation
+      );
+      if (interation === 1)
+        organizationPages = organizations.pagination.total_pages;
+      organizationIds = [...organizationIds, ...organizations.model_ids];
+      const people = await peopleSearch(
+        { ...peopleSearchQuery, organization_ids: organizations.model_ids },
+        1
+      );
+      peopleIds = [...peopleIds, ...people.model_ids];
+      interation++;
+    } while (interation <= organizationPages);
+    console.log("Total organizations found:", organizationIds.length);
+    console.log("Total people found:", peopleIds.length);
+    const leads = [];
+    for (let i = 0; i < peopleIds.length; i += 10) {
+      const batchIds = peopleIds.slice(i, i + 10);
+      const batchDetails = batchIds.map((id) => ({ id }));
+      const enrichedBatch = await enrichPeople({ details: batchDetails });
+      leads.push(...enrichedBatch.matches);
+    }
+    const evaluatedLeads = await evaluateLeadsWithAI(
+      customerPref,
+      leads,
+      userId
     );
-    const orgSearchQuery = await orgSearchQueryPrompt(userInfo);
-    const organizations = await organizationSearch(orgSearchQuery, 10);
-    const organizationPages = organizations.pagination.total_pages;
-    console.log(organizationPages);
-    // const peopleSearchQuery = await peopleSearchQueryPrompt(userInfo);
-    // const people = await peopleSearch(
-    //   { ...peopleSearchQuery, organization_ids: organizations.model_ids },
-    //   1
-    // );
-    sendResponse(res, 200, "Leads found successfully", organizations);
+    return;
   } catch (error: any) {
-    console.log(error.message);
-    sendResponse(res, 500, "Internal Server Error", error.message);
+    console.log("Error while generating leads for", userId, error.message);
   }
 };
