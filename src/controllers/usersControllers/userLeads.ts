@@ -14,7 +14,7 @@ export const userLeads = async (req: Request, res: Response) => {
       return;
     }
     const userLeads = await Leads.findAll({ where: { owner_id: userId } });
-    if (!userLeads || userLeads.length === 0) {
+    if (!userLeads || userLeads.length< 10) {
       await findLeads(userId);
       sendResponse(res, 400, "Currently generating leads, please wait a moment");
       return;

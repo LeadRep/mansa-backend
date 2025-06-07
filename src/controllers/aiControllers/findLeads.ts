@@ -37,21 +37,55 @@ export const findLeads = async (userId: string) => {
       );
       peopleIds = [...peopleIds, ...people.model_ids];
       interation++;
+      if (interation <= organizationPages) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
     } while (interation <= organizationPages);
     console.log("Total organizations found:", organizationIds.length);
     console.log("Total people found:", peopleIds.length);
     const leads = [];
-    for (let i = 0; i < peopleIds.length; i += 10) {
-      const batchIds = peopleIds.slice(i, i + 10);
+    const BATCH_SIZE = 5;
+    const REQUESTS_PER_MINUTE = 120;
+    const DELAY = (30 * 1000) / REQUESTS_PER_MINUTE; // Delay between batches
+
+    let processed = 0;
+    const startTime = Date.now();
+    for (let i = 0; i < peopleIds.length; i += BATCH_SIZE) {
+      const batchIds = peopleIds.slice(i, i + BATCH_SIZE);
       const batchDetails = batchIds.map((id) => ({ id }));
-      const enrichedBatch = await enrichPeople({ details: batchDetails });
-      leads.push(...enrichedBatch.matches);
+      try {
+        const enrichedBatch = await enrichPeople({ details: batchDetails }, 1);
+        leads.push(...enrichedBatch.matches);
+        const evaluatedLeads = await evaluateLeadsWithAI(
+          customerPref,
+          enrichedBatch.matches,
+          userId
+        );
+        processed += batchDetails.length;
+
+        // Progress logging
+        const elapsedMinutes = (Date.now() - startTime) / 60000;
+        console.log(
+          `Processed ${processed}/${peopleIds.length} (${Math.round(
+            processed / elapsedMinutes
+          )}/min) - ${Math.round(
+            (processed / peopleIds.length) * 100
+          )}% complete`
+        );
+
+        // Rate limiting delay
+        if (i + BATCH_SIZE < peopleIds.length) {
+          await new Promise((resolve) => setTimeout(resolve, DELAY));
+        }
+      } catch (error: any) {
+        console.error(
+          `Skipping batch ${i}-${i + BATCH_SIZE} due to error:`,
+          error.message
+        );
+        continue;
+      }
     }
-    const evaluatedLeads = await evaluateLeadsWithAI(
-      customerPref,
-      leads,
-      userId
-    );
+
     return;
   } catch (error: any) {
     console.log("Error while generating leads for", userId, error.message);
