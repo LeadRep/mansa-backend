@@ -104,7 +104,6 @@ export const registerUser = async (req: Request, res: Response) => {
         data = { user: fullUserData, token, refreshToken };
       }
     }
-
     sendResponse(
       res,
       200,

@@ -5,6 +5,7 @@ import { JwtPayload } from "jsonwebtoken";
 import Payment from "../../models/Payments";
 import { v4 } from "uuid";
 import moment from "moment";
+import { findLeads } from "../aiControllers/findLeads";
 
 dotenv.config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -146,6 +147,7 @@ export const successPayment = async (
         status: `success`,
         message: "Payment Successful",
       });
+      findLeads(userId, 100);
       return;
     } else {
       response.json({
