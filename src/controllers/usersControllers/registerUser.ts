@@ -111,7 +111,7 @@ export const registerUser = async (req: Request, res: Response) => {
       "Account created successfully and verification email sent",
       data
     );
-    findLeads(userId);
+    findLeads(userId, 10);
     return;
   } catch (error: any) {
     console.error("User Registration Error:", error.message);

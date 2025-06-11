@@ -12,7 +12,7 @@ const getCustomerPrefByUserId = async (userId: string) => {
   return pref;
 };
 
-export const findLeads = async (userId: string) => {
+export const findLeads = async (userId: string, totalLeads: number) => {
   try {
     //get customer preferences by userId
     const customerPref = await getCustomerPrefByUserId(userId);
@@ -40,16 +40,16 @@ export const findLeads = async (userId: string) => {
       if (interation <= organizationPages) {
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
-    } while (interation <= organizationPages);
+    } while (peopleIds.length < totalLeads);
     console.log("Total organizations found:", organizationIds.length);
     console.log("Total people found:", peopleIds.length);
     const leads = [];
-    const BATCH_SIZE = 5;
-    const REQUESTS_PER_MINUTE = 120;
-    const DELAY = (30 * 1000) / REQUESTS_PER_MINUTE; // Delay between batches
+    const BATCH_SIZE = 10;
+    // const REQUESTS_PER_MINUTE = 120;
+    // const DELAY = (30 * 1000) / REQUESTS_PER_MINUTE; // Delay between batches
 
-    let processed = 0;
-    const startTime = Date.now();
+    // let processed = 0;
+    // const startTime = Date.now();
     for (let i = 0; i < peopleIds.length; i += BATCH_SIZE) {
       const batchIds = peopleIds.slice(i, i + BATCH_SIZE);
       const batchDetails = batchIds.map((id) => ({ id }));
@@ -61,22 +61,22 @@ export const findLeads = async (userId: string) => {
           enrichedBatch.matches,
           userId
         );
-        processed += batchDetails.length;
+        // processed += batchDetails.length;
 
-        // Progress logging
-        const elapsedMinutes = (Date.now() - startTime) / 60000;
-        console.log(
-          `Processed ${processed}/${peopleIds.length} (${Math.round(
-            processed / elapsedMinutes
-          )}/min) - ${Math.round(
-            (processed / peopleIds.length) * 100
-          )}% complete`
-        );
+        // // Progress logging
+        // const elapsedMinutes = (Date.now() - startTime) / 60000;
+        // console.log(
+        //   `Processed ${processed}/${peopleIds.length} (${Math.round(
+        //     processed / elapsedMinutes
+        //   )}/min) - ${Math.round(
+        //     (processed / peopleIds.length) * 100
+        //   )}% complete`
+        // );
 
         // Rate limiting delay
-        if (i + BATCH_SIZE < peopleIds.length) {
-          await new Promise((resolve) => setTimeout(resolve, DELAY));
-        }
+        // if (i + BATCH_SIZE < peopleIds.length) {
+        //   await new Promise((resolve) => setTimeout(resolve, DELAY));
+        // }
       } catch (error: any) {
         console.error(
           `Skipping batch ${i}-${i + BATCH_SIZE} due to error:`,
