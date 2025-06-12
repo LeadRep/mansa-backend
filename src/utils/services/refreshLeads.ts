@@ -12,7 +12,7 @@ export const refreshLeads = async (request: Request, response: Response) => {
     // return;
     const companyName = "Quirin Privatbank AG";
     const role = "Wealth Manager";
-    const website = "https://www.hquirinprivatbank.de";
+    const website = "https://www.quirinprivatbank.de";
     const countries = "Germany";
     const ai = await customerPreferenceTest(companyName, role, website, countries);
     console.log(ai);
