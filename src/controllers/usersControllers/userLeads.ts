@@ -9,17 +9,22 @@ export const userLeads = async (req: Request, res: Response) => {
   try {
     const user = await Users.findOne({ where: { id: userId } });
 
-    if(!user) {
-      sendResponse(res, 400, "User not found");
+    if (!user) {
+      sendResponse(res, 400, "User not found", []);
       return;
     }
     const userLeads = await Leads.findAll({ where: { owner_id: userId } });
-    if (!userLeads || userLeads.length< 10) {
+    if (userLeads.length === 0) {
+      sendResponse(
+        res,
+        200,
+        "Currently generating leads, please wait a moment",
+        []
+      );
       await findLeads(userId, 10);
-      sendResponse(res, 400, "Currently generating leads, please wait a moment");
       return;
     }
-    if(!user.subscriptionName){
+    if (!user.subscriptionName) {
       sendResponse(res, 200, "Leads gotten", userLeads.slice(0, 10));
       return;
     }

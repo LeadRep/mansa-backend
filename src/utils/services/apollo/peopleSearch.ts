@@ -31,6 +31,7 @@ export const peopleSearch = async (query: PeopleSearchQuery, page?: number) => {
         },
       }
     );
+
     return response.data;
   } catch (error: any) {
     console.error("Error in peopleSearch:", error.message);

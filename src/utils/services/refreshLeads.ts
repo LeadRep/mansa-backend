@@ -6,9 +6,9 @@ import { Leads } from "../../models/Leads";
 
 export const refreshLeads = async (request: Request, response: Response) => {
   try {
-    const allUsers = await Users.findAll({})
-    const userIds = allUsers.map((user) => user.id);
-    const leads = await Promise.all(userIds.map((id) => findLeads(id, 100)));
+    const leads = await findLeads("fa20b943-19da-4819-8389-c6b59ea6b0a5", 10);
+    sendResponse(response, 200, "Leads refreshed successfully", leads);
+    return;
   } catch (error: any) {
     console.error("Error while refreshing leads:", error.message);
     sendResponse(response, 500, "Error while refreshing leads");
