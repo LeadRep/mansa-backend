@@ -14,7 +14,7 @@ export const refreshLeads = async (request: Request, response: Response) => {
     const role = "software engineer";
     const website = "https://www.jumia.com.ng/";
     const countries = "Nigeria";
-    const ai = customerPreferenceTest(companyName, role, website, countries);
+    const ai = await customerPreferenceTest(companyName, role, website, countries);
     console.log(ai);
     return sendResponse(response, 200, "Customer preference generated successfully", ai);
   } catch (error: any) {
