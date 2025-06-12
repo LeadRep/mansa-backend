@@ -5,7 +5,7 @@ dotenv.config();
 const SECRET_KEY = `${process.env.APP_SECRET}`;
 
 export const generateToken = (user: any) => {
-  return jwt.sign(user, SECRET_KEY, { expiresIn: "15m" });
+  return jwt.sign(user, SECRET_KEY, { expiresIn: "7d" });
 };
 
 export const generateRefreshToken = (user: any) => {
