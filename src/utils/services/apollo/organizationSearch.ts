@@ -14,7 +14,7 @@ interface organizationSearchQuery {
 
 export const organizationSearch = async (
   searchParams: organizationSearchQuery,
-  page: number
+  page?: number
 ) => {
   try {
     const response = await axios.post(
@@ -22,7 +22,7 @@ export const organizationSearch = async (
       {
         q_organization_domains: [],
         ...searchParams,
-        page,
+        page:page? page : 1,
         per_page: 100,
       },
       {

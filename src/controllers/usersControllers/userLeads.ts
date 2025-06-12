@@ -14,14 +14,15 @@ export const userLeads = async (req: Request, res: Response) => {
       return;
     }
     const userLeads = await Leads.findAll({ where: { owner_id: userId } });
-    if (userLeads.length === 0) {
+    console.log(userLeads.length);
+    if (userLeads.length < 10) {
       sendResponse(
         res,
         200,
         "Currently generating leads, please wait a moment",
-        []
+        userLeads
       );
-      await findLeads(userId, 10);
+      await findLeads(userId, 10 - userLeads.length);
       return;
     }
     if (!user.subscriptionName) {

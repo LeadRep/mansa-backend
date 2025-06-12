@@ -8,214 +8,15 @@ const endpoint = process.env.OPENAI_ENDPOINT;
 export const evaluateLeadsWithAI = async (
   customerPref: any,
   leads: any[],
-  userId: string
+  userId: string // Add userId as a parameter
 ) => {
   const results = [];
   console.log(leads.length, "leads to evaluate");
 
-  // First check which leads already exist
-  const existingLeadIds = (
-    await Leads.findAll({
-      where: {
-        owner_id: userId,
-        external_id: leads.map(lead => lead.id).filter(id => id)
-      },
-      attributes: ['external_id']
-    })
-  ).map(lead => lead.external_id);
-
-  // Filter out existing leads
-  const newLeads = leads.filter(lead => !existingLeadIds.includes(lead.id));
-  console.log(newLeads.length, "new leads to process");
-
-  if (newLeads.length === 0) {
-    return [];
-  }
-
-  // Prepare the batch request
-  const messages = [
-    {
-      role: "system",
-      content:
-        "You are a helpful assistant that evaluates multiple leads and returns an array of JSON objects. Do not include explanations. Ensure each JSON is valid with double-quoted property names.",
-    },
-    {
-      role: "user",
-      content: `Based on this Ideal Customer Profile (ICP) and Buyer Persona (BP):
-
-      ICP: ${JSON.stringify(customerPref.ICP)}
-      BP: ${JSON.stringify(customerPref.BP)}
-
-      Evaluate these ${newLeads.length} leads:
-      ${JSON.stringify(newLeads)}
-
-      Return an array of JSON objects with all the lead's existing information and add these fields to each:
-      - id
-      - first_name
-      - last_name
-      - full_name
-      - linkedin_url
-      - title
-      - photo_url
-      - twitter_url
-      - github_url
-      - facebook_url
-      - headline
-      - email
-      - phone
-      - organization
-      - departments
-      - state
-      - city
-      - country
-      - category (one of: "fit", "high score", "news", "event")
-      - reason (why this lead is a good fit)
-      - score (0 to 100 likelihood of becoming a customer)
-      - net_worth (approximate)
-
-      Only return a valid JSON array. No extra text.`,
-    },
-  ];
-
-  try {
-    const response = await axios.post(
-      endpoint!,
-      {
-        messages,
-        temperature: 0.7,
-        max_tokens: 4000, // Increased for batch processing
-        model: "gpt-4",
-      },
-      {
-        headers: {
-          "api-key": apiKey!,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    let content: string =
-      response?.data?.choices?.[0]?.message?.content?.trim() ?? "";
-
-    // Remove Markdown wrappers
-    content = content
-      .replace(/^```(json)?\s*/i, "")
-      .replace(/\s*```$/i, "")
-      .trim();
-
-    try {
-      const parsedLeads = JSON.parse(content);
-      
-      if (!Array.isArray(parsedLeads)) {
-        throw new Error("AI response was not an array");
-      }
-
-      // Prepare batch create operations
-      const createOperations = parsedLeads.map(parsedLead => {
-        return {
-          id: v4(),
-          external_id: parsedLead.id,
-          owner_id: userId,
-          first_name: parsedLead.first_name,
-          last_name: parsedLead.last_name,
-          full_name: parsedLead.full_name,
-          linkedin_url: parsedLead.linkedin_url,
-          title: parsedLead.title,
-          photo_url: parsedLead.photo_url,
-          twitter_url: parsedLead.twitter_url,
-          github_url: parsedLead.github_url,
-          facebook_url: parsedLead.facebook_url,
-          headline: parsedLead.headline,
-          email: parsedLead.email,
-          phone: parsedLead.phone,
-          organization: parsedLead.organization,
-          departments: parsedLead.departments,
-          state: parsedLead.state,
-          city: parsedLead.city,
-          country: parsedLead.country,
-          category: parsedLead.category,
-          reason: parsedLead.reason,
-          score: parsedLead.score,
-        };
-      });
-
-      // Batch create all leads at once
-      await Leads.bulkCreate(createOperations);
-      results.push(...parsedLeads);
-
-    } catch (parseErr: any) {
-      console.error("JSON parse failed for batch of leads");
-      console.error("Raw content:\n", content);
-      console.error("Parse error:", parseErr.message);
-
-      // Try to fix common JSON issues
-      try {
-        const fixedContent = content.replace(
-          /([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g,
-          '$1"$2"$3'
-        );
-        const parsedLeads = JSON.parse(fixedContent);
-        
-        if (!Array.isArray(parsedLeads)) {
-          throw new Error("Fixed response was not an array");
-        }
-
-        const createOperations = parsedLeads.map(parsedLead => {
-          return {
-            id: v4(),
-            external_id: parsedLead.id,
-            owner_id: userId,
-            first_name: parsedLead.first_name,
-            last_name: parsedLead.last_name,
-            full_name: parsedLead.full_name,
-            linkedin_url: parsedLead.linkedin_url,
-            title: parsedLead.title,
-            photo_url: parsedLead.photo_url,
-            twitter_url: parsedLead.twitter_url,
-            github_url: parsedLead.github_url,
-            facebook_url: parsedLead.facebook_url,
-            headline: parsedLead.headline,
-            email: parsedLead.email,
-            phone: parsedLead.phone,
-            organization: parsedLead.organization,
-            departments: parsedLead.departments,
-            state: parsedLead.state,
-            city: parsedLead.city,
-            country: parsedLead.country,
-            category: parsedLead.category,
-            reason: parsedLead.reason,
-            score: parsedLead.score,
-          };
-        });
-
-        await Leads.bulkCreate(createOperations);
-        results.push(...parsedLeads);
-      } catch (fixErr: any) {
-        console.error("Failed to recover JSON:", fixErr.message);
-        // If batch processing fails, fall back to individual processing
-        console.log("Falling back to individual lead processing");
-        return await processLeadsIndividually(customerPref, leads, userId);
-      }
-    }
-  } catch (err: any) {
-    console.error("Batch API error:", err.message);
-    // If batch processing fails, fall back to individual processing
-    console.log("Falling back to individual lead processing");
-    return await processLeadsIndividually(customerPref, leads, userId);
-  }
-
-  return results;
-};
-
-// Fallback function for individual processing
-async function processLeadsIndividually(customerPref: any, leads: any[], userId: string) {
-  const results = [];
-  
   for (const lead of leads) {
     const leadExist = await Leads.findOne({
       where: { owner_id: userId, external_id: lead.id },
     });
-    
     if (!leadExist) {
       const messages = [
         {
@@ -281,6 +82,7 @@ async function processLeadsIndividually(customerPref: any, leads: any[], userId:
         let content: string =
           response?.data?.choices?.[0]?.message?.content?.trim() ?? "";
 
+        // Remove Markdown wrappers
         content = content
           .replace(/^```(json)?\s*/i, "")
           .replace(/\s*```$/i, "")
@@ -290,6 +92,7 @@ async function processLeadsIndividually(customerPref: any, leads: any[], userId:
           const parsedLead = JSON.parse(content);
           results.push(parsedLead);
 
+          // Save to database
           await Leads.create({
             id: v4(),
             external_id: parsedLead.id,
@@ -322,6 +125,7 @@ async function processLeadsIndividually(customerPref: any, leads: any[], userId:
           console.error("Raw content:\n", content);
           console.error("Parse error:", parseErr.message);
 
+          // Try to fix common JSON issues
           try {
             const fixedContent = content.replace(
               /([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g,
@@ -329,6 +133,8 @@ async function processLeadsIndividually(customerPref: any, leads: any[], userId:
             );
             const parsedLead = JSON.parse(fixedContent);
             results.push(parsedLead);
+
+            // Save to database
 
             await Leads.create({
               id: v4(),
@@ -383,4 +189,4 @@ async function processLeadsIndividually(customerPref: any, leads: any[], userId:
   }
 
   return results;
-}
+};
