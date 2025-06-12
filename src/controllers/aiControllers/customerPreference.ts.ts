@@ -179,7 +179,7 @@ export async function getCRMInsights(
 
     const response = await axios.post(
       `${endpoint}`,
-      { messages, max_tokens: 500 },
+      { messages, max_tokens: 2000 },
       { headers }
     );
 
