@@ -221,7 +221,7 @@ export const customerPreferenceTest = async (companyName:string, role:string, we
     do {
       insights = await getCRMInsights(companyName, role, website, country);
     } while (insights === null || typeof insights !== "object");
-    // res.status(200).json(insights);
+    return insights;
   } catch (error: any) {
     console.error("Error in scrapeController:", error.message);
     // res.status(500).json({ error: "Internal server error" });
