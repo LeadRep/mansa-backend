@@ -88,7 +88,7 @@ export async function getCRMInsights(
       - Country: ${country || "N/A"}
       - Website Content: ${websiteContent || "N/A"}
 
-      Based on this information, generate:
+      Based on this information, generate profiles that describe the typical *clients or customers* of the company, not internal employees. 
       1. An *Ideal Customer Profile (ICP)* — this describes the typical organization or user that the company targets.
       2. A *fictional Buyer Persona* — a decision-maker or user inside that ICP.
 
