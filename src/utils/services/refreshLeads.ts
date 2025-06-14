@@ -10,9 +10,9 @@ export const refreshLeads = async (request: Request, response: Response) => {
     // const leads = await findLeads("fa20b943-19da-4819-8389-c6b59ea6b0a5", 10);
     // sendResponse(response, 200, "Leads refreshed successfully", leads);
     // return;
-    const companyName = "Quirin Privatbank AG";
+    const companyName = "maiestas";
     const role = "Wealth Manager";
-    const website = "https://www.quirinprivatbank.de";
+    const website = "https://maiestas.ag/";
     const countries = "Germany";
     const ai = await customerPreferenceTest(companyName, role, website, countries);
     console.log(ai);
