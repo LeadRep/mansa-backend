@@ -15,7 +15,6 @@ export const refreshLeads = async (request: Request, response: Response) => {
     const website = "https://maiestas.ag/";
     const countries = "Germany";
     const ai = await customerPreferenceTest(companyName, role, website, countries);
-    console.log(ai);
     return sendResponse(response, 200, "Customer preference generated successfully", ai);
   } catch (error: any) {
     console.error("Error while refreshing leads:", error.message);

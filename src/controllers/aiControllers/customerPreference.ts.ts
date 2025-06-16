@@ -228,27 +228,27 @@ export const customerPreferenceTest = async (
       insights = await getCRMInsights(companyName, role, website, country);
     } while (insights === null || typeof insights !== "object");
 
-    const roleKeywords = ["high", "net", "worth", "individual"];
-    const roles = insights.buyer_persona.role;
-    roles.map((item) => item.toLowerCase());
-    console.log("Roles before filtering:", roles);
-    roles.map((item) => {
-      roleKeywords.some((keyword) => item.includes(keyword));
-      if (
-        roleKeywords.filter((keyword) => item.includes(keyword)).length >= 2
-      ) {
-        roles.splice(
-          roles.indexOf(item),
-          1,
-          "ceo",
-          "founder",
-          "co-founder",
-          "entrepreneur"
-        );
-      }
-    });
-    console.log("Roles after filtering:", roles);
-    insights.buyer_persona.role = roles;
+    // const roleKeywords = ["high", "net", "worth", "individual"];
+    // const roles = insights.buyer_persona.role;
+    // roles.map((item) => item.toLowerCase());
+    // console.log("Roles before filtering:", roles);
+    // roles.map((item) => {
+    //   roleKeywords.some((keyword) => item.includes(keyword));
+    //   if (
+    //     roleKeywords.filter((keyword) => item.includes(keyword)).length >= 2
+    //   ) {
+    //     roles.splice(
+    //       roles.indexOf(item),
+    //       1,
+    //       "ceo",
+    //       "founder",
+    //       "co-founder",
+    //       "entrepreneur"
+    //     );
+    //   }
+    // });
+    // console.log("Roles after filtering:", roles);
+    // insights.buyer_persona.role = roles;
     return insights;
   } catch (error: any) {
     console.error("Error in scrapeController:", error.message);
