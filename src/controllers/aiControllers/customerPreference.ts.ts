@@ -156,6 +156,7 @@ export async function getCRMInsights(
       Results also include job titles with the same terms, even if they are not exact matches. For example, searching for marketing manager might return people with the job title content marketing manager.
       Use this parameter in combination with the person_seniorities[] parameter to find people based on specific job functions and seniority levels.
       if the role is *High Net Worth Individual* then return the role of people in an organization that are likely to be decision makers or influencers for high-value purchases, such as: founder, owner, ceo, and other similar titles.
+      do not return ***High Net Worth Individual*** as a role.
       Examples: sales development representative; marketing manager; research analyst
       * similar_titles[]array of strings
       Job titles that are similar to the primary role. This helps to broaden the search to include related positions.
@@ -191,7 +192,6 @@ export async function getCRMInsights(
         .replace(/```$/, "")
         .trim();
     }
-    console.log(aiContent);
     return JSON.parse(aiContent) as AIResponse;
   } catch (error: any) {
     console.error("Error fetching AI response:", error.message);
