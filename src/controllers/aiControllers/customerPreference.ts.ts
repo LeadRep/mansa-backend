@@ -12,9 +12,9 @@ export interface CustomerData {
   country: string;
 }
 interface ICP {
-  industry: string;
-  company_size: string;
-  geographical_focus: string;
+  industry: string[];
+  company_size: string[];
+  geographical_focus: string[];
   business_model: string;
   revenue: string;
   tech_stack: string;
@@ -26,11 +26,13 @@ interface ICP {
 interface BP {
   name: string;
   role: string[];
+  similar_titles: string[];
+  person_seniorities: string[];
   gender: string;
   department: string;
   age_range: string;
   occupation: string;
-  locations: string;
+  locations: string[];
   education: string;
   responsibilities: string;
   income_level: string;
@@ -96,8 +98,8 @@ export async function getCRMInsights(
       {
         "ideal_customer_profile": {
           "industry": [],
-          "company_size": "",
-          "geographical_focus": "",
+          "company_size": [],
+          "geographical_focus": [],
           "business_model": "",
           "revenue": "",
           "tech_stack": "",
@@ -115,7 +117,7 @@ export async function getCRMInsights(
           "department": "",
           "age_range": "",
           "occupation": "",
-          "locations": "",
+          "locations": [],
           "education": "",
           "responsibilities": "",
           "income_level": "",
@@ -151,6 +153,7 @@ export async function getCRMInsights(
       The number range of employees working for the company. This enables you to find companies based on headcount. You can add multiple ranges to expand your search results.
       Each range you add needs to be a string, with the upper and lower numbers of the range separated only by a comma.
       Examples: 1,10; 250,500; 10000,20000
+      for ***High Net Worth Individual*** company_size should always be 
       * role[]array of strings
       Job titles held by the people you want to find. For a person to be included in search results, they only need to match 1 of the job titles you add. Adding more job titles expands your search results.
       Results also include job titles with the same terms, even if they are not exact matches. For example, searching for marketing manager might return people with the job title content marketing manager.
