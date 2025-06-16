@@ -231,6 +231,7 @@ export const customerPreferenceTest = async (
     const roleKeywords = ["high", "net", "worth", "individual"];
     const roles = insights.buyer_persona.role;
     roles.map((item) => item.toLowerCase());
+    console.log("Roles before filtering:", roles);
     roles.map((item) => {
       roleKeywords.some((keyword) => item.includes(keyword));
       if (
@@ -246,7 +247,7 @@ export const customerPreferenceTest = async (
         );
       }
     });
-
+    console.log("Roles after filtering:", roles);
     insights.buyer_persona.role = roles;
     return insights;
   } catch (error: any) {
