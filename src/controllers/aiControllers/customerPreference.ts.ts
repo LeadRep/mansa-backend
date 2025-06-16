@@ -155,8 +155,8 @@ export async function getCRMInsights(
       Job titles held by the people you want to find. For a person to be included in search results, they only need to match 1 of the job titles you add. Adding more job titles expands your search results.
       Results also include job titles with the same terms, even if they are not exact matches. For example, searching for marketing manager might return people with the job title content marketing manager.
       Use this parameter in combination with the person_seniorities[] parameter to find people based on specific job functions and seniority levels.
+      if the role is *High Net Worth Individual* then return the role of people in an organization that are likely to be decision makers or influencers for high-value purchases, such as: founder, owner, ceo, and other similar titles.
       Examples: sales development representative; marketing manager; research analyst
-      if the role is High Net Worth Individual then return the role of people in an organization that are likely to be decision makers or influencers for high-value purchases, such as: founder, owner, ceo, and other similar titles.
       * similar_titles[]array of strings
       Job titles that are similar to the primary role. This helps to broaden the search to include related positions.
       Examples: marketing director; sales executive; product manager
