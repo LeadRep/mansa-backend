@@ -156,7 +156,7 @@ export async function getCRMInsights(
       Results also include job titles with the same terms, even if they are not exact matches. For example, searching for marketing manager might return people with the job title content marketing manager.
       Use this parameter in combination with the person_seniorities[] parameter to find people based on specific job functions and seniority levels.
       Examples: sales development representative; marketing manager; research analyst
-      the role should be recognisable by apollo people search API.
+      always return roles that is recognised by organizations.
       * similar_titles[]array of strings
       Job titles that are similar to the primary role. This helps to broaden the search to include related positions.
       Examples: marketing director; sales executive; product manager
