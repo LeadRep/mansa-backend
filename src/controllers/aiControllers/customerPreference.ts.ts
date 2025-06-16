@@ -153,7 +153,7 @@ export async function getCRMInsights(
       The number range of employees working for the company. This enables you to find companies based on headcount. You can add multiple ranges to expand your search results.
       Each range you add needs to be a string, with the upper and lower numbers of the range separated only by a comma.
       Examples: 1,10; 250,500; 10000,20000
-      for ***High Net Worth Individual*** company_size should always be 
+      for ***High Net Worth Individual*** company_size should always be very large for example 500,1000,10000,20000,50000,100000,200000,500000
       * role[]array of strings
       Job titles held by the people you want to find. For a person to be included in search results, they only need to match 1 of the job titles you add. Adding more job titles expands your search results.
       Results also include job titles with the same terms, even if they are not exact matches. For example, searching for marketing manager might return people with the job title content marketing manager.
