@@ -25,7 +25,7 @@ interface ICP {
 }
 interface BP {
   name: string;
-  role: string;
+  role: string[];
   gender: string;
   department: string;
   age_range: string;
@@ -108,7 +108,7 @@ export async function getCRMInsights(
         },
         "buyer_persona": {
           "name": "",
-          "role": "",
+          "role": [],
           "similar_titles": [],
           "person_seniorities": [],
           "gender": "",
@@ -227,6 +227,27 @@ export const customerPreferenceTest = async (
     do {
       insights = await getCRMInsights(companyName, role, website, country);
     } while (insights === null || typeof insights !== "object");
+
+    const roleKeywords = ["high", "net", "worth", "individual"];
+    const roles = insights.buyer_persona.role;
+    roles.map((item) => item.toLowerCase());
+    roles.map((item) => {
+      roleKeywords.some((keyword) => item.includes(keyword));
+      if (
+        roleKeywords.filter((keyword) => item.includes(keyword)).length >= 2
+      ) {
+        roles.splice(
+          roles.indexOf(item),
+          1,
+          "ceo",
+          "founder",
+          "co-founder",
+          "entrepreneur"
+        );
+      }
+    });
+
+    insights.buyer_persona.role = roles;
     return insights;
   } catch (error: any) {
     console.error("Error in scrapeController:", error.message);
