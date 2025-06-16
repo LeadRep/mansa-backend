@@ -156,7 +156,7 @@ export async function getCRMInsights(
       Results also include job titles with the same terms, even if they are not exact matches. For example, searching for marketing manager might return people with the job title content marketing manager.
       Use this parameter in combination with the person_seniorities[] parameter to find people based on specific job functions and seniority levels.
       Examples: sales development representative; marketing manager; research analyst
-      always return roles that is recognised by organizations.
+      if the role is High Net Worth Individual then return the role of people in an organization that are likely to be decision makers or influencers for high-value purchases, such as: founder, owner, ceo, and other similar titles.
       * similar_titles[]array of strings
       Job titles that are similar to the primary role. This helps to broaden the search to include related positions.
       Examples: marketing director; sales executive; product manager
@@ -214,7 +214,12 @@ export const customerPreference = async (req: Request, res: Response) => {
   }
 };
 
-export const customerPreferenceTest = async (companyName:string, role:string, website:string, country:string) => {
+export const customerPreferenceTest = async (
+  companyName: string,
+  role: string,
+  website: string,
+  country: string
+) => {
   // const { companyName, role, website, country } = req.body;
 
   try {
