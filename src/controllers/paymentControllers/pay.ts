@@ -6,6 +6,7 @@ import Payment from "../../models/Payments";
 import { v4 } from "uuid";
 import moment from "moment";
 import { findLeads } from "../aiControllers/findLeads";
+import sendResponse from "../../utils/http/sendResponse";
 
 dotenv.config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -143,11 +144,9 @@ export const successPayment = async (
           },
         }
       );
-      response.status(200).json({
-        status: `success`,
-        message: "Payment Successful",
-      });
-      findLeads(userId, 100);
+      const userDetails = await Users.findOne({ where: { id: userId } });
+      sendResponse(response, 200, "Payment Successful", userDetails);
+      findLeads(userId, 24);
       return;
     } else {
       response.json({

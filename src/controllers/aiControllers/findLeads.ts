@@ -65,7 +65,6 @@ export const findLeads = async (userId: string, totalLeads: number) => {
       const existingLeads = await Leads.findAll({
         where: {
           owner_id: userId,
-          external_id: peopleIds,
         },
         attributes: ["external_id"],
       });

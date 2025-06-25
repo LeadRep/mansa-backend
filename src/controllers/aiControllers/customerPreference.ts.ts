@@ -101,7 +101,7 @@ export async function getCRMInsights(
           "company_size": [],
           "geographical_focus": [],
           "business_model": "",
-          "revenue": "",
+          "revenue_min": {"min": "","max": ""},
           "tech_stack": "",
           "growth_stage": "",
           "pain_points": "",

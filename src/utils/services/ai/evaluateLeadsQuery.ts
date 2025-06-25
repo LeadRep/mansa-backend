@@ -93,49 +93,10 @@ export const evaluateLeadsWithAI = async (
           results.push(parsedLead);
 
           // Save to database
-          await Leads.create({
-            id: v4(),
-            external_id: parsedLead.id,
-            owner_id: userId,
-            first_name: parsedLead.first_name,
-            last_name: parsedLead.last_name,
-            full_name: parsedLead.full_name,
-            linkedin_url: parsedLead.linkedin_url,
-            title: parsedLead.title,
-            photo_url: parsedLead.photo_url,
-            twitter_url: parsedLead.twitter_url,
-            github_url: parsedLead.github_url,
-            facebook_url: parsedLead.facebook_url,
-            headline: parsedLead.headline,
-            email: parsedLead.email,
-            phone: parsedLead.phone,
-            organization: parsedLead.organization,
-            departments: parsedLead.departments,
-            state: parsedLead.state,
-            city: parsedLead.city,
-            country: parsedLead.country,
-            category: parsedLead.category,
-            reason: parsedLead.reason,
-            score: parsedLead.score,
+          const leadExist = await Leads.findOne({
+            where: { owner_id: userId, external_id: parsedLead.id },
           });
-        } catch (parseErr: any) {
-          console.error(
-            `JSON parse failed for lead: ${lead.email ?? "unknown"}`
-          );
-          console.error("Raw content:\n", content);
-          console.error("Parse error:", parseErr.message);
-
-          // Try to fix common JSON issues
-          try {
-            const fixedContent = content.replace(
-              /([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g,
-              '$1"$2"$3'
-            );
-            const parsedLead = JSON.parse(fixedContent);
-            results.push(parsedLead);
-
-            // Save to database
-
+          if (!leadExist) {
             await Leads.create({
               id: v4(),
               external_id: parsedLead.id,
@@ -161,6 +122,54 @@ export const evaluateLeadsWithAI = async (
               reason: parsedLead.reason,
               score: parsedLead.score,
             });
+          }
+        } catch (parseErr: any) {
+          console.error(
+            `JSON parse failed for lead: ${lead.email ?? "unknown"}`
+          );
+          console.error("Raw content:\n", content);
+          console.error("Parse error:", parseErr.message);
+
+          // Try to fix common JSON issues
+          try {
+            const fixedContent = content.replace(
+              /([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g,
+              '$1"$2"$3'
+            );
+            const parsedLead = JSON.parse(fixedContent);
+            results.push(parsedLead);
+
+            // Save to database
+            const leadExist = await Leads.findOne({
+              where: { owner_id: userId, external_id: parsedLead.id },
+            });
+            if (!leadExist) {
+              await Leads.create({
+                id: v4(),
+                external_id: parsedLead.id,
+                owner_id: userId,
+                first_name: parsedLead.first_name,
+                last_name: parsedLead.last_name,
+                full_name: parsedLead.full_name,
+                linkedin_url: parsedLead.linkedin_url,
+                title: parsedLead.title,
+                photo_url: parsedLead.photo_url,
+                twitter_url: parsedLead.twitter_url,
+                github_url: parsedLead.github_url,
+                facebook_url: parsedLead.facebook_url,
+                headline: parsedLead.headline,
+                email: parsedLead.email,
+                phone: parsedLead.phone,
+                organization: parsedLead.organization,
+                departments: parsedLead.departments,
+                state: parsedLead.state,
+                city: parsedLead.city,
+                country: parsedLead.country,
+                category: parsedLead.category,
+                reason: parsedLead.reason,
+                score: parsedLead.score,
+              });
+            }
           } catch (fixErr: any) {
             console.error("Failed to recover JSON:", fixErr.message);
             results.push({
