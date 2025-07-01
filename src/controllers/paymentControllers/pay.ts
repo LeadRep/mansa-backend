@@ -145,7 +145,9 @@ export const successPayment = async (
         }
       );
       const userDetails = await Users.findOne({ where: { id: userId } });
-      sendResponse(response, 200, "Payment Successful", userDetails);
+      const userResponse = { ...userDetails?.get(), password: undefined };
+
+      sendResponse(response, 200, "Payment Successful", {user: userResponse,});
       findLeads(userId, 24);
       return;
     } else {
