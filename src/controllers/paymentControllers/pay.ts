@@ -32,18 +32,28 @@ export const stripeSession = async (plan: string) => {
 };
 
 export const payment = async (request: JwtPayload, response: Response) => {
-  const [basicMonthly, basicYearly] = [
-    "price_1RP3rtQwj7e0FQ8k5TRLrFOD",
-    "price_1RP4cyJlttlFevLMigbEa2Ek",
-  ];
-  const [growthMonthly, growthYearly] = [
-    "price_1RP4eaJlttlFevLMuVo2zImh",
-    "price_1RP4fEJlttlFevLM5tegvdNR",
-  ];
-  const [teamMonthly, teamYearly] = [
-    "price_1RP4gmJlttlFevLMFNFLAZZU",
-    "price_1RP4hGJlttlFevLMmtLHoqaO",
-  ];
+  let basicMonthly = "";
+  let basicYearly = "";
+  let growthMonthly = "";
+  let growthYearly = "";
+  let teamMonthly = "";
+  let teamYearly = "";
+  if (process.env.APP_ENV === "poduction") {
+    basicMonthly = "price_1RP4cyJlttlFevLMsbWAahtg";
+    basicYearly = "price_1RP4cyJlttlFevLMigbEa2Ek"
+    growthMonthly = "price_1RP4eaJlttlFevLMuVo2zImh"
+    growthYearly = "price_1RP4fEJlttlFevLM5tegvdNR"
+    teamMonthly = "price_1RP4gmJlttlFevLMFNFLAZZU"
+    teamYearly = "price_1RP4hGJlttlFevLMmtLHoqaO";
+  } else {
+    basicMonthly = "price_1RP3rtQwj7e0FQ8k5TRLrFOD";
+    basicYearly = "price_1RP3w8Qwj7e0FQ8k0PK1ynTJ"
+    growthMonthly = "price_1RP3q5Qwj7e0FQ8kVLcj6rRv"
+    growthYearly = "price_1RP3xSQwj7e0FQ8kZYhFJdhn"
+    teamMonthly = "price_1RP3teQwj7e0FQ8kvtBp90BN"
+    teamYearly = "price_1RP3v0Qwj7e0FQ8k7retS6kE";
+  }
+
   const userId = request.user?.id;
   const { plan } = request.body;
 
@@ -147,7 +157,7 @@ export const successPayment = async (
       const userDetails = await Users.findOne({ where: { id: userId } });
       const userResponse = { ...userDetails?.get(), password: undefined };
 
-      sendResponse(response, 200, "Payment Successful", {user: userResponse,});
+      sendResponse(response, 200, "Payment Successful", { user: userResponse });
       findLeads(userId, 24);
       return;
     } else {
