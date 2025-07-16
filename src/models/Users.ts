@@ -23,7 +23,7 @@ export interface UsersAttributes {
   city?: string;
   bio?: string;
   password: string;
-  subscriptionName?: string;
+  subscriptionName?: string | null;
   subscriptionStartDate?: Date;
   subscriptionEndDate?: Date;
   isVerified: boolean;

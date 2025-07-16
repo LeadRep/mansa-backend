@@ -7,6 +7,7 @@ import { v4 } from "uuid";
 import moment from "moment";
 import { findLeads } from "../aiControllers/findLeads";
 import sendResponse from "../../utils/http/sendResponse";
+import NewUsersSequence from "../../models/NewUsersSequence";
 
 dotenv.config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -40,17 +41,17 @@ export const payment = async (request: JwtPayload, response: Response) => {
   let teamYearly = "";
   if (process.env.APP_ENV === "poduction") {
     basicMonthly = "price_1RP4cyJlttlFevLMsbWAahtg";
-    basicYearly = "price_1RP4cyJlttlFevLMigbEa2Ek"
-    growthMonthly = "price_1RP4eaJlttlFevLMuVo2zImh"
-    growthYearly = "price_1RP4fEJlttlFevLM5tegvdNR"
-    teamMonthly = "price_1RP4gmJlttlFevLMFNFLAZZU"
+    basicYearly = "price_1RP4cyJlttlFevLMigbEa2Ek";
+    growthMonthly = "price_1RP4eaJlttlFevLMuVo2zImh";
+    growthYearly = "price_1RP4fEJlttlFevLM5tegvdNR";
+    teamMonthly = "price_1RP4gmJlttlFevLMFNFLAZZU";
     teamYearly = "price_1RP4hGJlttlFevLMmtLHoqaO";
   } else {
     basicMonthly = "price_1RP3rtQwj7e0FQ8k5TRLrFOD";
-    basicYearly = "price_1RP3w8Qwj7e0FQ8k0PK1ynTJ"
-    growthMonthly = "price_1RP3q5Qwj7e0FQ8kVLcj6rRv"
-    growthYearly = "price_1RP3xSQwj7e0FQ8kZYhFJdhn"
-    teamMonthly = "price_1RP3teQwj7e0FQ8kvtBp90BN"
+    basicYearly = "price_1RP3w8Qwj7e0FQ8k0PK1ynTJ";
+    growthMonthly = "price_1RP3q5Qwj7e0FQ8kVLcj6rRv";
+    growthYearly = "price_1RP3xSQwj7e0FQ8kZYhFJdhn";
+    teamMonthly = "price_1RP3teQwj7e0FQ8kvtBp90BN";
     teamYearly = "price_1RP3v0Qwj7e0FQ8k7retS6kE";
   }
 
@@ -141,7 +142,6 @@ export const successPayment = async (
         },
         { where: { session_id: sessionID } }
       );
-
       await Users.update(
         {
           subscriptionStartDate: startDate,
@@ -154,6 +154,12 @@ export const successPayment = async (
           },
         }
       );
+      const userInSequence = await NewUsersSequence.findOne({
+        where: { user_id: userId },
+      });
+      if (userInSequence) {
+        await NewUsersSequence.destroy({ where: { user_id: userId } });
+      }
       const userDetails = await Users.findOne({ where: { id: userId } });
       const userResponse = { ...userDetails?.get(), password: undefined };
 

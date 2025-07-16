@@ -11,6 +11,8 @@ import {
   generateToken,
 } from "../../utils/services/token";
 import { findLeads } from "../aiControllers/findLeads";
+import NewUsersSequence, { SequenceStatus } from "../../models/NewUsersSequence";
+import { sequence1 } from "../../utils/mails/newUsers/sequence1";
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -18,7 +20,7 @@ export const registerUser = async (req: Request, res: Response) => {
     const userId = v4();
     const autoPassword = await hashPassword(userId);
 
-    let email = user.email;
+    let email = user.email.toLowerCase();
     let isOAuthUser = false;
     let fullName = { firstName: user.firstName, lastName: user.lastName };
 
@@ -110,6 +112,16 @@ export const registerUser = async (req: Request, res: Response) => {
       "Account created successfully and verification email sent",
       data
     );
+    sequence1(userData.email, userData.firstName, userId);
+    const newUserSequence = await NewUsersSequence.create({
+      id:v4(),
+      email: userData.email,
+      user_id: userId,
+      first_sequence: {
+        date: new Date(),
+        status: SequenceStatus.SENT,
+      },
+    })
     findLeads(userId, 10);
     return;
   } catch (error: any) {

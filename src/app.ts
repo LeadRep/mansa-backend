@@ -11,6 +11,7 @@ import path from "path";
 // import serveFavicon from "serve-favicon";
 import indexRoutes from "./routes/indexRoutes";
 import { healthCheck } from "./controllers/healthCheck";
+import { newUserSequence } from "./utils/services/newUserSequence";
 dotenv.config();
 
 const app = express();
@@ -29,6 +30,7 @@ database
   .sync({})
   .then(() => {
     console.log("Database is connected");
+    newUserSequence();
   })
   .catch((err: HttpError) => {
     console.log(err);
