@@ -31,28 +31,27 @@ database
   .sync({})
   .then(() => {
     console.log("Database is connected");
-    newUserSequence();
   })
   .catch((err: HttpError) => {
     console.log(err);
   });
 
 // Schedule to run every day at 7 AM
-// cron.schedule(
-//   "0 7 * * *",
-//   async () => {
-//     console.log("Running scheduled job at 7 AM...");
-//     try {
-//       await newUserSequence();
-//       console.log("Scheduled job completed successfully");
-//     } catch (error) {
-//       console.error("Error in scheduled job:", error);
-//     }
-//   },
-//   {
-//     timezone: "America/New_York", // Set your timezone
-//   }
-// );
+cron.schedule(
+  "0 7 * * *",
+  async () => {
+    console.log("Running scheduled job at 7 AM...");
+    try {
+      await newUserSequence();
+      console.log("Scheduled job completed successfully");
+    } catch (error) {
+      console.error("Error in scheduled job:", error);
+    }
+  },
+  {
+    timezone: "America/New_York", // Set your timezone
+  }
+);
 app.listen(port, () => {
   console.log(`App running at port ${port}`);
 });
