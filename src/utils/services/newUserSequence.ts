@@ -19,11 +19,13 @@ export const newUserSequence = async () => {
         subscriptionName: null,
       },
     });
+
     console.log(unsubscribedUsers.length, "unsubscribed users found");
     for (const user of unsubscribedUsers) {
       const userInSequence = await NewUsersSequence.findOne({
         where: { user_id: user.id },
       });
+
       if (!userInSequence) {
         console.log(`Sending sequence 1 to: ${user.email}`);
         await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -43,7 +45,8 @@ export const newUserSequence = async () => {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         await sequence1(user.email, user.firstName, user.id);
       } else if (
-        userInSequence.second_sequence.date === new Date().toDateString() &&
+        new Date(userInSequence.second_sequence.date).toDateString() ===
+          new Date().toDateString() &&
         userInSequence.second_sequence.status !== SequenceStatus.SENT
       ) {
         console.log(`Sending sequence 2 to: ${user.email}`);
@@ -59,7 +62,7 @@ export const newUserSequence = async () => {
           { where: { user_id: user.id } }
         );
       } else if (
-        userInSequence.second_sequence.date === new Date().toDateString() &&
+        new Date(userInSequence.second_sequence.date).toDateString() === new Date().toDateString() &&
         userInSequence.third_sequence.status !== SequenceStatus.SENT
       ) {
         console.log(`Sending sequence 3 to: ${user.email}`);
