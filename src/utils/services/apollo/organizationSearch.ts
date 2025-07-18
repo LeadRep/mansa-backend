@@ -36,7 +36,7 @@ export const organizationSearch = async (
     );
     return response.data;
   } catch (err: any) {
-    console.error("Error in organizationSearch:", err.message);
-    throw new Error("Failed to search organizations");
+    console.log("Error in organizationSearch:", err.message);
+    return false
   }
 };

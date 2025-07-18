@@ -34,7 +34,7 @@ export const peopleSearch = async (query: PeopleSearchQuery, page?: number) => {
 
     return response.data;
   } catch (error: any) {
-    console.error("Error in peopleSearch:", error.message);
-    throw new Error("Failed to perform people search");
+    console.log("Error in peopleSearch:", error.message);
+    return false
   }
 };

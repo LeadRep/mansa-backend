@@ -6,6 +6,7 @@ import { peopleSearchQueryPrompt } from "../../utils/services/ai/peopleSearchQue
 import { enrichPeople } from "../../utils/services/apollo/enrichPeople";
 import { evaluateLeadsWithAI } from "../../utils/services/ai/evaluateLeadsQuery";
 import { Leads } from "../../models/Leads";
+import { or } from "sequelize";
 
 const getCustomerPrefByUserId = async (userId: string) => {
   const pref = await CustomerPref.findOne({ where: { userId } });
@@ -24,6 +25,9 @@ export const findLeads = async (userId: string, totalLeads: number) => {
       // Step 1: Find relevant organizations
       const orgSearchQuery = await orgSearchQueryPrompt(customerPref);
       const organizations = await organizationSearch(orgSearchQuery);
+      if (organizations === false) {
+        return;
+      }
 
       // Step 2: Find people from these organizations
       const peopleSearchQuery = await peopleSearchQueryPrompt(customerPref);
@@ -39,7 +43,9 @@ export const findLeads = async (userId: string, totalLeads: number) => {
           },
           peopleSearchPage
         );
-
+        if (people === false) {
+          return;
+        }
         if (totalPeopleSearchPage === 0) {
           totalPeopleSearchPage = people.pagination.total_pages;
           peopleSearchPage = 1;
@@ -101,7 +107,7 @@ export const findLeads = async (userId: string, totalLeads: number) => {
               leads = leads.slice(0, totalLeads);
               break;
             }
-          } catch (error:any) {
+          } catch (error: any) {
             console.error(
               `Error processing batch ${i / 10 + 1}:`,
               error.message
@@ -125,7 +131,7 @@ export const findLeads = async (userId: string, totalLeads: number) => {
     }
 
     return leads.slice(0, totalLeads); // Ensure we return exactly the requested number
-  } catch (error:any) {
+  } catch (error: any) {
     console.error("Error in findLeads:", error.message);
     throw error; // Re-throw to handle in calling function
   }
