@@ -6,6 +6,7 @@ import { userAuth } from "../middlewares/userAuth";
 import { payment, successPayment } from "../controllers/paymentControllers/pay";
 import { autologin } from "../controllers/usersControllers/autologin";
 import { userCustomerPref } from "../controllers/usersControllers/userCustomerPref";
+import { updateCustomerPref } from "../controllers/usersControllers/updateCustomerPref";
 
 const usersRoutes = express.Router();
 usersRoutes.post("/register", registerUser);
@@ -14,6 +15,7 @@ usersRoutes.post("/autologin", autologin);
 usersRoutes.get("/leads", userAuth, userLeads);
 usersRoutes.post("/pay", userAuth, payment);
 usersRoutes.post("/verify-payment", userAuth, successPayment);
-usersRoutes.get("/customer-pref", userAuth, userCustomerPref)
+usersRoutes.get("/customer-pref", userAuth, userCustomerPref);
+usersRoutes.put("/update-customer-pref", userAuth, updateCustomerPref);
 
 export default usersRoutes;
