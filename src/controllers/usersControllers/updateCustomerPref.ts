@@ -26,7 +26,7 @@ export const updateCustomerPref = async (
       return;
     }
     await CustomerPref.update({ BP, ICP }, { where: { userId } });
-    findLeads(userId, 24);
+    // findLeads(userId, 24);
     sendResponse(response, 200, "Customer preferences updated successfully");
     return;
   } catch (error: any) {
