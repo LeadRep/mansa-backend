@@ -16,6 +16,6 @@ usersRoutes.get("/leads", userAuth, userLeads);
 usersRoutes.post("/pay", userAuth, payment);
 usersRoutes.post("/verify-payment", userAuth, successPayment);
 usersRoutes.get("/customer-pref", userAuth, userCustomerPref);
-usersRoutes.put("/update-customer-pref", userAuth, updateCustomerPref);
+usersRoutes.put("/customer-pref", userAuth, updateCustomerPref);
 
 export default usersRoutes;
