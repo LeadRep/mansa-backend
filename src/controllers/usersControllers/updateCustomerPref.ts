@@ -4,6 +4,7 @@ import sendResponse from "../../utils/http/sendResponse";
 import { CustomerPref } from "../../models/CustomerPref";
 import Users from "../../models/Users";
 import { findLeads } from "../aiControllers/findLeads";
+import { Leads, LeadStatus } from "../../models/Leads";
 
 export const updateCustomerPref = async (
   request: JwtPayload,
@@ -26,8 +27,11 @@ export const updateCustomerPref = async (
       return;
     }
     await CustomerPref.update({ BP, ICP }, { where: { userId } });
-    // findLeads(userId, 24);
+    await Leads.destroy({
+      where: { owner_id: userId, status: LeadStatus.NEW },
+    });
     sendResponse(response, 200, "Customer preferences updated successfully");
+    findLeads(userId, 24);
     return;
   } catch (error: any) {
     console.error("Error updating customer preferences:", error);
