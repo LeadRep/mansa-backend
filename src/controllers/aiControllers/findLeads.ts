@@ -1,4 +1,4 @@
-import { CustomerPref } from "../../models/CustomerPref";
+import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
 import { organizationSearch } from "../../utils/services/apollo/organizationSearch";
 import { orgSearchQueryPrompt } from "../../utils/services/ai/orgSearchQueryPrompt";
 import { peopleSearch } from "../../utils/services/apollo/peopleSearch";
@@ -129,7 +129,10 @@ export const findLeads = async (userId: string, totalLeads: number) => {
         `Only found ${leads.length} unique leads after ${maxAttempts} attempts`
       );
     }
-
+    await CustomerPref.update(
+      { leadsGenerationStatus: LeadsGenerationStatus.COMPLETED },
+      { where: { userId } }
+    );
     return leads.slice(0, totalLeads); // Ensure we return exactly the requested number
   } catch (error: any) {
     console.error("Error in findLeads:", error.message);

@@ -1,6 +1,12 @@
 import { DataTypes, Model } from "sequelize";
 import { database } from "../configs/database/database";
 
+export enum LeadStatus {
+  NEW = "new",
+  SAVED = "saved",
+  DELETED = "deleted",
+}
+
 export interface LeadsAttributes {
   id: string;
   external_id: string;
@@ -25,6 +31,7 @@ export interface LeadsAttributes {
   category: string;
   reason: string;
   score: number;
+  status?: LeadStatus;
 }
 
 export class Leads extends Model<LeadsAttributes> {
@@ -148,6 +155,11 @@ Leads.init(
       allowNull: true,
       defaultValue: null,
     },
+    status:{
+      type: DataTypes.ENUM(...Object.values(LeadStatus)),
+      defaultValue: LeadStatus.NEW,
+      allowNull: false,
+    }
   },
   {
     sequelize: database,

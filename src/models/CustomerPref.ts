@@ -35,12 +35,22 @@ export interface BP {
   buying_trigger: string;
 }
 
+export enum LeadsGenerationStatus {
+  NOT_STARTED = "not_started",
+  ONGOING = "ongoing",
+  COMPLETED = "completed",
+  FAILED = "failed",
+}
+
 export interface CustomerPrefAttributes {
   id: string;
   userId: string;
   ICP: JSON;
   BP: JSON;
   territories?: Array<string> | [];
+  leadsGenerationStatus?: LeadsGenerationStatus;
+  refreshLeads?: number;
+  nextRefresh?: Date;
 }
 
 export class CustomerPref extends Model<CustomerPrefAttributes> {
@@ -71,6 +81,21 @@ CustomerPref.init(
       type: DataTypes.ARRAY(DataTypes.STRING),
       allowNull: true,
       defaultValue: [],
+    },
+    leadsGenerationStatus: {
+      type: DataTypes.ENUM(...Object.values(LeadsGenerationStatus)),
+      allowNull: true,
+      defaultValue: LeadsGenerationStatus.COMPLETED,
+    },
+    refreshLeads: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 5,
+    },
+    nextRefresh: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
     },
   },
   {
