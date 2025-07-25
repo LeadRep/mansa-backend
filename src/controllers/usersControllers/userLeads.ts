@@ -32,6 +32,8 @@ export const userLeads = async (req: Request, res: Response) => {
         }
         return;
       }
+      sendResponse(res, 200, "Leads gotten", userLeads.slice(0, 10));
+      return;
     } else {
       if (userLeads.length < 24) {
         sendResponse(
@@ -49,7 +51,12 @@ export const userLeads = async (req: Request, res: Response) => {
       }
     }
 
-    sendResponse(res, 200, "Leads gotten", userLeads);
+    sendResponse(
+      res,
+      200,
+      "Leads gotten",
+      !user.subscriptionName ? userLeads.slice(0, 10) : userLeads
+    );
     return;
   } catch (error: any) {
     console.error("Error in userLeads:", error.message);

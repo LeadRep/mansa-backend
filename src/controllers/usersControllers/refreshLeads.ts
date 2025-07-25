@@ -61,8 +61,8 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
     await Leads.destroy({
       where: { owner_id: userId, status: LeadStatus.NEW },
     });
-    await findLeads(userId, 24);
     sendResponse(response, 200, "Leads refresh in progress");
+    await findLeads(userId, 24);
     return;
   } catch (error: any) {
     console.log("Error in refreshLeads controller:", error.message);
