@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import sendResponse from "../../utils/http/sendResponse";
-import { Leads, LeadStatus } from "../../models/Leads";
+import { Leads } from "../../models/Leads";
 import Users from "../../models/Users";
 import { findLeads } from "../aiControllers/findLeads";
 import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
@@ -15,6 +15,7 @@ export const userLeads = async (req: Request, res: Response) => {
       sendResponse(res, 400, "User not found", []);
       return;
     }
+    const userLeads = await Leads.findAll({ where: { owner_id: userId } });
 
     if (!user.subscriptionName) {
       if (userLeads.length < 10) {
