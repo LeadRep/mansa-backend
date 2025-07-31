@@ -20,7 +20,11 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       return;
     }
     if (customer?.refreshLeads < 1) {
-      sendResponse(response, 400, "You have no leads refresh left for today");
+      sendResponse(
+        response,
+        400,
+        "You have used up your number of refresh for today"
+      );
       return;
     }
     if (
@@ -49,6 +53,7 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       return;
     }
     // Decrement the refreshLeads count & Update the next refresh time to 1 hour later
+    console.log("Updating customer pref...");
     await CustomerPref.update(
       {
         refreshLeads: customer?.refreshLeads - 1,
@@ -58,6 +63,7 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       { where: { userId } }
     );
     // Remove all current leads with status new
+    console.log("Deleting all existing leads");
     await Leads.destroy({
       where: { owner_id: userId, status: LeadStatus.NEW },
     });

@@ -60,8 +60,6 @@ Return only a JSON array.`,
         .trim();
     }
 
-    console.log("AI response (IDs):", aiContent);
-
     const ids = JSON.parse(aiContent);
 
     // Fetch leads from DB
