@@ -8,7 +8,6 @@ import { Leads, LeadStatus } from "../../models/Leads";
 
 export const refreshLeads = async (request: JwtPayload, response: Response) => {
   const userId = request.user.id;
-  console.log("Starting refresh leads...")
   try {
     const customer = await CustomerPref.findOne({ where: { userId } });
     const user = await Users.findByPk(userId);
@@ -42,7 +41,7 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
           day: "numeric",
           hour: "2-digit",
           minute: "2-digit",
-          hour12: true, // Use 12-hour format with AM/PM
+          hour12: true,
           timeZoneName: "short",
         }
       );
@@ -53,8 +52,6 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       );
       return;
     }
-    // Decrement the refreshLeads count & Update the next refresh time to 1 hour later
-    console.log("Updating customer pref...");
     await CustomerPref.update(
       {
         refreshLeads: customer?.refreshLeads - 1,
@@ -63,7 +60,6 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       },
       { where: { userId } }
     );
-    // Remove all current leads with status new
     console.log("Deleting all existing leads");
     await Leads.destroy({
       where: { owner_id: userId, status: LeadStatus.NEW },

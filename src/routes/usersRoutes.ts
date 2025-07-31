@@ -7,7 +7,7 @@ import { payment, successPayment } from "../controllers/paymentControllers/pay";
 import { autologin } from "../controllers/usersControllers/autologin";
 import { userCustomerPref } from "../controllers/usersControllers/userCustomerPref";
 import { updateCustomerPref } from "../controllers/usersControllers/updateCustomerPref";
-import { refreshLeads } from "../utils/services/refreshLeads";
+import { refreshLeads } from "../controllers/usersControllers/refreshLeads";
 
 const usersRoutes = express.Router();
 usersRoutes.post("/register", registerUser);
