@@ -8,6 +8,7 @@ import { Leads, LeadStatus } from "../../models/Leads";
 
 export const refreshLeads = async (request: JwtPayload, response: Response) => {
   const userId = request.user.id;
+  console.log("Starting refresh leads...")
   try {
     const customer = await CustomerPref.findOne({ where: { userId } });
     const user = await Users.findByPk(userId);
