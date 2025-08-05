@@ -45,7 +45,7 @@ export const updateCustomerPref = async (
         ICP.business_model !== customer?.ICP.business_model
           ? ICP.business_model
           : "",
-      revenue: ICP.business_model !== customer?.ICP.revenue ? ICP.revenue : "",
+      revenue: ICP.revenue !== customer?.ICP.revenue ? ICP.revenue : "",
       tech_stack:
         ICP.tech_stack !== customer?.ICP.tech_stack ? ICP.tech_stack : "",
       growth_stage:

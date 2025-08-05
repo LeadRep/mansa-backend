@@ -39,6 +39,7 @@ export async function updateCRMInsights(
         2. A *fictional Buyer Persona* — a decision-maker or user inside that ICP.
   
         Use the following JSON structure exactly. Use "or" only where it makes sense (e.g. in occupation or education), but *never* in the "name" or "gender" fields. If you can't infer a value, leave it as an empty string. Output valid JSON only, no text or explanation.
+        *Do not change the data already present in the json structure below*
         {
           "ideal_customer_profile": {
             "industry": ${ICP.industry || ""},
