@@ -87,6 +87,8 @@ export const updateCustomerPref = async (
       motivation: BP.name !== customer?.BP.name ? BP.name : "",
       buying_trigger: BP.name !== customer?.BP.name ? BP.name : "",
     };
+    console.log("New ICP :", newICP);
+    console.log("New BP:", newBP);
     const newCustomerPref = await updatecustomerPreference(
       user?.companyName,
       user?.role,
