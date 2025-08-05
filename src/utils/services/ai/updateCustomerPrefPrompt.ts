@@ -23,7 +23,7 @@ export async function updateCRMInsights(
       role: "system",
       content: `You are a CRM intelligence assistant that enriches contact profiles based on company data. You analyze the company below and update a provided JSON profile structure.
   
-  Update only the fields that are empty strings (""). Do NOT change or modify any fields that already have values. The data structure consists of two parts:
+  Update only the fields that are empty strings (""). Do NOT change or modify any fields that already have values, just return the value as it is. The data structure consists of two parts:
   1. An Ideal Customer Profile (ICP) — this describes the *typical organization* the company targets.
   2. A fictional Buyer Persona — this represents a decision-maker inside that ICP.
   
