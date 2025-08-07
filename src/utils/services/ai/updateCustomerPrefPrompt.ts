@@ -44,7 +44,6 @@ export async function updateCRMInsights(
     "ideal_customer_profile": {
       "industry": "${ICP.industry || ""}",
       "company_size": "${ICP.company_size || ""}",
-      "geographical_focus": "${ICP.geographical_focus || ""}",
       "revenue": "${ICP.revenue || ""}",
       "tech_stack": "${ICP.tech_stack || ""}",
       "growth_stage": "${ICP.growth_stage || ""}",

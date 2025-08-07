@@ -37,10 +37,6 @@ export const updateCustomerPref = async (
       industry: ICP.industry !== customer?.ICP.industry ? ICP.industry : "",
       company_size:
         ICP.company_size !== customer?.ICP.company_size ? ICP.company_size : "",
-      geographical_focus:
-        ICP.geographical_focus !== customer?.ICP.geographical_focus
-          ? ICP.geographical_focus
-          : "",
       business_model:
         ICP.business_model !== customer?.ICP.business_model
           ? ICP.business_model
