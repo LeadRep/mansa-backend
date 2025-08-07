@@ -10,19 +10,10 @@ dotenv.config();
 const apiKey = process.env.OPENAI_API_KEY;
 const endpoint = process.env.OPENAI_ENDPOINT;
 
-
-const aiPrompt = async(leads:any, keyword:string)=>{
-  try{
-
-  }catch(error:any){
-    console.error("Error fetching AI response:", error.message);
-    return null;
-  }
-}
-
 export const leadsPrompt = async (request: JwtPayload, response: Response) => {
   const { keyword } = request.body;
-  const userId = request.user.id
+  console.log("Keyword:", keyword);
+  const userId = request.user.id;
 
   try {
     const userLeads = await Leads.findAll({
@@ -61,6 +52,7 @@ Return only a JSON array.`,
     );
 
     let aiContent = aiResponse.data?.choices?.[0]?.message?.content?.trim();
+    console.log("Ai content:", aiContent);
 
     // Strip accidental formatting
     if (aiContent.startsWith("```")) {
@@ -71,6 +63,7 @@ Return only a JSON array.`,
     }
 
     const ids = JSON.parse(aiContent);
+    console.log("Ai response:", ids);
 
     // Fetch leads from DB
     const leads = await Leads.findAll({
