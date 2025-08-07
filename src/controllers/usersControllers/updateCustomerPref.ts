@@ -64,24 +64,46 @@ export const updateCustomerPref = async (
         BP.similar_titles !== customer?.BP.similar_titles
           ? BP.similar_titles
           : "",
-      person_seniorities: BP.name !== customer?.BP.name ? BP.name : "",
-      gender: BP.name !== customer?.BP.name ? BP.name : "",
-      department: BP.name !== customer?.BP.name ? BP.name : "",
-      age_range: BP.name !== customer?.BP.name ? BP.name : "",
-      occupation: BP.name !== customer?.BP.name ? BP.name : "",
-      locations: BP.name !== customer?.BP.name ? BP.name : "",
-      education: BP.name !== customer?.BP.name ? BP.name : "",
-      responsibilities: BP.name !== customer?.BP.name ? BP.name : "",
-      income_level: BP.name !== customer?.BP.name ? BP.name : "",
-      business_model: BP.name !== customer?.BP.name ? BP.name : "",
-      challenges: BP.name !== customer?.BP.name ? BP.name : "",
-      goals: BP.name !== customer?.BP.name ? BP.name : "",
-      buying_power: BP.name !== customer?.BP.name ? BP.name : "",
-      objections: BP.name !== customer?.BP.name ? BP.name : "",
+      person_seniorities:
+        BP.person_seniorities !== customer?.BP.person_seniorities
+          ? BP.person_seniorities
+          : "",
+      gender: BP.gender !== customer?.BP.gender ? BP.gender : "",
+      department:
+        BP.department !== customer?.BP.department ? BP.department : "",
+      age_range: BP.age_range !== customer?.BP.age_range ? BP.age_range : "",
+      occupation:
+        BP.occupation !== customer?.BP.occupation ? BP.occupation : "",
+      locations: BP.locations !== customer?.BP.locations ? BP.locations : "",
+      education: BP.education !== customer?.BP.education ? BP.education : "",
+      responsibilities:
+        BP.responsibilities !== customer?.BP.responsibilities
+          ? BP.responsibilities
+          : "",
+      income_level:
+        BP.income_level !== customer?.BP.income_level ? BP.income_level : "",
+      business_model:
+        BP.business_model !== customer?.BP.business_model
+          ? BP.business_model
+          : "",
+      challenges:
+        BP.challenges !== customer?.BP.challenges ? BP.challenges : "",
+      goals: BP.goals !== customer?.BP.goals ? BP.goals : "",
+      buying_power:
+        BP.buying_power !== customer?.BP.buying_power ? BP.buying_power : "",
+      objections:
+        BP.objections !== customer?.BP.objections ? BP.objections : "",
       preferred_communication_channel:
-        BP.name !== customer?.BP.name ? BP.name : "",
-      motivation: BP.name !== customer?.BP.name ? BP.name : "",
-      buying_trigger: BP.name !== customer?.BP.name ? BP.name : "",
+        BP.preferred_communication_channel !==
+        customer?.BP.preferred_communication_channel
+          ? BP.preferred_communication_channel
+          : "",
+      motivation:
+        BP.motivation !== customer?.BP.motivation ? BP.motivation : "",
+      buying_trigger:
+        BP.buying_trigger !== customer?.BP.buying_trigger
+          ? BP.buying_trigger
+          : "",
     };
     console.log("New ICP :", newICP);
     console.log("New BP:", newBP);
