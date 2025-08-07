@@ -10,15 +10,8 @@ dotenv.config();
 const apiKey = process.env.OPENAI_API_KEY;
 const endpoint = process.env.OPENAI_ENDPOINT;
 
-export const leadsPrompt = async (request: JwtPayload, response: Response) => {
-  const { keyword } = request.body;
-  const userId = request.user.id
-
+const aiPrompt = async (leads: any, keyword: string) => {
   try {
-    const userLeads = await Leads.findAll({
-      where: { owner_id: userId, status: LeadStatus.NEW },
-    });
-
     const messages = [
       {
         role: "system",
@@ -29,7 +22,7 @@ Do NOT return any extra explanation, comments, or formatting.`,
       {
         role: "user",
         content: `Here is a list of leads:
-${JSON.stringify(userLeads)}
+${JSON.stringify(leads)}
 
 Now, based on the following keyword or search intent:
 "${keyword}"
@@ -61,10 +54,28 @@ Return only a JSON array.`,
     }
 
     const ids = JSON.parse(aiContent);
+    return ids;
+  } catch (error: any) {
+    console.error("Error fetching AI response:", error.message);
+    return null;
+  }
+};
 
+export const leadsPrompt = async (request: JwtPayload, response: Response) => {
+  const { keyword } = request.body;
+  const userId = request.user.id;
+
+  try {
+    const userLeads = await Leads.findAll({
+      where: { owner_id: userId, status: LeadStatus.NEW },
+    });
+    let response: any = null;
+    do {
+      response = await aiPrompt(userLeads, keyword);
+    } while ((response = null));
     // Fetch leads from DB
     const leads = await Leads.findAll({
-      where: { id: ids },
+      where: { id: response },
     });
 
     sendResponse(response, 200, "success", leads);
