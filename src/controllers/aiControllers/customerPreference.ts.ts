@@ -15,7 +15,6 @@ interface ICP {
   industry: string[];
   company_size: string[];
   geographical_focus: string[];
-  business_model: string;
   revenue: string;
   tech_stack: string;
   growth_stage: string;
@@ -31,9 +30,7 @@ interface BP {
   gender: string;
   department: string;
   age_range: string;
-  occupation: string;
   locations: string[];
-  education: string;
   responsibilities: string;
   income_level: string;
   business_model: string;
@@ -100,7 +97,6 @@ export async function getCRMInsights(
           "industry": "",
           "company_size": "",
           "geographical_focus": "",
-          "business_model": "",
           "revenue": "min-max",
           "tech_stack": "",
           "growth_stage": "",
@@ -116,9 +112,7 @@ export async function getCRMInsights(
           "gender": "",
           "department": "",
           "age_range": "min-max",
-          "occupation": "",
           "locations": "",
-          "education": "",
           "responsibilities": "",
           "income_level": "",
           "business_model": "",
