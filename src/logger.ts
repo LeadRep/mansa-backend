@@ -20,7 +20,7 @@ if (env === 'poduction' || env === 'test') {
     };
 }
 
-const logLevel = process.env.PINO_LOG_LEVEL || (env === 'development' ? 'debug' : 'info');
+const logLevel = process.env.PINO_LOG_LEVEL || (env === 'local' ? 'debug' : 'info');
 
 const logger = pino({
     level: logLevel,
