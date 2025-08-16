@@ -41,6 +41,8 @@ export function httpLoggingMiddleware(err: any, req: Request, res: Response, nex
         logger.error(logData, "Failing request");
     } else if (status >= 400) {
         logger.warn(logData, "Failing request");
+    } else {
+        logger.info(logData, "Request completed");
     }
     next(err);
 }
