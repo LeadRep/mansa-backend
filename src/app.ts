@@ -7,6 +7,7 @@ import { database } from "./configs/database/database";
 import { json, urlencoded } from "body-parser";
 import logger from "morgan";
 import cron from "node-cron";
+import { pinoHttpMiddleware, httpLoggingMiddleware } from "./middlewares/httpLoggingMiddleware";
 import path from "path";
 // import * as glob from "glob";
 // import serveFavicon from "serve-favicon";
@@ -21,6 +22,8 @@ app.use(json());
 app.use(urlencoded({ extended: true }));
 app.use(cors());
 app.use(logger("dev"));
+// Pino for incoming HTTP logging- duplicated with morgan. one will be removed later
+app.use(pinoHttpMiddleware);
 app.use(cookieParser());
 app.get("/", (request: Request, response: Response) => {
   response.redirect("/v1");
@@ -55,5 +58,7 @@ cron.schedule(
 app.listen(port, () => {
   console.log(`App running at port ${port}`);
 });
+
+app.use(httpLoggingMiddleware);
 
 export default app;
