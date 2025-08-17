@@ -6,11 +6,11 @@ import {JSONB} from "sequelize";
 import logger from "../../logger";
 const { google } = require('googleapis');
 
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
-const FRONTEND_SUCCESS_URL = process.env.FRONTEND_SUCCESS_URL || `${process.env.REACT_APP_FRONTEND_URL}/contacts?google_auth_status=success`;
-const FRONTEND_FAILURE_URL = process.env.FRONTEND_FAILURE_URL || `${process.env.REACT_APP_FRONTEND_URL}/contacts?google_auth_status=error`;
+const CLIENT_ID = process.env.CONTACT_GOOGLE_CLIENT_ID;
+const CLIENT_SECRET = process.env.CONTACT_GOOGLE_CLIENT_SECRET;
+const REDIRECT_URI = process.env.CONTACT_GOOGLE_REDIRECT_URI;
+const CONTACT_FRONTEND_SUCCESS_URL = process.env.CONTACT_FRONTEND_SUCCESS_URL || `${process.env.REACT_APP_FRONTEND_URL}/contacts?google_auth_status=success`;
+const CONTACT_FRONTEND_FAILURE_URL = process.env.CONTACT_FRONTEND_FAILURE_URL || `${process.env.REACT_APP_FRONTEND_URL}/contacts?google_auth_status=error`;
 
 const oauth2Client = new google.auth.OAuth2(
     CLIENT_ID,
@@ -49,7 +49,7 @@ export const googleCallback = async (
     logger.info(`received consent callback for user: ${String(state)}`);
     if (!code) {
         logger.error('No authorization code received from Google.');
-        return response.redirect(FRONTEND_FAILURE_URL + '&reason=no_code');
+        return response.redirect(CONTACT_FRONTEND_FAILURE_URL + '&reason=no_code');
     }
 
     try {
@@ -76,11 +76,11 @@ export const googleCallback = async (
             // TODO: Handle cases where refresh token isn't provided (e.g., if access_type was not 'offline' previously)
             // for now access type is ofline and we force the consent, so this should not happen
         }
-        response.redirect(FRONTEND_SUCCESS_URL);
+        response.redirect(CONTACT_FRONTEND_SUCCESS_URL);
 
     } catch (error: any) {
         logger.error('Error during Google OAuth callback:', error);
-        response.redirect(FRONTEND_FAILURE_URL + `&reason=${encodeURIComponent(error.message)}`);
+        response.redirect(CONTACT_FRONTEND_FAILURE_URL + `&reason=${encodeURIComponent(error.message)}`);
     }
 }
 
