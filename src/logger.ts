@@ -10,14 +10,16 @@ let transport;
 if (env === 'poduction' || env === 'test') {
     transport = undefined;
 } else {
-    transport = {
-        target: 'pino-pretty',
-        options: {
-            colorize: true,
-            translateTime: 'SYS:standard',
-            ignore: 'pid,hostname',
-        },
-    };
+    transport = undefined;
+    // uncomment the following lines to use pino-pretty for local development
+    // transport = {
+    //     target: 'pino-pretty',
+    //     options: {
+    //         colorize: true,
+    //         translateTime: 'SYS:standard',
+    //         ignore: 'pid,hostname',
+    //     },
+    // };
 }
 
 const logLevel = process.env.PINO_LOG_LEVEL || (env === 'local' ? 'debug' : 'info');
