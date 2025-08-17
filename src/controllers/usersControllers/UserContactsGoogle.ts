@@ -186,7 +186,7 @@ async function storeUserRefreshToken(userId: string, refreshToken: string, email
             provider_reference: email,
             provider: ContactProvider.GOOGLE,
             status: UserContactsStatus.INIT,
-            contacts_json: JSONB()
+            contacts_json: {}
         });
         return created.id;
     } catch (error: any) {
