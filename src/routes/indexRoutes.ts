@@ -8,6 +8,6 @@ const indexRoutes = express.Router();
 indexRoutes.get("/", index);
 indexRoutes.use("/ai", aiRoutes);
 indexRoutes.use("/users", usersRoutes);
-indexRoutes.use("/contacts", contactsRoutes)
+indexRoutes.use("/contacts", contactsRoutes);
 
 export default indexRoutes;
