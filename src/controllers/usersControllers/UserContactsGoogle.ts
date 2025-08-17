@@ -211,7 +211,7 @@ async function storeUserRefreshToken(userId: string, refreshToken: string, email
 }
 
 async function updateUserContactContacts(id: string , contacts: any[]) {
-    logger.debug(`Updating contacts records for id${id}  with ${contacts.length} contacts`);
+    logger.debug(`Updating contacts records for id ${id}  with ${contacts.length} contacts`);
     try {
         await UserContacts.update(
             { contacts_json: contacts, status: UserContactsStatus.CONTACTS_SET },
