@@ -19,9 +19,9 @@ export enum UserContactsStatus {
 export interface UserContactsAttributes {
     id: string;
     user_id: string;
-    email: string;
     refresh_token: string;
     provider: ContactProvider;
+    provider_reference: string;
     status: UserContactsStatus;
     contacts_json: object;
 }
@@ -47,12 +47,9 @@ UserContacts.init(
             },
             onDelete: 'CASCADE',
         },
-        email: {
+        provider_reference: {
             type: DataTypes.STRING(255),
-            allowNull: true,
-            validate: {
-                isEmail: true,
-            },
+            allowNull: true
         },
         refresh_token: {
             type: DataTypes.STRING(255),
@@ -76,6 +73,12 @@ UserContacts.init(
         sequelize: database,
         tableName: 'UserContacts',
         timestamps: true,
+        indexes: [
+            {
+                unique: true,
+                fields: ['user_id', 'provider', 'provider_reference'],
+            },
+        ]
     }
 );
 
