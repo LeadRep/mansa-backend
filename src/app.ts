@@ -20,7 +20,10 @@ const app = express();
 const port = process.env.APP_PORT || 3000;
 app.use(json());
 app.use(urlencoded({ extended: true }));
-app.use(cors());
+app.use(cors({
+    origin: process.env.APP_DOMAIN,
+    credentials: true
+}));
 app.use(logger("dev"));
 // Pino for incoming HTTP logging- duplicated with morgan. one will be removed later
 app.use(pinoHttpMiddleware);
