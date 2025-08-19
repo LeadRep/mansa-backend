@@ -125,9 +125,9 @@ export async function getCRMInsights(
       content: `
       Here is the company information:
       - Company Name: ${companyName || "N/A"}
-      - Role: ${role || "N/A"}
+      - Role: ${role || "Sales manager"}
       - Website: ${website || "N/A"}
-      - Country: ${country || "N/A"}
+      - Country: ${country || "Global"}
       - Website Content: ${websiteContent || ""}
 
       Based on this information, generate profiles that describe the typical *clients or customers* of the company, not internal employees. 
