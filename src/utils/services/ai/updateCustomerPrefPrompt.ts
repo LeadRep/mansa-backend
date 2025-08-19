@@ -2,7 +2,7 @@ import axios from "axios";
 import {
   AIResponse,
   scrapeWebsiteContent,
-} from "../../../controllers/aiControllers/customerPreference.ts";
+} from "../../../controllers/aiControllers/customerPreference";
 import dotenv from "dotenv";
 dotenv.config();
 
