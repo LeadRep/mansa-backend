@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { execSync } from "child_process";
 import { Pool } from "pg";
 import dotenv from "dotenv";
+import logger from "../logger";
 
 dotenv.config();
 
@@ -36,7 +37,8 @@ export const healthCheck = async (request: Request, response: Response) => {
 
     try {
       await pool.query("SELECT 1");
-      console.log("Database connection successful");
+      logger.info("Database connection successful");
+
     } finally {
       await pool.end();
     }
@@ -48,7 +50,7 @@ export const healthCheck = async (request: Request, response: Response) => {
     });
     return;
   } catch (error: any) {
-    console.error("Health Check Error:", error);
+    logger.error("Health Check Error:", error);
     response.status(500).json({
       status: "error",
       message: "Health Check Failed",
