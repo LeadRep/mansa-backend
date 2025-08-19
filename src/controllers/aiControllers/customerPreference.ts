@@ -129,12 +129,17 @@ export async function getCRMInsights(
       - Website: ${website || "N/A"}
       - Country: ${country || "Global"}
       - Website Content: ${websiteContent || ""}
-
+  
       Based on this information, generate profiles that describe the typical *clients or customers* of the company, not internal employees. 
       1. An *Ideal Customer Profile (ICP)* — this describes the typical organization or user that the company targets.
       2. A *fictional Buyer Persona* — a decision-maker or user inside that ICP.
-
-      Use the following JSON structure exactly. Use "or" only where it makes sense (e.g. in occupation or education), but *never* in the "name" or "gender" fields. If you can't infer a value, leave it as an empty string. Output valid JSON only, no text or explanation.
+  
+      **Important rules:**
+      - If only the default values are present (Company Name = N/A, Role = Sales manager, Website = N/A, Country = Global, Website Content = ""), you must still generate a fully fictional ICP and Buyer Persona consistent with those defaults. Do not leave fields missing — every field in buyer_persona must appear.
+      - If you cannot infer a value, set it to an empty string ("").
+      - The response must always contain both "ideal_customer_profile" and "buyer_persona" sections, each with all fields included exactly as in the schema below.
+  
+      Use the following JSON structure exactly. Do not remove or omit any fields. Output valid JSON only, no text or explanation.
       {
         "ideal_customer_profile": {
           "industry": "",
@@ -168,7 +173,7 @@ export async function getCRMInsights(
           "buying_trigger": ""
         }
       }
-
+  
       Also note that
       * industry: strings separated by commas
       Filter search results based on keywords associated with companies. For example, you can enter mining as a value to return only companies that have an association with the mining industry.
@@ -213,10 +218,11 @@ export async function getCRMInsights(
       Searches only return results based on their current job title, so searching for Director-level employees only returns people that currently hold a Director-level title. If someone was previously a Director, but is currently a VP, they would not be included in your search results.
       Use this parameter in combination with the person_titles[] parameter to find people based on specific job functions and seniority levels.
       The following options can be used for this parameter: owner, founder, c_suite, partner, vp, head, director, manager, senior, entry, intern
-
+  
       Ensure the response is **only** valid JSON with no extra text or space. Any missing values should be an empty string.`,
     },
   ];
+  
 
   try {
     const headers = { "Content-Type": "application/json", "api-key": apiKey };
