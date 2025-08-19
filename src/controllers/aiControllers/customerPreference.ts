@@ -48,25 +48,57 @@ export interface AIResponse {
   buyer_persona: BP;
 }
 
+function isLikelyUrl(input?: string): boolean {
+  if (!input) return false;
+  const s = input.trim();
+  if (!s) return false;
+  // quick sanity checks: has a dot and no spaces
+  if (!s.includes(".") || /\s/.test(s)) return false;
+  // allow with or without protocol
+  try {
+    // try as-is
+    // eslint-disable-next-line no-new
+    new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function normalizeUrl(input: string): string {
+  const s = input.trim();
+  if (!/^https?:\/\//i.test(s)) return `https://${s}`;
+  return s;
+}
+
 const apiKey = process.env.OPENAI_API_KEY;
 const endpoint = process.env.OPENAI_ENDPOINT;
 
 export async function scrapeWebsiteContent(url: string): Promise<string> {
   const browser = await puppeteer.launch({
     args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage'  // Helps in limited resource environments
-    ]});
-  const page = await browser.newPage();
-  await page.goto(url, { waitUntil: "networkidle2" });
-
-  const content = await page.evaluate(() => {
-    return document.body.innerText;
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage", // Helps in limited resource environments
+    ],
   });
+  try {
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 25000 });
 
-  await browser.close();
-  return content;
+    const content = await page.evaluate(() => document.body?.innerText || "");
+    return (content || "").trim();
+
+    return content;
+  } catch (error: any) {
+    return "";
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch {}
+    }
+  }
 }
 
 export async function getCRMInsights(
@@ -75,7 +107,13 @@ export async function getCRMInsights(
   website: string = "N/A",
   country: string
 ): Promise<AIResponse | null> {
-  const websiteContent = await scrapeWebsiteContent(website);
+  let websiteContent = "";
+  const safeWebsite = website?.trim();
+
+  if (safeWebsite && isLikelyUrl(safeWebsite)) {
+    const target = normalizeUrl(safeWebsite);
+    websiteContent = await scrapeWebsiteContent(target);
+  }
   const messages = [
     {
       role: "system",
@@ -90,7 +128,7 @@ export async function getCRMInsights(
       - Role: ${role || "N/A"}
       - Website: ${website || "N/A"}
       - Country: ${country || "N/A"}
-      - Website Content: ${websiteContent || "N/A"}
+      - Website Content: ${websiteContent || ""}
 
       Based on this information, generate profiles that describe the typical *clients or customers* of the company, not internal employees. 
       1. An *Ideal Customer Profile (ICP)* — this describes the typical organization or user that the company targets.
@@ -217,4 +255,3 @@ export const customerPreference = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
