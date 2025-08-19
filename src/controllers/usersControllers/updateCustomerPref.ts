@@ -9,7 +9,7 @@ import {
   updateCRMInsights,
   updatecustomerPreference,
 } from "../../utils/services/ai/updateCustomerPrefPrompt";
-import { AIResponse } from "../aiControllers/customerPreference.ts";
+import { AIResponse } from "../aiControllers/customerPreference";
 
 export const updateCustomerPref = async (
   request: JwtPayload,
