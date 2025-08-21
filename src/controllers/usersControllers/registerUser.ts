@@ -26,7 +26,7 @@ export const registerUser = async (req: Request, res: Response) => {
 
     if (user.google) {
       const googleDetails = await verifyGoogleToken(user.google);
-      email = googleDetails.email;
+      email = googleDetails.email.toLowerCase();
       fullName = {
         firstName: googleDetails.given_name,
         lastName: googleDetails.family_name,
@@ -34,12 +34,12 @@ export const registerUser = async (req: Request, res: Response) => {
       isOAuthUser = true;
     } else if (user.microsoft) {
       const microsoftDetails = await verifyMicrosoftToken(user.microsoft);
-      email = microsoftDetails.preferred_username || "";
+      email = microsoftDetails.preferred_username?.toLowerCase() || "";
       isOAuthUser = true;
     }
 
     // Check if user already exists by email
-    const existingUser = await Users.findOne({ where: { email } });
+    const existingUser = await Users.findOne({ where: { email:email.toLowerCase() } });
     if (existingUser) {
       return sendResponse(res, 400, "User already exists");
     }
@@ -63,7 +63,7 @@ export const registerUser = async (req: Request, res: Response) => {
     if (user.google || user.microsoft) {
       userData = await Users.create({
         ...commonFields,
-        email,
+        email:email.toLowerCase(),
         firstName: fullName.firstName || "",
         lastName: fullName.lastName || "",
         password: autoPassword,
@@ -73,7 +73,7 @@ export const registerUser = async (req: Request, res: Response) => {
       const hashedPassword = await hashPassword(user.password);
       userData = await Users.create({
         ...commonFields,
-        email: user.email,
+        email: user.email.toLowerCase(),
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         password: hashedPassword,
@@ -98,7 +98,7 @@ export const registerUser = async (req: Request, res: Response) => {
         delete fullUserData.password;
         const tokenDetails = {
           id: fullUserData.id,
-          email: fullUserData.email,
+          email: fullUserData.email.toLowerCase(),
           role: fullUserData.role,
         };
         const token = generateToken(tokenDetails);
@@ -115,7 +115,7 @@ export const registerUser = async (req: Request, res: Response) => {
     sequence1(userData.email, userData.firstName, userId);
     const newUserSequence = await NewUsersSequence.create({
       id:v4(),
-      email: userData.email,
+      email: userData.email.toLowerCase(),
       user_id: userId,
       first_sequence: {
         date: new Date(),

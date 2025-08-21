@@ -13,7 +13,7 @@ export const loginUser = async (request: Request, response: Response) => {
   try {
     const { email, password, google, microsoft } = request.body;
 
-    let userEmail = email.toLowerCase();
+    let userEmail = email;
 
     // Handle Google Login
     if (google) {
