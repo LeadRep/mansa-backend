@@ -34,12 +34,12 @@ export const loginUser = async (request: Request, response: Response) => {
     }
 
     // If it's an OAuth login, skip password check
-    // if (!google && !microsoft) {
-    //   const isPasswordValid = await verifyPassword(password, user.password);
-    //   if (!isPasswordValid) {
-    //     return sendResponse(response, 400, "Incorrect password");
-    //   }
-    // }
+    if (!google && !microsoft) {
+      const isPasswordValid = await verifyPassword(password, user.password);
+      if (!isPasswordValid) {
+        return sendResponse(response, 400, "Incorrect password");
+      }
+    }
 
     const data = { id: user.id, email: user.email, role: user.role };
     const token = generateToken(data);

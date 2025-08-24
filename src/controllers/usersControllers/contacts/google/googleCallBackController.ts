@@ -46,13 +46,13 @@ async function storeRefreshToken(accountId: string, refreshToken: string, scope:
     const [record, created] = await UserLinkedAccountTokens.findOrCreate({
         where: {
             user_account_id: accountId,
-            scope: TokenScope.SCOPE1,
+            scope: scope,
         },
         defaults: {
             token_id: v4(),
             user_account_id: accountId,
             encrypted_refresh_token: refreshToken,
-            scope: TokenScope.SCOPE1,
+            scope: scope,
             last_used_at: new Date(),
         }
     });
