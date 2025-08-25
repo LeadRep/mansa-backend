@@ -12,6 +12,6 @@ aiRoutes.post("/customer-pref", customerPreference);
 aiRoutes.post("/leads-prompt", userAuth, leadsPrompt);
 aiRoutes.get("/test", generateLeads);
 aiRoutes.post("/new", newSignUp);
-aiRoutes.post("/chat", chatStream)
+aiRoutes.post("/chat", userAuth, chatStream);
 
 export default aiRoutes;
