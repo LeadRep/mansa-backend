@@ -125,7 +125,7 @@ export const registerUser = async (req: Request, res: Response) => {
     findLeads(userId, 10);
     return;
   } catch (error: any) {
-    console.error("User Registration Error:", error.message);
+    console.log("User Registration Error:", error.message);
     return sendResponse(res, 500, "Internal Server Error");
   }
 };

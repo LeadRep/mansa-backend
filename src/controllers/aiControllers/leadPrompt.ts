@@ -12,7 +12,6 @@ const endpoint = process.env.OPENAI_ENDPOINT;
 
 export const leadsPrompt = async (request: JwtPayload, response: Response) => {
   const { keyword } = request.body;
-  console.log("Keyword:", keyword);
   const userId = request.user.id;
 
   try {
