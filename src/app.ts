@@ -20,9 +20,22 @@ const app = express();
 const port = process.env.APP_PORT || 3000;
 app.use(json());
 app.use(urlencoded({ extended: true }));
+const allowedOrigins: string[] = [];
+if (process.env.APP_DOMAIN) {
+    allowedOrigins.push(process.env.APP_DOMAIN);
+}
+if (process.env.APP_ALT_DOMAINS) {
+    allowedOrigins.push(...process.env.APP_ALT_DOMAINS.split(",").map(origin => origin.trim()));
+}
 app.use(cors({
-    // origin: process.env.APP_DOMAIN,
-    // credentials: true
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    credentials: true
 }));
 app.use(logger("dev"));
 // Pino for incoming HTTP logging- duplicated with morgan. one will be removed later
