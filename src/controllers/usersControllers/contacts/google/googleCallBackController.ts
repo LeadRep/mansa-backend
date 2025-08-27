@@ -145,9 +145,7 @@ async function handleScope1Callback(code: string, userId: string, response: Resp
         });
 
         logger.debug(`fetching fetchAllGoogleData.`);
-        await fetchAllGoogleData(userId, accountId, tokens.refresh_token).catch((error) => {
-            logger.error(`Error in fetchAllGoogleData: ${error?.stack || error?.message || error}.`, error);
-        });
+        await fetchAllGoogleData(userId, accountId, tokens.refresh_token);
     } else {
         logger.warn('No refresh token received. User might have previously consented without offline access.');
         const existing = await getExistingRefreshToken(accountId);
@@ -158,9 +156,7 @@ async function handleScope1Callback(code: string, userId: string, response: Resp
                 { where: { user_account_id: accountId } }
             ).catch(() => {});
             logger.debug(`Using existing refresh token to fetch data.`);
-            await fetchAllGoogleData(userId, accountId, existing).catch((error) => {
-                logger.error(`Error in fetchAllGoogleData with existing RT: ${error?.stack || error?.message || error}.`, error);
-            });
+            await fetchAllGoogleData(userId, accountId, existing);
 
     } else {
         logger.warn('No refresh token found and no existing refresh token to use.');
