@@ -109,6 +109,21 @@ export const googleCallback = async (
     }
 }
 
+// Helper: fetch the most recently used refresh token for an account (any scope)
+async function getExistingRefreshToken(accountId: string): Promise<string | null> {
+    try {
+        const existing = await UserLinkedAccountTokens.findOne({
+            where: { user_account_id: accountId },
+            order: [["last_used_at", "DESC"]],
+        });
+        return existing?.encrypted_refresh_token || null;
+    } catch (e: any) {
+        logger.error(`Failed to load existing refresh token for ${accountId}: ${e?.message || e}`);
+        return null;
+    }
+}
+
+
 async function handleScope1Callback(code: string, userId: string, response: Response) {
     // get token using the authorization code
     const {tokens} = await oauth2Client.getToken(code);
@@ -130,13 +145,24 @@ async function handleScope1Callback(code: string, userId: string, response: Resp
         });
 
         logger.debug(`fetching fetchAllGoogleData.`);
-        fetchAllGoogleData(userId, accountId, tokens.refresh_token).catch((error) => {
-            logger.error(`Error in fetchAllGoogleData: ${error?.stack || error?.message || error}.`, error);
-        });
+        await fetchAllGoogleData(userId, accountId, tokens.refresh_token);
     } else {
         logger.warn('No refresh token received. User might have previously consented without offline access.');
-        // TODO: Handle cases where refresh token isn't provided (e.g., if access_type was not 'offline' previously)
-        // for now access type is offline and we force the consent, so this should not happen
+        const existing = await getExistingRefreshToken(accountId);
+        if (existing) {
+            // Update last_used timestamp
+            UserLinkedAccountTokens.update(
+                { last_used_at: new Date() },
+                { where: { user_account_id: accountId } }
+            ).catch(() => {});
+            logger.debug(`Using existing refresh token to fetch data.`);
+            await fetchAllGoogleData(userId, accountId, existing);
+
+    } else {
+        logger.warn('No refresh token found and no existing refresh token to use.');
+        response.redirect(CONTACT_FRONTEND_FAILURE_URL + '&reason=no_refresh_token');
+        return;
+        }
     }
     response.redirect(CONTACT_FRONTEND_SUCCESS_URL + `?accountId=${encodeURIComponent(accountId)}`);
 }
@@ -192,23 +218,22 @@ async function fetchAllGoogleData(userId: string, userAccountId: string, refresh
 
         // 1. Fetch all contacts with pagination
         const peopleService = google.people({ version: 'v1', auth: oauth2Client });
-        //let contacts: any[] = [];
-        // temporally disable fetching connections as it does not bring much value compared to otherContacts
-        // let nextPageToken: string | undefined = undefined;
-        // do {
-        //     let res: any;
-        //     res = await peopleService.people.connections.list({
-        //         resourceName: 'people/me',
-        //         pageSize: 100,
-        //         personFields: 'names,emailAddresses,phoneNumbers',
-        //         pageToken: nextPageToken,
-        //     });
-        //     contacts = contacts.concat(
-        //         (res.data.connections || [])
-        //             //.map(mapPersonToContact)
-        //     );
-        //     nextPageToken = res.data.nextPageToken;
-        // } while (nextPageToken);
+        let contacts: any[] = [];
+        let nextPageToken: string | undefined = undefined;
+        do {
+            let res: any;
+            res = await peopleService.people.connections.list({
+                resourceName: 'people/me',
+                pageSize: 100,
+                personFields: 'names,emailAddresses,phoneNumbers',
+                pageToken: nextPageToken,
+            });
+            contacts = contacts.concat(
+                (res.data.connections || [])
+                    //.map(mapPersonToContact)
+            );
+            nextPageToken = res.data.nextPageToken;
+        } while (nextPageToken);
 
         // 2. Fetch all other contacts with pagination
         let otherContacts: any[] = [];
@@ -227,8 +252,8 @@ async function fetchAllGoogleData(userId: string, userAccountId: string, refresh
             otherNextPageToken = res.data.nextPageToken;
         } while (otherNextPageToken);
 
-        //const allContacts =  contacts.concat(otherContacts);
-        await storeFetchedContacts(userId, userAccountId, otherContacts);
+        const allContacts =  contacts.concat(otherContacts);
+        await storeFetchedContacts(userId, userAccountId, allContacts);
     } catch (error: any) {
         logger.error(`Error fetching all Google data: ${error?.stack || error?.message || error}.`, error);
         throw error; // Propagate the error to the caller
