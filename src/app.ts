@@ -7,13 +7,17 @@ import { database } from "./configs/database/database";
 import { json, urlencoded } from "body-parser";
 import logger from "morgan";
 import cron from "node-cron";
-import { pinoHttpMiddleware, httpLoggingMiddleware } from "./middlewares/httpLoggingMiddleware";
+import {
+  pinoHttpMiddleware,
+  httpLoggingMiddleware,
+} from "./middlewares/httpLoggingMiddleware";
 import path from "path";
 // import * as glob from "glob";
 // import serveFavicon from "serve-favicon";
 import indexRoutes from "./routes/indexRoutes";
 import { healthCheck } from "./controllers/healthCheck";
 import { newUserSequence } from "./utils/services/newUserSequence";
+import { addUsersDeals } from "./controllers/usersControllers/deals/addUsersDeals";
 dotenv.config();
 
 const app = express();
@@ -22,21 +26,25 @@ app.use(json());
 app.use(urlencoded({ extended: true }));
 const allowedOrigins: string[] = [];
 if (process.env.APP_DOMAIN) {
-    allowedOrigins.push(process.env.APP_DOMAIN);
+  allowedOrigins.push(process.env.APP_DOMAIN);
 }
 if (process.env.APP_ALT_DOMAINS) {
-    allowedOrigins.push(...process.env.APP_ALT_DOMAINS.split(",").map(origin => origin.trim()));
+  allowedOrigins.push(
+    ...process.env.APP_ALT_DOMAINS.split(",").map((origin) => origin.trim())
+  );
 }
-app.use(cors({
+app.use(
+  cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error("Not allowed by CORS"));
-        }
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
     },
-    credentials: true
-}));
+    credentials: true,
+  })
+);
 app.use(logger("dev"));
 // Pino for incoming HTTP logging- duplicated with morgan. one will be removed later
 app.use(pinoHttpMiddleware);
@@ -50,6 +58,8 @@ database
   .sync({})
   .then(() => {
     console.log("Database is connected");
+    console.log("Database is now");
+    addUsersDeals();
   })
   .catch((err: HttpError) => {
     console.log(err);
