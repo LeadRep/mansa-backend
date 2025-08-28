@@ -8,7 +8,7 @@ const generateGoogleAuthUrl = (userId: string, scope: string[]) => {
     return oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope,
-        prompt: 'select_account',
+        prompt: 'consent select_account',
         state: userId,
         response_type: 'code',
     });
