@@ -7,13 +7,10 @@ import {Request, Response} from "express";
 import UserContactsStaging from "../../../../models/UserContactsStaging";
 import {Op} from "sequelize";
 import {google} from "googleapis";
-import { SCOPE2, oauth2Client, CONTACT_FRONTEND_SUCCESS_URL, CONTACT_FRONTEND_FAILURE_URL } from "./googleConfig";
+import {SCOPE2, oauth2Client, CONTACT_FRONTEND_SUCCESS_URL, CONTACT_FRONTEND_FAILURE_URL, SCOPE1} from "./googleConfig";
 
 
-async function createAccountRecordFromIdToken(userId: string, idToken: string) {
-    const decoded: any = jwt.decode(idToken);
-    const googleUserId = decoded.sub;
-    const email = decoded.email;
+async function createAccountRecordFromIdToken(userId: string, googleUserId: string, email: string) {
     const [record, created] = await UserLinkedAccounts.findOrCreate({
         where: {
             user_id: userId,
@@ -129,14 +126,15 @@ async function handleScope1Callback(code: string, userId: string, response: Resp
     const {tokens} = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
     const idToken = tokens.id_token;
-    let accountId: string;
-    if (idToken) {
-        accountId = await createAccountRecordFromIdToken(userId, idToken);
-    } else {
+    if (!idToken) {
         logger.error('No ID token received from Google.');
         response.redirect(CONTACT_FRONTEND_FAILURE_URL + '&reason=no_id_token');
         return;
     }
+    const decoded: any = jwt.decode(idToken);
+    const googleUserId = decoded.sub;
+    const email = decoded.email;
+    const accountId = await createAccountRecordFromIdToken(userId, googleUserId, email);
 
     if (tokens.refresh_token) {
         // Store the refresh token securely in your database for this user
@@ -152,16 +150,26 @@ async function handleScope1Callback(code: string, userId: string, response: Resp
         if (existing) {
             // Update last_used timestamp
             UserLinkedAccountTokens.update(
-                { last_used_at: new Date() },
-                { where: { user_account_id: accountId } }
-            ).catch(() => {});
+                {last_used_at: new Date()},
+                {where: {user_account_id: accountId}}
+            ).catch(() => {
+            });
             logger.debug(`Using existing refresh token to fetch data.`);
             await fetchAllGoogleData(userId, accountId, existing);
 
-    } else {
-        logger.warn('No refresh token found and no existing refresh token to use.');
-        response.redirect(CONTACT_FRONTEND_FAILURE_URL + '&reason=no_refresh_token');
-        return;
+        } else {
+            logger.warn('No refresh token found and no existing refresh token to use.');
+            // Force a fresh consent to obtain a refresh token
+            const authorizeUrl = oauth2Client.generateAuthUrl({
+                access_type: 'offline',
+                scope: SCOPE1,
+                prompt: 'consent select_account',
+                state: userId,
+                response_type: 'code',
+            });
+            response.redirect(authorizeUrl);
+            return;
+
         }
     }
     response.redirect(CONTACT_FRONTEND_SUCCESS_URL + `?accountId=${encodeURIComponent(accountId)}`);
