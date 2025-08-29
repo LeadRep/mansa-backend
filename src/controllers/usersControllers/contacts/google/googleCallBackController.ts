@@ -132,6 +132,11 @@ async function handleScope1Callback(code: string, userId: string, response: Resp
         return;
     }
     const decoded: any = jwt.decode(idToken);
+    if (!decoded || !decoded.sub || !decoded.email) {
+        logger.error('Decoded ID token is invalid or missing required properties.');
+        response.redirect(CONTACT_FRONTEND_FAILURE_URL + '&reason=invalid_id_token');
+        return;
+    }
     const googleUserId = decoded.sub;
     const email = decoded.email;
     const accountId = await createAccountRecordFromIdToken(userId, googleUserId, email);
