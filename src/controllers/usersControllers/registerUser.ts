@@ -13,6 +13,7 @@ import {
 import { findLeads } from "../aiControllers/findLeads";
 import NewUsersSequence, { SequenceStatus } from "../../models/NewUsersSequence";
 import { sequence1 } from "../../utils/mails/newUsers/sequence1";
+import { createDeal } from "./deals/createDeal";
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -106,6 +107,7 @@ export const registerUser = async (req: Request, res: Response) => {
         data = { user: fullUserData, token, refreshToken };
       }
     }
+    await createDeal(userId);
     sendResponse(
       res,
       200,
