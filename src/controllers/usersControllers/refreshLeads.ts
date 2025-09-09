@@ -9,9 +9,11 @@ import { Leads, LeadStatus } from "../../models/Leads";
 export const refreshLeads = async (request: JwtPayload, response: Response) => {
   const userId = request.user.id;
   try {
+    const removeLimit = process.env.SKIP_LIMIT === "true";
+
     const customer = await CustomerPref.findOne({ where: { userId } });
     const user = await Users.findByPk(userId);
-    if (!user?.subscriptionName) {
+    if (!removeLimit && !user?.subscriptionName) {
       sendResponse(
         response,
         400,
@@ -19,7 +21,7 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       );
       return;
     }
-    if (customer?.refreshLeads < 1) {
+    if (!removeLimit && customer?.refreshLeads < 1) {
       sendResponse(
         response,
         400,
@@ -27,8 +29,8 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       );
       return;
     }
-    if (
-      customer?.refreshLeads > 1 &&
+    if (!removeLimit &&
+        customer?.refreshLeads > 1 &&
       customer?.nextRefresh &&
       new Date(customer.nextRefresh) > new Date()
     ) {
