@@ -57,7 +57,7 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
     await CustomerPref.update(
       {
         refreshLeads: customer?.refreshLeads - 1,
-        nextRefresh: removeLimit ? new Date() : new Date(Date.now() + 3600000), // 1 hour later
+        nextRefresh: new Date(Date.now() + 3600000), // 1 hour later
         leadsGenerationStatus: LeadsGenerationStatus.ONGOING,
       },
       { where: { userId } }
