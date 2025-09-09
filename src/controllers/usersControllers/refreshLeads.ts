@@ -29,7 +29,7 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       );
       return;
     }
-    if ( !removeLimit &&
+    if (!removeLimit &&
         customer?.refreshLeads > 1 &&
       customer?.nextRefresh &&
       new Date(customer.nextRefresh) > new Date()
