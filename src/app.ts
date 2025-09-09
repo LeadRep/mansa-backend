@@ -45,6 +45,7 @@ app.use(
     credentials: true,
   })
 );
+console.log(allowedOrigins);
 app.use(logger("dev"));
 // Pino for incoming HTTP logging- duplicated with morgan. one will be removed later
 app.use(pinoHttpMiddleware);
