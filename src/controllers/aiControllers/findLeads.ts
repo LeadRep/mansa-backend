@@ -136,6 +136,5 @@ export const findLeads = async (userId: string, totalLeads: number) => {
     return leads.slice(0, totalLeads); // Ensure we return exactly the requested number
   } catch (error: any) {
     console.error("Error in findLeads:", error.message);
-    throw error; // Re-throw to handle in calling function
   }
 };
