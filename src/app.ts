@@ -17,7 +17,6 @@ import path from "path";
 import indexRoutes from "./routes/indexRoutes";
 import { healthCheck } from "./controllers/healthCheck";
 import { newUserSequence } from "./utils/services/newUserSequence";
-import { addUsersDeals } from "./controllers/usersControllers/deals/addUsersDeals";
 dotenv.config();
 
 const app = express();
@@ -58,8 +57,6 @@ database
   .sync({})
   .then(() => {
     console.log("Database is connected");
-    console.log("Database is now");
-    addUsersDeals();
   })
   .catch((err: HttpError) => {
     console.log(err);
