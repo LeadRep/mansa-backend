@@ -196,7 +196,7 @@ const evaluateLeadsWithAI = async (customerPref: any, leads: any[]) => {
       } catch (innerErr: any) {
         logger.error(
           innerErr,
-          `Failed to parse JSON for lead: ${lead.email}. Raw content:\n${content}\nError:`,
+          `Failed to parse JSON for lead: ${lead.email}. Raw content: ${content}`,
         );
 
         // Attempt to fix common JSON issues
