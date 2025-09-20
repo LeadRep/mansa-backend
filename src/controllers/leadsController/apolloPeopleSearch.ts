@@ -33,7 +33,7 @@ export const apolloPeopleSearch = async (searchParams: any) => {
     );
     return response.data;
   } catch (error: any) {
-    logger.info(error, "Error searching people:");
+    logger.error(error, "Error searching people:");
     throw new Error(error.message);
   }
 };
