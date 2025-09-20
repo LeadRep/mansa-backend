@@ -125,7 +125,7 @@ export const evaluateLeadsWithAI = async (
             });
           }
         } catch (parseErr: any) {
-          logger.error( parseErr
+          logger.error( parseErr,
             `JSON parse failed for lead: ${lead.email ?? "unknown"}`
           );
           logger.info( `Raw content:\n${content}`);
@@ -182,9 +182,7 @@ export const evaluateLeadsWithAI = async (
           }
         }
       } catch (err: any) {
-        logger.error( err,
-          `API error for lead ${lead.email ?? "unknown"}:`
-        );
+        logger.error( err, `API error for lead ${lead.email ?? "unknown"}:`);
         results.push({
           ...lead,
           category: "unknown",

@@ -85,7 +85,7 @@ export const payment = async (request: JwtPayload, response: Response) => {
     response.json({ session });
     return;
   } catch (error: any) {
-    logger.info(error.message);
+    logger.error(error, "Error creating Stripe session:");
     response.status(500).json({
       status: `error`,
       method: request.method,
@@ -175,7 +175,7 @@ export const successPayment = async (
       return;
     }
   } catch (error: any) {
-    logger.info(error.message);
+    logger.error(error, "Error in successPayment:");
     response.status(500).json({
       status: `error`,
       message: `Something went wrong`,
@@ -211,7 +211,7 @@ export const customerPortal = async (
       });
     }
   } catch (error: any) {
-    logger.info(error.message);
+    logger.error(error, "Error in customerPortal:");
     return response.status(500).json({
       status: `error`,
       message: `Something went wrong, Please try again`,

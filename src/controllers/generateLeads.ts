@@ -62,7 +62,7 @@ export const generateLeads = async (request: Request, response: Response) => {
     sendResponse(response, 200, "Leads gotten", apiResponse.data);
     return;
   } catch (error: any) {
-    logger.info("Error", error.message);
+    logger.info(error, "Error generating leads");
     sendResponse(response, 500, "Internal Server Error", null, error.message);
     return;
   }
