@@ -4,6 +4,7 @@ import { Leads } from "../../models/Leads";
 import Users from "../../models/Users";
 import { findLeads } from "../aiControllers/findLeads";
 import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
+import logger from "../../logger";
 
 export const userLeads = async (req: Request, res: Response) => {
   const userId = req.user?.id;
@@ -59,7 +60,7 @@ export const userLeads = async (req: Request, res: Response) => {
     );
     return;
   } catch (error: any) {
-    console.error("Error in userLeads:", error.message);
+    logger.error(error, "Error in userLeads:");
     sendResponse(res, 500, "Internal server error", null, error.message);
     return;
   }

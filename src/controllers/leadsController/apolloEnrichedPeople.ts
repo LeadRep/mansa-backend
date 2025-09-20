@@ -1,9 +1,10 @@
 import axios from "axios";
 import dotenv from "dotenv";
+import logger from "../../logger";
 dotenv.config();
 
 export const apolloEnrichedPeople = async (ids: string[]) => {
-  console.log("number of ids", ids.length);
+  logger.info(`number of ids: ${ids.length}`);
   try {
     const enrichedData = [];
     for (let i = 0; i < ids.length; i += 10) {
@@ -24,7 +25,7 @@ export const apolloEnrichedPeople = async (ids: string[]) => {
     }
     return enrichedData;
   } catch (error: any) {
-    console.log("Error", error.response.data);
+    logger.error(error, "Error enriching people");
     throw new Error(error.message);
   }
 };

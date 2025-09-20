@@ -1,5 +1,6 @@
 import { sendEmail } from "../../../configs/email/emailConfig";
 import dotenv from "dotenv";
+import logger from "../../../logger";
 
 dotenv.config();
 export const sequence1 = async(to: string, firstName: string, userId: string) => {
@@ -104,7 +105,7 @@ export const sequence1 = async(to: string, firstName: string, userId: string) =>
 </html>`
     );
   } catch (error) {
-    console.error("Error in sequence1:", error);
+    logger.error(error, "Error in sequence1:");
     throw error;
   }
 };

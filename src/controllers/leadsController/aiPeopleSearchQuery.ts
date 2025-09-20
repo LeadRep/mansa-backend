@@ -1,5 +1,6 @@
 import axios from "axios";
 import { CustomerPref } from "../../models/CustomerPref";
+import logger from "../../logger";
 
 const apiKey = process.env.OPENAI_API_KEY;
 const endpoint = process.env.OPENAI_ENDPOINT;
@@ -66,7 +67,7 @@ export const aiPeopleSearchQuery = async (userId: string) => {
     }
     return JSON.parse(aiContent);
   } catch (error: any) {
-    console.error("Error generating leads:", error);
+    logger.error(error, "Error generating leads:");
 
     if (axios.isAxiosError(error)) {
       throw new Error(

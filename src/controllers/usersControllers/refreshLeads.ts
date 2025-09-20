@@ -5,6 +5,7 @@ import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
 import Users from "../../models/Users";
 import { findLeads } from "../aiControllers/findLeads";
 import { Leads, LeadStatus } from "../../models/Leads";
+import logger from "../../logger";
 
 export const refreshLeads = async (request: JwtPayload, response: Response) => {
   const userId = request.user.id;
@@ -62,7 +63,7 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       },
       { where: { userId } }
     );
-    console.log("Deleting all existing leads");
+    logger.info("Deleting all existing leads");
     await Leads.destroy({
       where: { owner_id: userId, status: LeadStatus.NEW },
     });
@@ -70,7 +71,7 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
     await findLeads(userId, 24);
     return;
   } catch (error: any) {
-    console.log("Error in refreshLeads controller:", error.message);
+    logger.error(error, "Error in refreshLeads controller:");
     sendResponse(response, 500, "Internal Server Error", null, error.message);
     return;
   }

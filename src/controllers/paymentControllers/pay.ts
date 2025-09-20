@@ -8,6 +8,7 @@ import moment from "moment";
 import { findLeads } from "../aiControllers/findLeads";
 import sendResponse from "../../utils/http/sendResponse";
 import NewUsersSequence from "../../models/NewUsersSequence";
+import logger from "../../logger";
 
 dotenv.config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -84,7 +85,7 @@ export const payment = async (request: JwtPayload, response: Response) => {
     response.json({ session });
     return;
   } catch (error: any) {
-    console.log(error.message);
+    logger.error(error, "Error creating Stripe session:");
     response.status(500).json({
       status: `error`,
       method: request.method,
@@ -174,7 +175,7 @@ export const successPayment = async (
       return;
     }
   } catch (error: any) {
-    console.log(error.message);
+    logger.error(error, "Error in successPayment:");
     response.status(500).json({
       status: `error`,
       message: `Something went wrong`,
@@ -210,7 +211,7 @@ export const customerPortal = async (
       });
     }
   } catch (error: any) {
-    console.log(error.message);
+    logger.error(error, "Error in customerPortal:");
     return response.status(500).json({
       status: `error`,
       message: `Something went wrong, Please try again`,

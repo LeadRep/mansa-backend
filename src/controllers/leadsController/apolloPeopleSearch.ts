@@ -1,4 +1,5 @@
 import axios from "axios";
+import logger from "../../logger";
 
 export const apolloPeopleSearch = async (searchParams: any) => {
   try {
@@ -32,7 +33,7 @@ export const apolloPeopleSearch = async (searchParams: any) => {
     );
     return response.data;
   } catch (error: any) {
-    console.log("Error", error.message);
+    logger.error(error, "Error searching people:");
     throw new Error(error.message);
   }
 };

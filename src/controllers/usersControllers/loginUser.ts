@@ -8,6 +8,7 @@ import {
 } from "../../utils/services/token";
 import { verifyGoogleToken } from "../../utils/services/verifyGoogleToken";
 import { verifyMicrosoftToken } from "../../utils/services/verifyMicrosoftToken";
+import logger from "../../logger";
 
 export const loginUser = async (request: Request, response: Response) => {
   try {
@@ -53,7 +54,7 @@ export const loginUser = async (request: Request, response: Response) => {
       refreshToken,
     });
   } catch (error: any) {
-    console.error("Login Error:", error.message);
+    logger.error(error, "Login Error:");
     return sendResponse(response, 500, "Internal Server Error");
   }
 };

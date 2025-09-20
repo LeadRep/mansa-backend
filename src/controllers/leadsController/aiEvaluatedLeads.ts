@@ -1,5 +1,6 @@
 import axios from "axios";
 import { CustomerPref } from "../../models/CustomerPref";
+import logger from "../../logger";
 
 const apiKey = process.env.OPENAI_API_KEY;
 const endpoint = process.env.OPENAI_ENDPOINT;
@@ -51,7 +52,7 @@ export const aiEvaluatedLeads = async (userId: string, people: any[]) => {
     }
     return JSON.parse(aiContent);
   } catch (error: any) {
-    console.log("Error", error.message);
+    logger.error(error, "Error evaluating leads with ai:");
     throw new Error(error.message);
   }
 };

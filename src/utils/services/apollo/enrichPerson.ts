@@ -1,4 +1,5 @@
 import axios from "axios";
+import logger from "../../../logger";
 
 export interface EnrichPersonQuery {
   first_name?: string;
@@ -31,7 +32,7 @@ export const enrichPerson = async (searchParams: EnrichPersonQuery) => {
     );
     return response.data;
   } catch (err: any) {
-    console.error("Error in enrichPeople:", err.message);
+    logger.error(err, "Error in enrichPeople:");
     throw new Error("Failed to enrich people data");
   }
 };
