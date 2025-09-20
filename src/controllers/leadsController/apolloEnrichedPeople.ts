@@ -25,7 +25,7 @@ export const apolloEnrichedPeople = async (ids: string[]) => {
     }
     return enrichedData;
   } catch (error: any) {
-    logger.info(error, "Error enriching people");
+    logger.error(error, "Error enriching people");
     throw new Error(error.message);
   }
 };
