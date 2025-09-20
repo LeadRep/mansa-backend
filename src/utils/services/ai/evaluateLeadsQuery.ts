@@ -128,7 +128,7 @@ export const evaluateLeadsWithAI = async (
           logger.error( parseErr,
             `JSON parse failed for lead: ${lead.email ?? "unknown"}`
           );
-          logger.info( `Raw content:\n${content}`);
+          logger.info(`Raw content:\n${content}`);
 
           // Try to fix common JSON issues
           try {
