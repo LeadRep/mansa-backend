@@ -82,7 +82,7 @@ export const newUserSequence = async () => {
     }
     //   }
   } catch (error: any) {
-    logger.error(error, `Error in newUserSequence:${error.message}`);
+    logger.error(error, 'Error in newUserSequence');
     return;
   }
 };
