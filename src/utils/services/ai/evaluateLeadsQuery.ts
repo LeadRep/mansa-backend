@@ -12,7 +12,7 @@ export const evaluateLeadsWithAI = async (
   userId: string // Add userId as a parameter
 ) => {
   const results = [];
-  logger.info(leads.length, "leads to evaluate");
+  logger.info(`${leads.length} leads to evaluate`);
 
   for (const lead of leads) {
     const leadExist = await Leads.findOne({

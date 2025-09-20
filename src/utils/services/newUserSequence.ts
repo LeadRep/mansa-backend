@@ -21,7 +21,7 @@ export const newUserSequence = async () => {
       },
     });
 
-    logger.info(unsubscribedUsers.length, "unsubscribed users found");
+    logger.info(`${unsubscribedUsers.length} unsubscribed users found`);
     for (const user of unsubscribedUsers) {
       const userInSequence = await NewUsersSequence.findOne({
         where: { user_id: user.id },

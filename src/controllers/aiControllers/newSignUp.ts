@@ -49,7 +49,7 @@ Return the result in this exact JSON schema:
     );
 
     let aiContent = aiResponse.data?.choices?.[0]?.message?.content?.trim();
-    logger.info(aiContent, "Raw AI response:");
+    logger.info("Raw AI response:", aiContent);
 
     // Strip accidental markdown fences
     if (aiContent.startsWith("```")) {
