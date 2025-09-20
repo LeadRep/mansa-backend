@@ -74,7 +74,7 @@ export const peopleSearchQueryPrompt = async (customerPref: any) => {
     };
     return result;
   } catch (err) {
-    logger.error(content, "Failed to parse JSON from Azure AI:");
+    logger.error(err, `Failed to parse JSON from Azure AI. Content: ${content}`);
     throw new Error("Azure AI did not return valid JSON");
   }
 };
