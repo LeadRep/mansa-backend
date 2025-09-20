@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import sendResponse from "../../utils/http/sendResponse";
 import Users from "../../models/Users";
 import { generateRefreshToken, generateToken } from "../../utils/services/token";
+import logger from "../../logger";
 
 export const autologin = async (request: Request, response: Response) => {
     const { userId } = request.body;
@@ -23,7 +24,7 @@ export const autologin = async (request: Request, response: Response) => {
       refreshToken,
     });
   } catch (error: any) {
-    console.error("Error during autologin:", error.message);
+    logger.error(error, "Error during autologin:");
     sendResponse(response, 500, "Internal Server Error", error.message);
     return;
   }

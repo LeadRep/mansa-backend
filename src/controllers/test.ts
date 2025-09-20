@@ -2,7 +2,7 @@ import e, { Request, Response } from "express";
 import sendResponse from "../utils/http/sendResponse";
 import { aiPeopleSearchQuery } from "./leadsController/aiPeopleSearchQuery";
 import { apolloPeopleSearch } from "./leadsController/apolloPeopleSearch";
-import { apolloEnrichedPeople } from "./leadsController/apolloEnrichedPeople";
+import logger from "../logger";
 
 export const test = async (req: Request, res: Response) => {
   try {
@@ -14,7 +14,7 @@ export const test = async (req: Request, res: Response) => {
     sendResponse(res, 200, "Leads generated successfully", leads);
     return;
   } catch (error: any) {
-    console.log("Error", error.message);
+    logger.error(error, "Error");
     sendResponse(res, 500, "Internal server error", null, error.message);
     return;
   }

@@ -3,6 +3,7 @@ import { JwtPayload } from "jsonwebtoken";
 import sendResponse from "../../../utils/http/sendResponse";
 import { v4 } from "uuid";
 import Deals from "../../../models/Deals";
+import logger from "../../../logger";
 
 export const createStage = async (request: JwtPayload, response: Response) => {
   try {
@@ -27,7 +28,7 @@ export const createStage = async (request: JwtPayload, response: Response) => {
 
     sendResponse(response, 200, "Stage created successfully", newStage);
   } catch (error: any) {
-    console.log("Error creating stage:", error.message);
+    logger.error(error, "Error creating stage:");
     sendResponse(response, 500, "Internal Server Error", null, error.message);
     return;
   }

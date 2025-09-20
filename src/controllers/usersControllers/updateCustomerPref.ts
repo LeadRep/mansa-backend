@@ -9,6 +9,7 @@ import {
   updatecustomerPreference,
 } from "../../utils/services/ai/updateCustomerPrefPrompt";
 import { AIResponse } from "../aiControllers/customerPreference";
+import logger from "../../logger";
 
 export const updateCustomerPref = async (
   request: JwtPayload,
@@ -104,8 +105,8 @@ export const updateCustomerPref = async (
     //       ? BP.buying_trigger
     //       : "",
     // };
-    // console.log("New ICP :", newICP);
-    // console.log("New BP:", newBP);
+    // logger.info("New ICP :", newICP);
+    // logger.info("New BP:", newBP);
     // const newCustomerPref = await updatecustomerPreference(
     //   user?.companyName,
     //   user?.role,
@@ -128,7 +129,7 @@ export const updateCustomerPref = async (
     findLeads(userId, 24);
     return;
   } catch (error: any) {
-    console.error("Error updating customer preferences:", error);
+    logger.error(error, "Error updating customer preferences:");
     sendResponse(response, 500, "Internal Server Error", null), error.message;
     return;
   }

@@ -32,7 +32,7 @@ async function createAccountRecordFromIdToken(userId: string, idToken: string) {
     if (!created) {
         await record.update({provider_account_name: email})
             .catch((error) => {
-                logger.error(`Error creating UserLinkedAccounts entry: ${error?.stack || error?.message || error}.`);
+                logger.error(error, `Error creating UserLinkedAccounts entry: ${error?.stack || error?.message || error}.`);
                 return null;
             });
     }
@@ -64,7 +64,7 @@ async function storeRefreshToken(accountId: string, refreshToken: string, scope:
             last_used_at: new Date(),
         })
             .catch((error) => {
-                logger.error(`Error creating UserLinkedAccountsToken entry: ${error?.stack || error?.message || error}.`);
+                logger.error(error, `Error creating UserLinkedAccountsToken entry: ${error?.stack || error?.message || error}.`);
                 return null;
             });
     }
@@ -97,14 +97,14 @@ export const googleCallback = async (
             logger.debug('Received SCOPE2 consent');
             handleScope2Callback(code as string, userId, response).catch(
                 (error) => {
-                    logger.error(`Error in handleScope2Callback: ${error?.stack || error?.message || error}.`, error);
+                    logger.error(error, `Error in handleScope2Callback: ${error?.stack || error?.message || error}.`);
                 }
             );
             return;
         }
 
     } catch (error: any) {
-        logger.error(`Error during Google OAuth callback: ${error?.stack || error?.message || error}.`, error);
+        logger.error(error, `Error during Google OAuth callback: ${error?.stack || error?.message || error}.`);
         response.redirect(CONTACT_FRONTEND_FAILURE_URL + `&reason=${encodeURIComponent(error.message)}`);
     }
 }
@@ -118,7 +118,7 @@ async function getExistingRefreshToken(accountId: string): Promise<string | null
         });
         return existing?.encrypted_refresh_token || null;
     } catch (e: any) {
-        logger.error(`Failed to load existing refresh token for ${accountId}: ${e?.message || e}`);
+        logger.error(e, `Failed to load existing refresh token for ${accountId}: ${e?.message || e}`);
         return null;
     }
 }
@@ -178,7 +178,7 @@ async function handleScope2Callback(code: string, userId: string, response: Resp
         if (tokens.refresh_token) {
             // Store the refresh token securely in your database for this user
             storeRefreshToken(accountId, tokens.refresh_token, TokenScope.SCOPE2).catch((error) => {
-                logger.error(`Error storing refresh token: ${error?.stack || error?.message || error}.`, error);
+                logger.error(error, `Error storing refresh token: ${error?.stack || error?.message || error}.`);
             });
         } else {
             logger.warn('No refresh token received. User might have previously consented without offline access.');
@@ -309,7 +309,7 @@ async function storeFetchedContacts(userId: string, userAccountId: string , cont
         });
         logger.debug(`Successfully stored ${contactsToUpsert.length} contacts for user ID ${userId}`);
     } catch (error: any) {
-        logger.error(`Error storing contacts for user ID ${userId} / accountId ${userAccountId}: ${error?.stack || error?.message || error}.`, error);
+        logger.error(error, `Error storing contacts for user ID ${userId} / accountId ${userAccountId}: ${error?.stack || error?.message || error}.`);
         throw error;
     }
 }

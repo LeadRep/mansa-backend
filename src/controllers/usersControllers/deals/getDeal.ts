@@ -2,6 +2,7 @@ import { Response } from "express";
 import { JwtPayload } from "jsonwebtoken";
 import Deals from "../../../models/Deals";
 import sendResponse from "../../../utils/http/sendResponse";
+import logger from "../../../logger";
 
 
 // Get all deals with their contacts for a user
@@ -18,7 +19,7 @@ export const getUserDeals = async (request: JwtPayload, response: Response) => {
     sendResponse(response, 200, "Deals fetched successfully", deals);
     return;
   } catch (error: any) {
-    console.log("Error fetching deals:", error.message);
+    logger.error(error, "Error fetching deals:");
     sendResponse(response, 500, "Internal Server Error", null, error.message);
     return;
   }

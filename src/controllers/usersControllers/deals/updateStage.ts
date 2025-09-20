@@ -19,7 +19,7 @@
 //     await deal.update({ stages: JSON.stringify(stages) });
 //     sendResponse(response, 200, "Stages updated successfully", stages);
 //   } catch (error: any) {
-//     console.log("Error updating deal stages:", error.message);
+//     logger.info("Error updating deal stages:", error.message);
 //     sendResponse(response, 500, "Internal Server Error", null, error.message);
 //   }
 // };

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { EnrichPersonQuery } from "./enrichPerson";
+import logger from "../../../logger";
 
 export interface EnrichPeopleQuery {
   details: EnrichPersonQuery[];
@@ -26,16 +27,16 @@ export const enrichPeople = async (searchParams: EnrichPeopleQuery, attempt = 1)
     return response.data;
   } catch (error: any) {
     if (attempt >= MAX_RETRIES) {
-      console.error(`Final attempt failed for batch:`, error.response?.data || error.message);
+      logger.error(error, `Final attempt failed for batch:`);
       throw new Error("Max retries reached");
     }
     if (error.response?.status === 429) {
       const delay = BASE_DELAY * Math.pow(2, attempt - 1);
-      console.log(`Rate limited. Waiting ${delay}ms before retry...`);
+      logger.info(`Rate limited. Waiting ${delay}ms before retry...`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return enrichPeople(searchParams, attempt + 1);
     }
-    console.error("Error in enrichPeople:", error.response?.data || error.message);
+    logger.error(error, "Error in enrichPeople:");
     throw error;
   }
 };

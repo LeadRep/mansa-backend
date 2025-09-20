@@ -35,7 +35,7 @@ export const getUnreviewedContacts = async (
             email_permission_granted: !!linkedAccountToken
         });
     } catch (error: any) {
-        logger.error(`Error fetching user contacts:${error?.stack || error?.message || error}.`, error);
+        logger.error(error, `Error fetching user contacts:${error?.stack || error?.message || error}.`);
         response.status(500).json({ message: 'Internal server error.' });
     }
 }
@@ -137,7 +137,7 @@ export const getContacts = async (
         });
         response.status(200).json({ data: contactsWithWarmlead});
     } catch (error: any) {
-        logger.error(`Error fetching user contacts: ${error?.stack || error?.message || error}.`, error);
+        logger.error(error, `Error fetching user contacts: ${error?.stack || error?.message || error}.`);
         response.status(500).json({ message: 'Internal server error.' });
     }
 }

@@ -14,6 +14,7 @@ import { findLeads } from "../aiControllers/findLeads";
 import NewUsersSequence, { SequenceStatus } from "../../models/NewUsersSequence";
 import { sequence1 } from "../../utils/mails/newUsers/sequence1";
 import { createDeal } from "./deals/createDeal";
+import logger from "../../logger";
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -127,7 +128,7 @@ export const registerUser = async (req: Request, res: Response) => {
     findLeads(userId, 10);
     return;
   } catch (error: any) {
-    console.log("User Registration Error:", error.message);
+    logger.error(error, "User Registration Error:");
     return sendResponse(res, 500, "Internal Server Error");
   }
 };

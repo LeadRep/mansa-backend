@@ -1,4 +1,5 @@
 import * as argon2 from 'argon2';
+import logger from "../../logger";
 
 /**
  * Hash a password using Argon2
@@ -32,7 +33,7 @@ export async function verifyPassword(
   try {
     return await argon2.verify(hashedPassword, plainPassword);
   } catch (err) {
-    console.error('Password verification error:', err);
+    logger.error(err, 'Password verification error:');
     return false;
   }
 }

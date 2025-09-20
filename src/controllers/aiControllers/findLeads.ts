@@ -6,7 +6,7 @@ import { peopleSearchQueryPrompt } from "../../utils/services/ai/peopleSearchQue
 import { enrichPeople } from "../../utils/services/apollo/enrichPeople";
 import { evaluateLeadsWithAI } from "../../utils/services/ai/evaluateLeadsQuery";
 import { Leads } from "../../models/Leads";
-import { or } from "sequelize";
+import logger from "../../logger";
 
 const getCustomerPrefByUserId = async (userId: string) => {
   const pref = await CustomerPref.findOne({ where: { userId } });
@@ -63,7 +63,7 @@ export const findLeads = async (userId: string, totalLeads: number) => {
         peopleSearchPage++;
       }
 
-      console.log(
+      logger.info(
         `Found ${peopleIds.length} potential leads from organizations`
       );
 
@@ -80,7 +80,7 @@ export const findLeads = async (userId: string, totalLeads: number) => {
         (id) => !existingLeadIds.includes(id)
       );
 
-      console.log(
+      logger.info(
         `After deduplication, ${newLeadIds.length} new leads to process`
       );
 
@@ -108,9 +108,9 @@ export const findLeads = async (userId: string, totalLeads: number) => {
               break;
             }
           } catch (error: any) {
-            console.error(
-              `Error processing batch ${i / 10 + 1}:`,
-              error.message
+            logger.error(
+                error,
+              `Error processing batch ${i / 10 + 1}:`
             );
           }
         }
@@ -118,14 +118,14 @@ export const findLeads = async (userId: string, totalLeads: number) => {
 
       attempts++;
       if (leads.length < totalLeads) {
-        console.log(
+          logger.info(
           `Attempt ${attempts}: Found ${leads.length}/${totalLeads} leads. Trying again...`
         );
       }
     }
 
     if (leads.length < totalLeads) {
-      console.warn(
+      logger.warn(
         `Only found ${leads.length} unique leads after ${maxAttempts} attempts`
       );
     }
@@ -135,6 +135,6 @@ export const findLeads = async (userId: string, totalLeads: number) => {
     );
     return leads.slice(0, totalLeads); // Ensure we return exactly the requested number
   } catch (error: any) {
-    console.error("Error in findLeads:", error.message);
+    logger.error(error, "Error in findLeads:");
   }
 };

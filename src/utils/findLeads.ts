@@ -2,6 +2,7 @@ import { CustomerPref } from "../models/CustomerPref";
 import axios from "axios";
 import { Leads } from "../models/Leads";
 import { v4 } from "uuid";
+import logger from "../logger";
 
 const apiKey = process.env.OPENAI_API_KEY;
 const endpoint = process.env.OPENAI_ENDPOINT;
@@ -13,7 +14,7 @@ const getCustomerPrefByUserId = async (userId: string) => {
 };
 
 const getSearchParametersFromAzureAI = async (customerPref: any) => {
-  console.log("getting search params...");
+  logger.info("getting search params...");
 
   const messages = [
     {
@@ -69,7 +70,7 @@ const getSearchParametersFromAzureAI = async (customerPref: any) => {
     };
     return result;
   } catch (err) {
-    console.error("Failed to parse JSON from Azure AI:", content);
+    logger.error(content, "Failed to parse JSON from Azure AI:");
     throw new Error("Azure AI did not return valid JSON");
   }
 };
@@ -96,7 +97,7 @@ const searchLeadsOnApollo = async (searchParams: any) => {
 
     return response.data;
   } catch (error: any) {
-    console.error("Error searching leads on Apollo:", error.message);
+    logger.error(error, "Error searching leads on Apollo:");
     throw new Error("Failed to search leads on Apollo");
   }
 };
@@ -193,9 +194,9 @@ const evaluateLeadsWithAI = async (customerPref: any, leads: any[]) => {
         const parsedLead = JSON.parse(content);
         results.push(parsedLead);
       } catch (innerErr: any) {
-        console.error(
+        logger.error(
+            innerErr,
           `Failed to parse JSON for lead: ${lead.email}. Raw content:\n${content}\nError:`,
-          innerErr.message
         );
 
         // Attempt to fix common JSON issues
@@ -208,7 +209,7 @@ const evaluateLeadsWithAI = async (customerPref: any, leads: any[]) => {
           const parsedLead = JSON.parse(fixedContent);
           results.push(parsedLead);
         } catch (fixErr: any) {
-          console.error("Failed to fix JSON:", fixErr.message);
+          logger.error(fixErr, "Failed to fix JSON:");
           // If we can't fix it, push the original lead with error info
           results.push({
             ...lead,
@@ -220,7 +221,7 @@ const evaluateLeadsWithAI = async (customerPref: any, leads: any[]) => {
         }
       }
     } catch (err: any) {
-      console.error(`Failed to evaluate lead: ${lead.email}`, err.message);
+      logger.error(err, `Failed to evaluate lead: ${lead.email}`);
       results.push({
         ...lead,
         category: "unknown",
@@ -269,7 +270,7 @@ export const findLeadsForUser = async (userId: string) => {
     }
     return evaluatedLeads;
   } catch (error: any) {
-    console.error("Error finding leads:", error.message);
+    logger.error(error, "Error finding leads:");
     throw new Error("Failed to find leads");
   }
 };

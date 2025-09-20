@@ -4,6 +4,7 @@ import sendResponse from "../../utils/http/sendResponse";
 import Deals from "../../models/Deals";
 import { createDeal } from "./deals/createDeal";
 import { DealContact } from "../../models/DealContacts";
+import logger from "../../logger";
 
 export const addLeadToDeal = async (
   request: JwtPayload,
@@ -51,7 +52,7 @@ export const addLeadToDeal = async (
     sendResponse(response, 200, "Lead added to deal successfully");
     return;
   } catch (error: any) {
-    console.log("Error adding lead to deal:", error.message);
+    logger.error(error, "Error adding lead to deal:");
     sendResponse(response, 500, "Internal Server Error", null, error.message);
     return;
   }
