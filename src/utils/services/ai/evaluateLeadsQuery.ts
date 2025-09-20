@@ -182,7 +182,7 @@ export const evaluateLeadsWithAI = async (
           }
         }
       } catch (err: any) {
-        logger.error( err, `API error for lead ${lead.email ?? "unknown"}:`);
+        logger.error(err, `API error for lead ${lead.email ?? "unknown"}:`);
         results.push({
           ...lead,
           category: "unknown",
