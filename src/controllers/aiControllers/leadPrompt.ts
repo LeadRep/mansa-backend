@@ -52,7 +52,7 @@ Return only a JSON array.`,
     );
 
     let aiContent = aiResponse.data?.choices?.[0]?.message?.content?.trim();
-    logger.info("Ai content:", aiContent);
+    logger.info({aiContent: aiContent}, "Ai content:");
 
     // Strip accidental formatting
     if (aiContent.startsWith("```")) {
@@ -63,7 +63,7 @@ Return only a JSON array.`,
     }
 
     const ids = JSON.parse(aiContent);
-    logger.info("Ai response:", ids);
+    logger.info({ids: ids}, "Ai response:");
 
     // Fetch leads from DB
     const leads = await Leads.findAll({
