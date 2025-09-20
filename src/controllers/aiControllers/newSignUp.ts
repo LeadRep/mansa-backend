@@ -90,7 +90,7 @@ Return the result in this exact JSON schema:
 
     return;
   } catch (error: any) {
-    logger.error("Error in newSignUp controller:", error);
+    logger.error(error, "Error in newSignUp controller:");
     sendResponse(
       response,
       500,
