@@ -70,7 +70,7 @@ const getSearchParametersFromAzureAI = async (customerPref: any) => {
     };
     return result;
   } catch (err) {
-    logger.error(err, "Failed to parse JSON from Azure AI:", { content });
+    logger.error(err, `Failed to parse JSON from Azure AI. Content: ${content}`);
     throw new Error("Azure AI did not return valid JSON");
   }
 };
