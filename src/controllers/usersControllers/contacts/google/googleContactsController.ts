@@ -22,7 +22,7 @@ export const googleConsentBasicDetails = async (
 ) => {
     try {
         const userId = request.user.id;
-        logger.info('google consent required for user ID:', userId);
+        logger.info(`google consent required for user ID: ${userId}`);
         const authorizeUrl = generateGoogleAuthUrl(userId, SCOPE1);
         response.status(200).json({ authorizeUrl});
     } catch (err) {
@@ -36,7 +36,7 @@ export const googleConsentReadEmail = async (
 ) => {
     try {
         const userId = request.user.id;
-        logger.info('google consent required for user ID:', userId);
+        logger.info(`google consent required for user ID:${userId}`);
         const authorizeUrl = generateGoogleAuthUrl(userId, SCOPE2);
         response.status(200).json({ authorizeUrl});
     } catch (err) {
