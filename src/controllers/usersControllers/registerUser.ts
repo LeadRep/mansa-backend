@@ -15,6 +15,9 @@ import NewUsersSequence, { SequenceStatus } from "../../models/NewUsersSequence"
 import { sequence1 } from "../../utils/mails/newUsers/sequence1";
 import { createDeal } from "./deals/createDeal";
 import logger from "../../logger";
+import Organizations from "../../models/Organizations";
+import Teams from "../../models/Teams";
+import TeamMemberships from "../../models/TeamMemberships";
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -62,6 +65,24 @@ export const registerUser = async (req: Request, res: Response) => {
       isBlocked: null,
     };
 
+    const org = await Organizations.create({
+        organization_id: v4(),
+        name: user.companyName,
+        website: user.website || null,
+        address: user.address || null,
+        country: user.country || null,
+        city: user.city || null,
+        plan: "free"
+    });
+    
+    //get organization_id
+    const team = await Teams.create({
+        team_id: v4(),
+        organization_id: org.organization_id,
+        name: org.name,
+        description: "primary team"
+    })
+
     if (user.google || user.microsoft) {
       userData = await Users.create({
         ...commonFields,
@@ -82,6 +103,13 @@ export const registerUser = async (req: Request, res: Response) => {
         isVerified: false,
       });
     }
+
+    const teamMemberShips = await TeamMemberships.create({
+        team_id: team.team_id,
+        user_id: userId,
+        organization_id: org.organization_id,
+        team_role: "member"
+    })
 
     // Create customer preferences
     await CustomerPref.create({
