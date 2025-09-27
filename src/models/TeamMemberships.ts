@@ -53,7 +53,7 @@ TeamMemberships.init(
         },
         // Mirror CHECK (team_role in (...)) with an enum type
         team_role: {
-            type: DataTypes.ENUM("lead", "member", "viewer"),
+            type: DataTypes.STRING(255),
             allowNull: false,
             defaultValue: "member",
         }
