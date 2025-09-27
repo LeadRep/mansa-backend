@@ -60,7 +60,7 @@ TeamMemberships.init(
     },
     {
         sequelize: database,
-        tableName: "team_memberships",
+        tableName: "TeamMemberships",
         timestamps: true,
         indexes: [
             // create index team_memberships_org_idx on team_memberships (organization_id);

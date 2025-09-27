@@ -19,7 +19,7 @@ import Organizations from "../../models/Organizations";
 import Teams from "../../models/Teams";
 import TeamMemberships from "../../models/TeamMemberships";
 
-export const registerUser = async (req: Request, res: Response) => {
+export const registerUserWithOrganization = async (req: Request, res: Response) => {
   try {
     const { user, icp, bp } = req.body;
     const userId = v4();
@@ -51,20 +51,6 @@ export const registerUser = async (req: Request, res: Response) => {
 
     let userData: any = null;
 
-    const commonFields = {
-      id: userId,
-      userName: user.userName || null,
-      phone: user.phone,
-      picture: user.picture || null,
-      companyName: user.companyName,
-      website: user.website || null,
-      address: user.address || null,
-      country: user.country || null,
-      city: user.city || null,
-      role: userRole.USER,
-      isBlocked: null,
-    };
-
     const org = await Organizations.create({
         organization_id: v4(),
         name: user.companyName,
@@ -74,12 +60,27 @@ export const registerUser = async (req: Request, res: Response) => {
         city: user.city || null,
         plan: "free"
     });
-    
-    //get organization_id
+
+      const commonFields = {
+          id: userId,
+          userName: user.userName || null,
+          phone: user.phone,
+          picture: user.picture || null,
+          companyName: user.companyName,
+          website: user.website || null,
+          address: user.address || null,
+          country: user.country || null,
+          city: user.city || null,
+          role: userRole.USER,
+          orgRole: userRole.ADMIN,
+          isBlocked: null,
+          organization_id: org.organization_id,
+      };
+
     const team = await Teams.create({
         team_id: v4(),
         organization_id: org.organization_id,
-        name: org.name,
+        name: "primary_team",
         description: "primary team"
     })
 

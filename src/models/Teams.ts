@@ -42,7 +42,7 @@ Teams.init(
     },
     {
         sequelize: database,
-        tableName: "teams",
+        tableName: "Teams",
         timestamps: true,
         indexes: [
             // UNIQUE (organization_id, name)

@@ -27,7 +27,7 @@ Organizations.init(
         },
         name: {
             type: DataTypes.STRING(255),
-            allowNull: false,
+            allowNull: true,
         },
         website: {
             type: DataTypes.STRING,
@@ -74,13 +74,7 @@ Organizations.init(
     {
         sequelize: database,
         tableName: "Organizations",
-        timestamps: true,
-        indexes: [
-            {
-                unique: true,
-                fields: ['name'],
-            }
-        ]
+        timestamps: true
     }
 );
 

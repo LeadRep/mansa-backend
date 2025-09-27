@@ -9,11 +9,18 @@ module.exports = {
             // ignore if not Postgres or no permissions
         }
 
-        // 1) Add column (nullable initially) if missing
+        // 1) Add columns (nullable initially) if missing
         const usersDesc = await queryInterface.describeTable("Users");
         if (!usersDesc.organization_id) {
             await queryInterface.addColumn("Users", "organization_id", {
                 type: Sequelize.DataTypes.UUID,
+                allowNull: true,
+            });
+        }
+
+        if (!usersDesc.orgRole) {
+            await queryInterface.addColumn("Users", "orgRole", {
+                type: Sequelize.DataTypes.STRING,
                 allowNull: true,
             });
         }
@@ -42,52 +49,63 @@ module.exports = {
       CREATE INDEX IF NOT EXISTS users_org_idx ON "Users"(organization_id);
     `);
 
-        // 4) Backfill:
-        //    For each existing user without an org:
-        //      - Create an Organization (plan='free')
-        //      - Set user.organization_id to that org
-        //      - Create a 'primary_team' row in teams for that org
-        //
-        // Notes:
-        // - Organizations has "createdAt"/"updatedAt" timestamp columns.
-        // - teams has created_at timestamp column.
+        // 4) Backfill and create memberships:
+        //    - base: list users without org with generated org_id
+        //    - ins_org: create Organizations
+        //    - upd_user: set user.organization_id
+        //    - ins_team: create 'primary_team' per org
+        //    - ins_membership: add team_memberships rows (user is 'lead' by default)
         await queryInterface.sequelize.query(`
       WITH base AS (
         SELECT
           u.id AS user_id,
+          COALESCE(u."subscriptionName", 'free') as plan,
           gen_random_uuid() AS org_id,
+          u."createdAt" as created_at,
+          u."updatedAt" as updated_at,
+          u.website as website,
+          u.address as address,
+          u.country as country,
+          u.city as city,
           COALESCE(u."companyName", CONCAT(u."firstName",' ',u."lastName",' Org')) AS org_name
         FROM "Users" u
         WHERE u.organization_id IS NULL
       ),
       ins_org AS (
-        INSERT INTO "Organizations" (organization_id, name, plan, "createdAt", "updatedAt")
-        SELECT b.org_id, b.org_name, 'free', NOW(), NOW()
+        INSERT INTO "Organizations" (organization_id, name, plan, "createdAt", "updatedAt", website, address, country, city)
+        SELECT b.org_id, b.org_name, b.plan, b.created_at, b.updated_at, b.website, b.address, b.country, b.city
         FROM base b
         ON CONFLICT (organization_id) DO NOTHING
         RETURNING organization_id
       ),
       upd_user AS (
         UPDATE "Users" u
-        SET organization_id = b.org_id
+        SET organization_id = b.org_id, "orgRole" = 'admin'
         FROM base b
         WHERE u.id = b.user_id
         RETURNING u.id, b.org_id
+      ),
+      ins_team AS (
+        INSERT INTO "Teams" (team_id, organization_id, name, description, "createdAt", "updatedAt")
+        SELECT gen_random_uuid(), b.org_id, 'primary_team', NULL, b.created_at, b.updated_at
+        FROM base b
+        RETURNING team_id, organization_id
       )
-      INSERT INTO teams (id, organization_id, name, description, created_at)
-      SELECT gen_random_uuid(), b.org_id, 'primary_team', NULL, NOW()
-      FROM base b;
+      INSERT INTO "TeamMemberships" (team_id, user_id, organization_id, team_role, "createdAt", "updatedAt")
+      SELECT t.team_id, b.user_id, t.organization_id, 'lead', b.created_At, b.updated_at
+      FROM ins_team t
+      JOIN base b ON b.org_id = t.organization_id;
     `);
 
-        // If you later want NOT NULL, do it in a separate migration after verifying data:
-        // await queryInterface.changeColumn("Users", "organization_id", {
-        //   type: Sequelize.DataTypes.UUID,
-        //   allowNull: false,
-        // });
+        // Enforce NOT NULL after verifying all users now have an org
+        await queryInterface.changeColumn("Users", "organization_id", {
+          type: Sequelize.DataTypes.UUID,
+          allowNull: false,
+        });
     },
 
     async down(queryInterface, Sequelize) {
-        // Revert schema only (do not delete created orgs/teams automatically)
+        // Revert schema only (do not delete created orgs/teams/memberships automatically)
         try {
             await queryInterface.sequelize.query(`DROP INDEX IF EXISTS users_org_idx;`);
         } catch (e) {}
@@ -109,6 +127,9 @@ module.exports = {
         const usersDesc = await queryInterface.describeTable("Users");
         if (usersDesc.organization_id) {
             await queryInterface.removeColumn("Users", "organization_id");
+        }
+        if (usersDesc.orgRole) {
+            await queryInterface.removeColumn("Users", "orgRole");
         }
     },
 };
