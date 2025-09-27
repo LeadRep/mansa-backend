@@ -77,13 +77,13 @@ Users.init(
       defaultValue: null,
     },
     organization_id: {
-          type: DataTypes.UUID,
-         allowNull: false,
-          references: {
-              model: Organizations,
-              key: "organization_id",
-          },
-        onDelete: "CASCADE",
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: Organizations,
+        key: "organization_id",
+      },
+      onDelete: "CASCADE",
     },
     companyName: {
       type: DataTypes.STRING,
