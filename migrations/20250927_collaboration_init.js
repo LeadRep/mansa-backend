@@ -61,7 +61,7 @@ module.exports = {
                     defaultValue: Sequelize.literal("now()"),
                 },
                 subscriptionStartDate: {
-                    type: DataTypes.DATE,
+                    type: Sequelize.DataTypes.DATE,
                     allowNull: true,
                     defaultValue: null,
                     validate: {
@@ -69,7 +69,7 @@ module.exports = {
                     },
                 },
                 subscriptionEndDate: {
-                    type: DataTypes.DATE,
+                    type: Sequelize.DataTypes.DATE,
                     allowNull: true,
                     defaultValue: null,
                     validate: {
