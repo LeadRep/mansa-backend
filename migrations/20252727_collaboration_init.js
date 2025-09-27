@@ -129,7 +129,7 @@ module.exports = {
             });
             // Composite unique (team_id, organization_id) to support composite FKs
             await queryInterface.addIndex("Teams", ["team_id", "organization_id"], { unique: true, name: "teams_id_org_uniq" });
-            await queryInterface.addIndex("Teams", ["team_id", "organization_id"], { unique: true, name: "teams_org_name_uniq" });
+            await queryInterface.addIndex("Teams", ["organization_id", "name"], { unique: true, name: "teams_org_name_uniq" });
             // Index on organization_id
             await queryInterface.addIndex("Teams", ["organization_id"], { name: "teams_org_idx" });
         }
