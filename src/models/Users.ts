@@ -96,8 +96,8 @@ Users.init(
       allowNull: false,
     },
     orgRole: {
-        type: DataTypes.STRING,
-        allowNull: true,
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     website: {
       type: DataTypes.STRING,
