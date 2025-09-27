@@ -82,7 +82,7 @@ export const registerUserWithOrganization = async (req: Request, res: Response) 
         organization_id: org.organization_id,
         name: "primary_team",
         description: "primary team"
-    })
+    });
 
     if (user.google || user.microsoft) {
       userData = await Users.create({
