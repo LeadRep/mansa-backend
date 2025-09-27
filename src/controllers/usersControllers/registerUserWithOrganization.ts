@@ -109,7 +109,7 @@ export const registerUserWithOrganization = async (req: Request, res: Response) 
         team_id: team.team_id,
         user_id: userId,
         organization_id: org.organization_id,
-        team_role: "member"
+        team_role: "lead"
     });
 
     // Create customer preferences
