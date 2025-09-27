@@ -15,8 +15,11 @@ import NewUsersSequence, { SequenceStatus } from "../../models/NewUsersSequence"
 import { sequence1 } from "../../utils/mails/newUsers/sequence1";
 import { createDeal } from "./deals/createDeal";
 import logger from "../../logger";
+import Organizations from "../../models/Organizations";
+import Teams from "../../models/Teams";
+import TeamMemberships from "../../models/TeamMemberships";
 
-export const registerUser = async (req: Request, res: Response) => {
+export const registerUserWithOrganization = async (req: Request, res: Response) => {
   try {
     const { user, icp, bp } = req.body;
     const userId = v4();
@@ -48,19 +51,38 @@ export const registerUser = async (req: Request, res: Response) => {
 
     let userData: any = null;
 
-    const commonFields = {
-      id: userId,
-      userName: user.userName || null,
-      phone: user.phone,
-      picture: user.picture || null,
-      companyName: user.companyName,
-      website: user.website || null,
-      address: user.address || null,
-      country: user.country || null,
-      city: user.city || null,
-      role: userRole.USER,
-      isBlocked: null,
-    };
+    const org = await Organizations.create({
+        organization_id: v4(),
+        name: user.companyName,
+        website: user.website || null,
+        address: user.address || null,
+        country: user.country || null,
+        city: user.city || null,
+        plan: "free"
+    });
+
+      const commonFields = {
+          id: userId,
+          userName: user.userName || null,
+          phone: user.phone,
+          picture: user.picture || null,
+          companyName: user.companyName,
+          website: user.website || null,
+          address: user.address || null,
+          country: user.country || null,
+          city: user.city || null,
+          role: userRole.USER,
+          orgRole: userRole.ADMIN,
+          isBlocked: null,
+          organization_id: org.organization_id,
+      };
+
+    const team = await Teams.create({
+        team_id: v4(),
+        organization_id: org.organization_id,
+        name: "primary_team",
+        description: "primary team"
+    });
 
     if (user.google || user.microsoft) {
       userData = await Users.create({
@@ -82,6 +104,13 @@ export const registerUser = async (req: Request, res: Response) => {
         isVerified: false,
       });
     }
+
+    const teamMemberShips = await TeamMemberships.create({
+        team_id: team.team_id,
+        user_id: userId,
+        organization_id: org.organization_id,
+        team_role: "lead"
+    });
 
     // Create customer preferences
     await CustomerPref.create({
