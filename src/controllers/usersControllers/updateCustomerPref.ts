@@ -24,7 +24,8 @@ export const updateCustomerPref = async (
   }
   try {
     const user = await Users.findByPk(userId);
-    if (!user?.subscriptionName) {
+    const removeLimit = process.env.SKIP_LIMIT === "true";
+    if (!removeLimit && !user?.subscriptionName) {
       sendResponse(
         response,
         400,
