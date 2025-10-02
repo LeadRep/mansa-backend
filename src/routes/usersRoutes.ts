@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser } from "../controllers/usersControllers/registerUser";
+import { registerUserWithOrganization } from "../controllers/usersControllers/registerUserWithOrganization";
 import { loginUser } from "../controllers/usersControllers/loginUser";
 import { userLeads } from "../controllers/usersControllers/userLeads";
 import { userAuth } from "../middlewares/userAuth";
@@ -14,7 +14,7 @@ import { moveContactToStage } from "../controllers/usersControllers/deals/moveCo
 import { addLeadToDeal } from "../controllers/usersControllers/addLeadToDeal";
 
 const usersRoutes = express.Router();
-usersRoutes.post("/register", registerUser);
+usersRoutes.post("/register", registerUserWithOrganization);
 usersRoutes.post("/login", loginUser);
 usersRoutes.post("/autologin", autologin);
 usersRoutes.get("/leads", userAuth, userLeads);

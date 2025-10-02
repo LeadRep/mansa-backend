@@ -2,6 +2,7 @@ import { Response } from "express";
 import { JwtPayload } from "jsonwebtoken";
 import { DealContact } from "../../../models/DealContacts";
 import sendResponse from "../../../utils/http/sendResponse";
+import logger from "../../../logger";
 
 export const moveContactToStage = async (
   request: JwtPayload,
@@ -24,7 +25,7 @@ export const moveContactToStage = async (
 
     sendResponse(response, 200, "Contact moved successfully", contact);
   } catch (error: any) {
-    console.log("Error moving contact:", error.message);
+    logger.error(error, "Error moving contact:");
     sendResponse(response, 500, "Internal Server Error", null, error.message);
     return;
   }

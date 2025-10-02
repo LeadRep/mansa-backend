@@ -4,6 +4,7 @@ import {
   scrapeWebsiteContent,
 } from "../../../controllers/aiControllers/customerPreference";
 import dotenv from "dotenv";
+import logger from "../../../logger";
 dotenv.config();
 
 const apiKey = process.env.OPENAI_API_KEY;
@@ -97,7 +98,7 @@ export async function updateCRMInsights(
     }
     return JSON.parse(aiContent) as AIResponse;
   } catch (error: any) {
-    console.error("Error fetching AI response:", error.message);
+    logger.error(error, "Error fetching AI response:");
     return null;
   }
 }
@@ -124,6 +125,6 @@ export const updatecustomerPreference = async (
     } while (insights === null || typeof insights !== "object");
     return insights;
   } catch (error: any) {
-    console.error("Error in scrapeController:", error.message);
+    logger.error(error, "Error in scrapeController:");
   }
 };

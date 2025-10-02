@@ -4,6 +4,7 @@ import axios from "axios";
 import fs from "fs";
 import path from "path";
 import { parse } from "json2csv";
+import logger from "../logger";
 
 const resolveLeadsSourcePath = (): string => {
   const distPath = path.join(__dirname, "file.csv");
@@ -118,7 +119,7 @@ export const generateLeads = async (request: Request, response: Response) => {
     fileStream.pipe(response);
     return;
   } catch (error: any) {
-    console.log("Error", error.message);
+    logger.error(error, "Error generating leads");
     sendResponse(response, 500, "Internal Server Error", null, error.message);
     return;
   }
@@ -187,5 +188,5 @@ const createCSV = (leads: any[]) => {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, csv);
 
-  console.log(`CSV file created at: ${filePath}`);
+  logger.info(`CSV file created at: ${filePath}`);
 };

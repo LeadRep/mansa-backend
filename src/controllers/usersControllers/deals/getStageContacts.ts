@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { DealContact } from "../../../models/DealContacts";
 import sendResponse from "../../../utils/http/sendResponse";
 import { JwtPayload } from "jsonwebtoken";
+import logger from "../../../logger";
 
 // Get all contacts for a specific deal and stage
 export const getContactsByDealAndStage = async (
@@ -23,7 +24,7 @@ export const getContactsByDealAndStage = async (
     sendResponse(response, 200, "Contacts fetched successfully", contacts);
     return;
   } catch (error: any) {
-    console.log("Error fetching contacts:", error.message);
+    logger.error(error, "Error fetching contacts:");
     sendResponse(response, 500, "Internal Server Error", null, error.message);
     return;
   }

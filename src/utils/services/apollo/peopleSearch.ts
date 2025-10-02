@@ -1,4 +1,5 @@
 import axios from "axios";
+import logger from "../../../logger";
 
 interface PeopleSearchQuery {
   person_titles: string[];
@@ -34,7 +35,7 @@ export const peopleSearch = async (query: PeopleSearchQuery, page?: number) => {
 
     return response.data;
   } catch (error: any) {
-    console.log("Error in peopleSearch:", error.message);
+    logger.error(error, "Error in peopleSearch:");
     return false
   }
 };

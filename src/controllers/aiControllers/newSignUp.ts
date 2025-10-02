@@ -3,6 +3,7 @@ import sendResponse from "../../utils/http/sendResponse";
 import axios from "axios";
 import dotenv from "dotenv";
 import { AIResponse, getCRMInsights } from "./customerPreference";
+import logger from "../../logger";
 
 dotenv.config();
 
@@ -48,7 +49,7 @@ Return the result in this exact JSON schema:
     );
 
     let aiContent = aiResponse.data?.choices?.[0]?.message?.content?.trim();
-    console.log("Raw AI response:", aiContent);
+    logger.info({input: keyword, aiResponse: aiContent}, "Raw AI response:");
 
     // Strip accidental markdown fences
     if (aiContent.startsWith("```")) {
@@ -62,7 +63,7 @@ Return the result in this exact JSON schema:
     try {
       extractedData = JSON.parse(aiContent);
     } catch (parseError) {
-      console.error("Invalid JSON from AI, falling back to empty template.");
+      logger.error(parseError, "Invalid JSON from AI, falling back to empty template.");
       extractedData = {
         firstName: "",
         lastName: "",
@@ -89,7 +90,7 @@ Return the result in this exact JSON schema:
 
     return;
   } catch (error: any) {
-    console.error("Error in newSignUp controller:", error);
+    logger.error(error, "Error in newSignUp controller:");
     sendResponse(
       response,
       500,

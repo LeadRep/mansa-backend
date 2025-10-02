@@ -1,5 +1,6 @@
 import { DataTypes, Model } from "sequelize";
 import { database } from "../configs/database/database";
+import Organizations from "./Organizations";
 
 export enum userRole {
   ADMIN = "admin",
@@ -15,8 +16,10 @@ export interface UsersAttributes {
   email: string;
   phone?: string;
   picture?: string;
+  organization_id: string;
   companyName?: string;
   role: string;
+  orgRole: string;
   website?: string;
   address?: string;
   country?: string;
@@ -73,6 +76,15 @@ Users.init(
       allowNull: true,
       defaultValue: null,
     },
+    organization_id: {
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: Organizations,
+        key: "organization_id",
+      },
+      onDelete: "CASCADE",
+    },
     companyName: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -82,6 +94,10 @@ Users.init(
       type: DataTypes.STRING,
       defaultValue: userRole.USER,
       allowNull: false,
+    },
+    orgRole: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     website: {
       type: DataTypes.STRING,

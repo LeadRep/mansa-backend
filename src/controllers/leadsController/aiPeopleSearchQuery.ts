@@ -69,7 +69,7 @@ export const aiPeopleSearchQuery = async (customers: any) => {
     }
     return result;
   } catch (error: any) {
-    console.error("Error generating leads:", error);
+    logger.error(error, "Error generating leads:");
 
     if (axios.isAxiosError(error)) {
       throw new Error(

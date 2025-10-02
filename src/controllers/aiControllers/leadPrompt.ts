@@ -4,6 +4,7 @@ import axios from "axios";
 import dotenv from "dotenv";
 import { Leads, LeadStatus } from "../../models/Leads";
 import { JwtPayload } from "jsonwebtoken";
+import logger from "../../logger";
 
 dotenv.config();
 
@@ -51,7 +52,7 @@ Return only a JSON array.`,
     );
 
     let aiContent = aiResponse.data?.choices?.[0]?.message?.content?.trim();
-    console.log("Ai content:", aiContent);
+    logger.info({aiContent: aiContent}, "Ai content:");
 
     // Strip accidental formatting
     if (aiContent.startsWith("```")) {
@@ -62,7 +63,7 @@ Return only a JSON array.`,
     }
 
     const ids = JSON.parse(aiContent);
-    console.log("Ai response:", ids);
+    logger.info({ids: ids}, "Ai response:");
 
     // Fetch leads from DB
     const leads = await Leads.findAll({
@@ -72,7 +73,7 @@ Return only a JSON array.`,
     sendResponse(response, 200, "success", leads);
     return;
   } catch (error: any) {
-    console.log("Error in leadSearch controller", error.message);
+    logger.error(error, "Error in leadSearch controller");
     sendResponse(
       response,
       500,

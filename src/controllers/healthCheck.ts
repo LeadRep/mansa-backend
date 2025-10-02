@@ -50,7 +50,7 @@ export const healthCheck = async (request: Request, response: Response) => {
     });
     return;
   } catch (error: any) {
-    logger.error("Health Check Error:", error);
+    logger.error(error, "Health Check Error:");
     response.status(500).json({
       status: "error",
       message: "Health Check Failed",

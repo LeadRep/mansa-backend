@@ -1,6 +1,7 @@
 import axios from "axios";
 import { v4 } from "uuid";
 import { Leads } from "../../../models/Leads";
+import logger from "../../../logger";
 
 const apiKey = process.env.OPENAI_API_KEY;
 const endpoint = process.env.OPENAI_ENDPOINT;
@@ -11,7 +12,7 @@ export const evaluateLeadsWithAI = async (
   userId: string // Add userId as a parameter
 ) => {
   const results = [];
-  console.log(leads.length, "leads to evaluate");
+  logger.info(`${leads.length} leads to evaluate`);
 
   for (const lead of leads) {
     const leadExist = await Leads.findOne({
@@ -124,11 +125,10 @@ export const evaluateLeadsWithAI = async (
             });
           }
         } catch (parseErr: any) {
-          console.error(
+          logger.error( parseErr,
             `JSON parse failed for lead: ${lead.email ?? "unknown"}`
           );
-          console.error("Raw content:\n", content);
-          console.error("Parse error:", parseErr.message);
+          logger.info(`Raw content:\n${content}`);
 
           // Try to fix common JSON issues
           try {
@@ -171,7 +171,7 @@ export const evaluateLeadsWithAI = async (
               });
             }
           } catch (fixErr: any) {
-            console.error("Failed to recover JSON:", fixErr.message);
+            logger.error(fixErr, "Failed to recover JSON:");
             results.push({
               ...lead,
               category: "unknown",
@@ -182,10 +182,7 @@ export const evaluateLeadsWithAI = async (
           }
         }
       } catch (err: any) {
-        console.error(
-          `API error for lead ${lead.email ?? "unknown"}:`,
-          err.message
-        );
+        logger.error(err, `API error for lead ${lead.email ?? "unknown"}:`);
         results.push({
           ...lead,
           category: "unknown",

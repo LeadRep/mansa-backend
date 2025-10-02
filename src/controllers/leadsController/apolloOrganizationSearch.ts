@@ -1,4 +1,5 @@
 import axios from "axios";
+import logger from "../../../logger";
 
 interface organizationSearchQuery {
   organization_num_employees_ranges?: string[];
@@ -36,7 +37,7 @@ export const apolloOrganizationSearch = async (
     );
     return response.data;
   } catch (err: any) {
-    console.log("Error in organizationSearch:", err.message);
+    logger.error(err, "Error in organizationSearch:");
     return false
   }
 };

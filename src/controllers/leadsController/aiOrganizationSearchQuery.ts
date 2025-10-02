@@ -1,4 +1,5 @@
 import axios from "axios";
+import logger from "../../../logger";
 
 const apiKey = process.env.OPENAI_API_KEY;
 const endpoint = process.env.OPENAI_ENDPOINT;
@@ -72,7 +73,7 @@ export const aiOrganizationSearchQuery = async (customerPref: any) => {
 
     return parsed;
   } catch (err) {
-    console.error("Failed to parse JSON from Azure AI:", content);
+    logger.error(err, `Failed to parse JSON from Azure AI. Content: ${content}`);
     throw new Error("Azure AI did not return valid JSON");
   }
 };

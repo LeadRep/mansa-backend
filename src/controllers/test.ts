@@ -42,7 +42,7 @@ export const test = async (req: Request, res: Response) => {
     sendResponse(res, 200, "Leads generated successfully", newLeads);
     return;
   } catch (error: any) {
-    console.log("Error", error.message);
+    logger.error(error, "Error");
     sendResponse(res, 500, "Internal server error", null, error.message);
     return;
   }

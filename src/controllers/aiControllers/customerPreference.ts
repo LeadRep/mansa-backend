@@ -2,6 +2,7 @@ import axios from "axios";
 import { Request, Response } from "express";
 import puppeteer from "puppeteer";
 import dotenv from "dotenv";
+import logger from "../../logger";
 dotenv.config();
 
 // Define the expected structure of customer data
@@ -242,7 +243,7 @@ export async function getCRMInsights(
     }
     return JSON.parse(aiContent) as AIResponse;
   } catch (error: any) {
-    console.error("Error fetching AI response:", error.message);
+    logger.error(error, "Error fetching AI response:");
     return null;
   }
 }
@@ -257,7 +258,7 @@ export const customerPreference = async (req: Request, res: Response) => {
     } while (insights === null || typeof insights !== "object");
     res.status(200).json(insights);
   } catch (error: any) {
-    console.error("Error in scrapeController:", error.message);
+    logger.error(error, "Error in scrapeController:");
     res.status(500).json({ error: "Internal server error" });
   }
 };

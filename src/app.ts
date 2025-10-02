@@ -5,7 +5,6 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import { database } from "./configs/database/database";
 import { json, urlencoded } from "body-parser";
-import logger from "morgan";
 import cron from "node-cron";
 import {
   pinoHttpMiddleware,
@@ -17,6 +16,7 @@ import path from "path";
 import indexRoutes from "./routes/indexRoutes";
 import { healthCheck } from "./controllers/healthCheck";
 import { newUserSequence } from "./utils/services/newUserSequence";
+import pinoLogger from "./logger";
 dotenv.config();
 
 const app = express();
@@ -44,8 +44,6 @@ app.use(
     credentials: true,
   })
 );
-app.use(logger("dev"));
-// Pino for incoming HTTP logging- duplicated with morgan. one will be removed later
 app.use(pinoHttpMiddleware);
 app.use(cookieParser());
 app.get("/", (request: Request, response: Response) => {
@@ -56,22 +54,22 @@ app.get("/health-check", healthCheck);
 database
   .sync({})
   .then(() => {
-    console.log("Database is connected");
+      pinoLogger.info("Database is connected");
   })
   .catch((err: HttpError) => {
-    console.log(err);
+      pinoLogger.error(err);
   });
 
 // Schedule to run every day at 7 AM
 cron.schedule(
   "0 7 * * *",
   async () => {
-    console.log("Running scheduled job at 7 AM...");
+      pinoLogger.info("Running scheduled job at 7 AM...");
     try {
       await newUserSequence();
-      console.log("Scheduled job completed successfully");
+        pinoLogger.info("Scheduled job completed successfully");
     } catch (error) {
-      console.error("Error in scheduled job:", error);
+        pinoLogger.error(error, "Error in scheduled job:");
     }
   },
   {
@@ -79,7 +77,7 @@ cron.schedule(
   }
 );
 app.listen(port, () => {
-  console.log(`App running at port ${port}`);
+    pinoLogger.info(`App running at port ${port}`);
 });
 
 app.use(httpLoggingMiddleware);
