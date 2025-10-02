@@ -5,42 +5,90 @@ import fs from "fs";
 import path from "path";
 import { parse } from "json2csv";
 
+const resolveLeadsSourcePath = (): string => {
+  const distPath = path.join(__dirname, "file.csv");
+  if (fs.existsSync(distPath)) {
+    return distPath;
+  }
+  return path.resolve(process.cwd(), "src/controllers/file.csv");
+};
+
 export const generateLeads = async (request: Request, response: Response) => {
   try {
-    const apiResponse = await axios.post(
-      "https://api.apollo.io/v1/mixed_people/search",
-      {
-        person_titles: [
-          "Sales Director Africa",
-          "Sales Director EMEA",
-          "Head of Business Development Africa",
-          "Head of Business Development EMEA",
-          "Sales Manager Africa",
-          "Sales Manager EMEA",
-        ],
-        // person_locations: ["Germany"],
-        organization_locations: ["Germany"],
-        organization_num_employees_ranges: ["1000,1000000000"],
-        "revenue_range[min]": 50000000,
-        "revenue_range[max]": 50000000000,
-        // q_keywords:"Automotive Machinery Chemicals Consumer Goods Construction Industrial Automation Medical Devices Financial Services",
-        //   "Machinery, Automotive, Chemicals, FMCG, Construction, Industrial goods, Medical goods, Finance",
-        person_seniorities: ["vp", "head", "director"],
-        include_similar_titles: true,
-        contact_email_status: ["verified", "likely to engage"],
-        per_page: 100,
-      },
-      {
-        headers: {
-          "Cache-Control": "no-cache",
-          "Content-Type": "application/json",
-          accept: "application/json",
-          "x-api-key": process.env.APOLLO_API_KEY!,
-        },
-      }
+    // get all the domains from the csv file and save in the domains array
+    const leadsSourcePath = resolveLeadsSourcePath();
+    const csvContent = fs.readFileSync(leadsSourcePath, "utf-8");
+    const rows = csvContent.split(/\r?\n/).filter((row) => row.trim().length);
+    if (!rows.length) {
+      throw new Error("CSV file is empty");
+    }
+
+    const headerColumns = rows[0]
+      .replace(/^\uFEFF/, "")
+      .split(";")
+      .map((cell) => cell.trim());
+    const domainIndex = headerColumns.findIndex(
+      (column) => column.toLowerCase() === "www-address"
     );
-    const leadsIds = apiResponse.data.model_ids;
-    let enrichedLeads = [];
+
+    if (domainIndex === -1) {
+      throw new Error("WWW-address column not found in CSV");
+    }
+
+    const domainSet = new Set<string>();
+    for (const row of rows.slice(1)) {
+      const cells = row.split(";");
+      const rawValue = cells[domainIndex]?.trim();
+      const domain = extractDomain(rawValue);
+      if (domain) {
+        domainSet.add(domain);
+      }
+    }
+
+    const domains = Array.from(domainSet);
+
+    const leadsIds: string[] = [];
+
+    // then use the domains to fetch leads from apollo api
+    // send only 100 domains at a time and save their ids to leads array
+    for (let i = 0; i < domains.length; i += 100) {
+      const batch = domains.slice(i, i + 100);
+      const searchResponse = await axios.post(
+        "https://api.apollo.io/v1/mixed_people/search",
+        {
+          q_organization_domains_list: batch,
+          person_titles: [
+            "CIO",
+            "Chief Investment Officer",
+            "Fund Manager",
+            "Manager Selection",
+            "Analyst",
+            "Portfolio Manager",
+          ],
+          include_similar_titles: true,
+          contact_email_status: ["verified", "likely to engage"],
+          per_page: 100,
+        },
+        {
+          headers: {
+            "Cache-Control": "no-cache",
+            "Content-Type": "application/json",
+            accept: "application/json",
+            "x-api-key": process.env.APOLLO_API_KEY!,
+          },
+        }
+      );
+
+      const people = searchResponse.data?.people ?? [];
+      for (const lead of people) {
+        if (lead?.id) {
+          leadsIds.push(lead.id);
+        }
+      }
+    }
+    let enrichedLeads: any[] = [];
+    // after fetching the leads use the ids to get their enriched data from apollo api below
+
     for (let i = 0; i < leadsIds.length; i += 10) {
       const batchIds = leadsIds.slice(i, i + 10);
       const batchDetails = batchIds.map((id: string) => ({ id }));
@@ -52,13 +100,22 @@ export const generateLeads = async (request: Request, response: Response) => {
             "Cache-Control": "no-cache",
             "Content-Type": "application/json",
             "x-api-key": process.env.APOLLO_API_KEY!,
-          }, 
+          },
         }
       );
-      enrichedLeads.push(...response.data.matches);
+      enrichedLeads.push(...(response.data.matches ?? []));
     }
-    // createCSV(enrichedLeads);
-    sendResponse(response, 200, "Leads gotten", apiResponse.data);
+    // then save the leads to a csv file and send the file as response
+    // also save the file to the exports folder
+    createCSV(enrichedLeads);
+    const exportPath = path.join(__dirname, "../../exports/leads.csv");
+    const fileStream = fs.createReadStream(exportPath);
+    response.setHeader("Content-Type", "text/csv");
+    response.setHeader(
+      "Content-Disposition",
+      'attachment; filename="leads.csv"'
+    );
+    fileStream.pipe(response);
     return;
   } catch (error: any) {
     console.log("Error", error.message);
@@ -66,6 +123,37 @@ export const generateLeads = async (request: Request, response: Response) => {
     return;
   }
 };
+const extractDomain = (value: string | undefined | null): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  let normalized = trimmed.replace(/^"|"$/g, "");
+
+  if (!normalized.includes("://")) {
+    normalized = `http://${normalized}`;
+  }
+
+  try {
+    const url = new URL(normalized);
+    const hostname = url.hostname.replace(/^www\./i, "");
+    return hostname || null;
+  } catch (error) {
+    return (
+      normalized
+        .replace(/^https?:\/\//i, "")
+        .replace(/^www\./i, "")
+        .split("/")[0]
+        .trim() || null
+    );
+  }
+};
+
 const createCSV = (leads: any[]) => {
   const fields = [
     "Person name",
@@ -77,7 +165,6 @@ const createCSV = (leads: any[]) => {
     "Location",
     "Industry",
     "Linkedin profile",
-    "Employee size",
   ];
 
   const csvData = leads.map((lead) => ({
@@ -92,7 +179,6 @@ const createCSV = (leads: any[]) => {
     Location: `${lead.city || ""}, ${lead.state || ""}, ${lead.country || ""}`,
     Industry: lead.organization?.industry || "",
     "Linkedin profile": lead.linkedin_url || "",
-    "Employee size": lead.organization?.estimated_num_employees || "",
   }));
 
   const csv = parse(csvData, { fields });

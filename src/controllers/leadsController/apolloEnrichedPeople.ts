@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const apolloEnrichedPeople = async (ids: string[]) => {
-  console.log("number of ids", ids.length);
   try {
     const enrichedData = [];
     for (let i = 0; i < ids.length; i += 10) {

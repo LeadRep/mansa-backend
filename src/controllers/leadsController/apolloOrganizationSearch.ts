@@ -12,7 +12,7 @@ interface organizationSearchQuery {
   organization_ids?: string[];
 }
 
-export const organizationSearch = async (
+export const apolloOrganizationSearch = async (
   searchParams: organizationSearchQuery,
   page?: number
 ) => {

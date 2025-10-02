@@ -1,6 +1,6 @@
 import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
-import { organizationSearch } from "../../utils/services/apollo/organizationSearch";
-import { orgSearchQueryPrompt } from "../../utils/services/ai/orgSearchQueryPrompt";
+import { organizationSearch } from "../leadsController/apolloOrganizationSearch";
+import { orgSearchQueryPrompt } from "../leadsController/aiOrganizationSearchQuery";
 import { peopleSearch } from "../../utils/services/apollo/peopleSearch";
 import { peopleSearchQueryPrompt } from "../../utils/services/ai/peopleSearchQueryPrompt";
 import { enrichPeople } from "../../utils/services/apollo/enrichPeople";
@@ -133,7 +133,7 @@ export const findLeads = async (userId: string, totalLeads: number) => {
       { leadsGenerationStatus: LeadsGenerationStatus.COMPLETED },
       { where: { userId } }
     );
-    return leads.slice(0, totalLeads); // Ensure we return exactly the requested number
+    return leads.slice(0, totalLeads);
   } catch (error: any) {
     console.error("Error in findLeads:", error.message);
   }

@@ -3,7 +3,7 @@ import axios from "axios";
 const apiKey = process.env.OPENAI_API_KEY;
 const endpoint = process.env.OPENAI_ENDPOINT;
 
-export const orgSearchQueryPrompt = async (customerPref: any) => {
+export const aiOrganizationSearchQuery = async (customerPref: any) => {
   const messages = [
     {
       role: "system",
