@@ -10,7 +10,6 @@ import {
   generateRefreshToken,
   generateToken,
 } from "../../utils/services/token";
-import { findLeads } from "../aiControllers/findLeads";
 import NewUsersSequence, { SequenceStatus } from "../../models/NewUsersSequence";
 import { sequence1 } from "../../utils/mails/newUsers/sequence1";
 import { createDeal } from "./deals/createDeal";
@@ -18,6 +17,7 @@ import logger from "../../logger";
 import Organizations from "../../models/Organizations";
 import Teams from "../../models/Teams";
 import TeamMemberships from "../../models/TeamMemberships";
+import { step2LeadGen } from "../leadsController/step2LeadGen";
 
 export const registerUserWithOrganization = async (req: Request, res: Response) => {
   try {
@@ -154,7 +154,7 @@ export const registerUserWithOrganization = async (req: Request, res: Response) 
         status: SequenceStatus.SENT,
       },
     })
-    findLeads(userId, 10);
+    step2LeadGen(userId, 10);
     return;
   } catch (error: any) {
     logger.error(error, "User Registration Error:");

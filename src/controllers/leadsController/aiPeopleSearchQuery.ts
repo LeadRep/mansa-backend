@@ -1,12 +1,10 @@
 import axios from "axios";
-import { CustomerPref } from "../../models/CustomerPref";
 import logger from "../../logger";
 
 const apiKey = process.env.OPENAI_API_KEY;
 const endpoint = process.env.OPENAI_ENDPOINT;
-export const aiPeopleSearchQuery = async (userId: string) => {
+export const aiPeopleSearchQuery = async (customers: any) => {
   try {
-    const customers = await CustomerPref.findOne({ where: { userId } });
     const data = {
       titles: customers?.BP.role,
       locations: customers?.BP.locations,
@@ -65,7 +63,12 @@ export const aiPeopleSearchQuery = async (userId: string) => {
         .replace(/```$/, "")
         .trim();
     }
-    return JSON.parse(aiContent);
+    const result = JSON.parse(aiContent);
+    if (customers) {
+      customers.aiQueryParams = result;
+      await customers?.save();
+    }
+    return result;
   } catch (error: any) {
     logger.error(error, "Error generating leads:");
 

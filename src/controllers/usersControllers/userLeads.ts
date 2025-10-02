@@ -2,9 +2,9 @@ import { Request, Response } from "express";
 import sendResponse from "../../utils/http/sendResponse";
 import { Leads } from "../../models/Leads";
 import Users from "../../models/Users";
-import { findLeads } from "../aiControllers/findLeads";
 import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
 import logger from "../../logger";
+import { step2LeadGen } from "../leadsController/step2LeadGen";
 
 export const userLeads = async (req: Request, res: Response) => {
   const userId = req.user?.id;
@@ -29,7 +29,7 @@ export const userLeads = async (req: Request, res: Response) => {
         if (
           customer?.leadsGenerationStatus === LeadsGenerationStatus.COMPLETED
         ) {
-          await findLeads(userId, 10 - userLeads.length);
+          await step2LeadGen(userId, 10 - userLeads.length);
         }
         return;
       }
@@ -46,7 +46,7 @@ export const userLeads = async (req: Request, res: Response) => {
         if (
           customer?.leadsGenerationStatus === LeadsGenerationStatus.COMPLETED
         ) {
-          await findLeads(userId, 24 - userLeads.length);
+          await step2LeadGen(userId, 24 - userLeads.length);
         }
         return;
       }

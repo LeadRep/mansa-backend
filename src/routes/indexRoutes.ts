@@ -4,6 +4,7 @@ import usersRoutes from "./usersRoutes";
 import { index } from "../controllers";
 import contactsRoutes from "./contactsRoutes";
 import { test } from "../controllers/test";
+import { generateLeads } from "../controllers/generateLeads";
 
 const indexRoutes = express.Router();
 indexRoutes.get("/", index);

@@ -45,12 +45,16 @@ export enum LeadsGenerationStatus {
 export interface CustomerPrefAttributes {
   id: string;
   userId: string;
+  prompt?:string | null;
   ICP: JSON;
   BP: JSON;
   territories?: Array<string> | [];
   leadsGenerationStatus?: LeadsGenerationStatus;
   refreshLeads?: number;
   nextRefresh?: Date;
+  aiQueryParams?: JSON;
+  totalPages?: number;
+  currentPage?: number;
 }
 
 export class CustomerPref extends Model<CustomerPrefAttributes> {
@@ -68,6 +72,11 @@ CustomerPref.init(
     userId: {
       type: DataTypes.UUID,
       allowNull: false,
+    },
+    prompt:{
+      type:DataTypes.STRING,
+      allowNull:true,
+      defaultValue:null
     },
     ICP: {
       type: DataTypes.JSON,
@@ -96,6 +105,21 @@ CustomerPref.init(
       type: DataTypes.DATE,
       allowNull: true,
       defaultValue: null,
+    },
+    aiQueryParams: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: null,
+    },
+    totalPages: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+    },
+    currentPage: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
     },
   },
   {

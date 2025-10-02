@@ -1,22 +1,19 @@
 // import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
-// import { organizationSearch } from "../leadsController/apolloOrganizationSearch";
-// import { orgSearchQueryPrompt } from "../leadsController/aiOrganizationSearchQuery";
-// import { peopleSearch } from "../../utils/services/apollo/peopleSearch";
-// import { peopleSearchQueryPrompt } from "../../utils/services/ai/peopleSearchQueryPrompt";
-// import { enrichPeople } from "../../utils/services/apollo/enrichPeople";
-// import { evaluateLeadsWithAI } from "../../utils/services/ai/evaluateLeadsQuery";
 // import { Leads } from "../../models/Leads";
-// import logger from "../../logger";
-
-// const getCustomerPrefByUserId = async (userId: string) => {
-//   const pref = await CustomerPref.findOne({ where: { userId } });
-//   if (!pref) throw new Error("Customer preferences not found");
-//   return pref;
-// };
+// import { apolloOrganizationSearch } from "./apolloOrganizationSearch";
+// import { aiOrganizationSearchQuery } from "./aiOrganizationSearchQuery";
+// import { aiPeopleSearchQuery } from "./aiPeopleSearchQuery";
+// import { apolloPeopleSearch } from "./apolloPeopleSearch";
+// import { aiEvaluatedLeads } from "./aiEvaluatedLeads";
+// import { apolloEnrichedPeople } from "./apolloEnrichedPeople";
 
 // export const findLeads = async (userId: string, totalLeads: number) => {
 //   try {
-//     const customerPref = await getCustomerPrefByUserId(userId);
+//     const customerPref = await CustomerPref.findOne({ where: { userId } });
+//     if (!customerPref) {
+//       console.error("Customer preferences not found for user:", userId);
+//       return null;
+//     }
 //     let leads: any[] = [];
 //     let attempts = 0;
 //     const maxAttempts = 3; // Maximum attempts to find unique leads
@@ -63,7 +60,7 @@
 //         peopleSearchPage++;
 //       }
 
-//       logger.info(
+//       console.log(
 //         `Found ${peopleIds.length} potential leads from organizations`
 //       );
 
@@ -80,7 +77,7 @@
 //         (id) => !existingLeadIds.includes(id)
 //       );
 
-//       logger.info(
+//       console.log(
 //         `After deduplication, ${newLeadIds.length} new leads to process`
 //       );
 
@@ -108,9 +105,9 @@
 //               break;
 //             }
 //           } catch (error: any) {
-//             logger.error(
-//                 error,
-//               `Error processing batch ${i / 10 + 1}:`
+//             console.error(
+//               `Error processing batch ${i / 10 + 1}:`,
+//               error.message
 //             );
 //           }
 //         }
@@ -118,14 +115,14 @@
 
 //       attempts++;
 //       if (leads.length < totalLeads) {
-//           logger.info(
+//         console.log(
 //           `Attempt ${attempts}: Found ${leads.length}/${totalLeads} leads. Trying again...`
 //         );
 //       }
 //     }
 
 //     if (leads.length < totalLeads) {
-//       logger.warn(
+//       console.warn(
 //         `Only found ${leads.length} unique leads after ${maxAttempts} attempts`
 //       );
 //     }
@@ -135,6 +132,6 @@
 //     );
 //     return leads.slice(0, totalLeads);
 //   } catch (error: any) {
-//     logger.error(error, "Error in findLeads:");
+//     console.error("Error in findLeads:", error.message);
 //   }
 // };

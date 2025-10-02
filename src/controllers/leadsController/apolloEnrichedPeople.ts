@@ -4,7 +4,6 @@ import logger from "../../logger";
 dotenv.config();
 
 export const apolloEnrichedPeople = async (ids: string[]) => {
-  logger.info(`number of ids: ${ids.length}`);
   try {
     const enrichedData = [];
     for (let i = 0; i < ids.length; i += 10) {

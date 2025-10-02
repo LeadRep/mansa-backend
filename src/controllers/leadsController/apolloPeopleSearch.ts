@@ -1,11 +1,12 @@
 import axios from "axios";
 import logger from "../../logger";
 
-export const apolloPeopleSearch = async (searchParams: any) => {
+export const apolloPeopleSearch = async (searchParams: any, page?:number) => {
   try {
     searchParams.include_similar_titles = true;
     searchParams.contact_email_status = ["verified", "likely to engage"];
     searchParams.per_page = 100;
+    searchParams.page = page || 1;
     if (searchParams.organization_num_employees_ranges.length === 0) {
       delete searchParams.organization_num_employees_ranges;
     }

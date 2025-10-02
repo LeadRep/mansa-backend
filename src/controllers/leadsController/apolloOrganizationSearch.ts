@@ -1,5 +1,6 @@
 import axios from "axios";
-import logger from "../../../logger";
+import logger from "../../logger";
+
 
 interface organizationSearchQuery {
   organization_num_employees_ranges?: string[];
@@ -13,7 +14,7 @@ interface organizationSearchQuery {
   organization_ids?: string[];
 }
 
-export const organizationSearch = async (
+export const apolloOrganizationSearch = async (
   searchParams: organizationSearchQuery,
   page?: number
 ) => {

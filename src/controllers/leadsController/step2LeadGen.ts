@@ -1,0 +1,175 @@
+import { Op } from "sequelize";
+import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
+import { Leads, LeadStatus } from "../../models/Leads";
+import { aiPeopleSearchQuery } from "./aiPeopleSearchQuery";
+import { apolloPeopleSearch } from "./apolloPeopleSearch";
+import { aiEvaluatedLeads } from "./aiEvaluatedLeads";
+import { apolloEnrichedPeople } from "./apolloEnrichedPeople";
+
+export const step2LeadGen = async (userId: string, totalLeads: number) => {
+  try {
+    const customerPref = await CustomerPref.findOne({ where: { userId } });
+    if (!customerPref) {
+      console.error("Customer preferences not found for user:", userId);
+      return null;
+    }
+    customerPref.leadsGenerationStatus = LeadsGenerationStatus.ONGOING;
+    await customerPref.save();
+
+    let aiQueryParams = customerPref.aiQueryParams;
+    if (!aiQueryParams) {
+      aiQueryParams = await aiPeopleSearchQuery(customerPref);
+      await customerPref.update({ aiQueryParams });
+    }
+    const leadsToEvaluate: any[] = [];
+    const collectedLeadIds: string[] = [];
+    let currentPage = customerPref.currentPage ?? 1;
+    if (currentPage < 1) {
+      currentPage = 1;
+    }
+    let totalPages = customerPref.totalPages ?? 0;
+    let reachedEndOfResults = false;
+
+    while (leadsToEvaluate.length < totalLeads && !reachedEndOfResults) {
+      if (totalPages > 0 && currentPage > totalPages) {
+        reachedEndOfResults = true;
+        break;
+      }
+
+      const pageToFetch = currentPage;
+      const searchParams = JSON.parse(JSON.stringify(aiQueryParams));
+      const apolloResponse = await apolloPeopleSearch(searchParams, pageToFetch);
+      const { people = [], pagination } = apolloResponse || {};
+
+      if (!totalPages && pagination?.total_pages) {
+        totalPages = pagination.total_pages;
+      }
+
+      if (!Array.isArray(people) || people.length === 0) {
+        reachedEndOfResults = true;
+        currentPage = pageToFetch;
+        break;
+      }
+
+      const pageProcessed = pagination?.page ?? pageToFetch;
+
+      const candidateIds = people.map((lead: any) => lead.id).filter(Boolean);
+      const existingLeads = candidateIds.length
+        ? await Leads.findAll({
+            where: {
+              owner_id: userId,
+              external_id: { [Op.in]: candidateIds },
+            },
+            attributes: ["external_id"],
+          })
+        : [];
+      const existingIds = new Set(
+        existingLeads.map((lead: any) => lead.external_id)
+      );
+
+      for (const lead of people) {
+        if (
+          !lead?.id ||
+          existingIds.has(lead.id) ||
+          collectedLeadIds.includes(lead.id)
+        ) {
+          continue;
+        }
+        leadsToEvaluate.push(lead);
+        collectedLeadIds.push(lead.id);
+        if (leadsToEvaluate.length === totalLeads) {
+          break;
+        }
+      }
+
+      if (leadsToEvaluate.length >= totalLeads) {
+        currentPage = pageProcessed;
+        break;
+      }
+
+      if (totalPages && pageProcessed >= totalPages) {
+        reachedEndOfResults = true;
+        currentPage = totalPages;
+        break;
+      }
+
+      currentPage = pageProcessed + 1;
+    }
+
+    customerPref.currentPage = currentPage;
+    customerPref.totalPages = totalPages;
+    customerPref.leadsGenerationStatus = LeadsGenerationStatus.COMPLETED;
+    await customerPref.save();
+
+    if (!leadsToEvaluate.length) {
+      return [];
+    }
+
+    const enrichedLeads = await apolloEnrichedPeople(collectedLeadIds);
+
+    const aiEvaluation = await aiEvaluatedLeads(customerPref, enrichedLeads);
+
+    const evaluationResults = Array.isArray(aiEvaluation)
+      ? aiEvaluation
+      : Array.isArray(aiEvaluation?.leads)
+      ? aiEvaluation.leads
+      : [];
+
+    const scoredLeads = enrichedLeads.reduce((acc: any[], lead: any) => {
+      const aiScore = evaluationResults.find(
+        (item: any) => item.id === lead.id
+      );
+      if (!aiScore) {
+        return acc;
+      }
+
+      acc.push({
+        external_id: lead.id,
+        owner_id: userId,
+        first_name: lead.first_name ?? null,
+        last_name: lead.last_name ?? null,
+        full_name: lead.name ?? lead.full_name ?? null,
+        linkedin_url: lead.linkedin_url ?? null,
+        title: lead.title ?? null,
+        photo_url: lead.photo_url ?? null,
+        twitter_url: lead.twitter_url ?? null,
+        github_url: lead.github_url ?? null,
+        facebook_url: lead.facebook_url ?? null,
+        headline: lead.headline ?? null,
+        email: lead.email ?? null,
+        phone: lead.phone_numbers?.[0]?.number ?? null,
+        organization: lead.organization ?? null,
+        departments: lead.departments ?? null,
+        state: lead.state ?? null,
+        city: lead.city ?? null,
+        country: lead.country ?? null,
+        category: aiScore.category ?? null,
+        reason: aiScore.reason ?? null,
+        score: aiScore.score ?? null,
+        status: LeadStatus.NEW,
+        views: 1,
+      });
+
+      return acc;
+    }, []);
+
+    if (!scoredLeads.length) {
+      return [];
+    }
+
+    const createdLeads = await Leads.bulkCreate(scoredLeads, {
+      returning: true,
+    });
+
+    return createdLeads;
+  } catch (error: any) {
+    if (error instanceof Error) {
+      await CustomerPref.update(
+        { leadsGenerationStatus: LeadsGenerationStatus.FAILED },
+        { where: { userId } }
+      );
+    }
+    console.error("step2LeadGen error", error);
+    return null;
+  }
+};
