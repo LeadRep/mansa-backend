@@ -5,10 +5,10 @@ import { JwtPayload } from "jsonwebtoken";
 import Payment from "../../models/Payments";
 import { v4 } from "uuid";
 import moment from "moment";
-import { findLeads } from "../aiControllers/findLeads";
 import sendResponse from "../../utils/http/sendResponse";
 import NewUsersSequence from "../../models/NewUsersSequence";
 import logger from "../../logger";
+import { step2LeadGen } from "../leadsController/step2LeadGen";
 
 dotenv.config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -165,7 +165,7 @@ export const successPayment = async (
       const userResponse = { ...userDetails?.get(), password: undefined };
 
       sendResponse(response, 200, "Payment Successful", { user: userResponse });
-      findLeads(userId, 24);
+      step2LeadGen(userId, 24);
       return;
     } else {
       response.json({

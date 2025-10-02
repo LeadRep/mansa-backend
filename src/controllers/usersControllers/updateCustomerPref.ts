@@ -3,13 +3,13 @@ import { JwtPayload } from "jsonwebtoken";
 import sendResponse from "../../utils/http/sendResponse";
 import { CustomerPref } from "../../models/CustomerPref";
 import Users from "../../models/Users";
-import { findLeads } from "../aiControllers/findLeads";
 import { Leads, LeadStatus } from "../../models/Leads";
 import {
   updatecustomerPreference,
 } from "../../utils/services/ai/updateCustomerPrefPrompt";
 import { AIResponse } from "../aiControllers/customerPreference";
 import logger from "../../logger";
+import { step2LeadGen } from "../leadsController/step2LeadGen";
 
 export const updateCustomerPref = async (
   request: JwtPayload,
@@ -127,7 +127,7 @@ export const updateCustomerPref = async (
       where: { owner_id: userId, status: LeadStatus.NEW },
     });
     sendResponse(response, 200, "Customer preferences updated successfully");
-    findLeads(userId, 24);
+    step2LeadGen(userId, 24);
     return;
   } catch (error: any) {
     logger.error(error, "Error updating customer preferences:");

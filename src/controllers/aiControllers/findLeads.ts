@@ -1,140 +1,140 @@
-import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
-import { organizationSearch } from "../leadsController/apolloOrganizationSearch";
-import { orgSearchQueryPrompt } from "../leadsController/aiOrganizationSearchQuery";
-import { peopleSearch } from "../../utils/services/apollo/peopleSearch";
-import { peopleSearchQueryPrompt } from "../../utils/services/ai/peopleSearchQueryPrompt";
-import { enrichPeople } from "../../utils/services/apollo/enrichPeople";
-import { evaluateLeadsWithAI } from "../../utils/services/ai/evaluateLeadsQuery";
-import { Leads } from "../../models/Leads";
-import logger from "../../logger";
+// import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
+// import { organizationSearch } from "../leadsController/apolloOrganizationSearch";
+// import { orgSearchQueryPrompt } from "../leadsController/aiOrganizationSearchQuery";
+// import { peopleSearch } from "../../utils/services/apollo/peopleSearch";
+// import { peopleSearchQueryPrompt } from "../../utils/services/ai/peopleSearchQueryPrompt";
+// import { enrichPeople } from "../../utils/services/apollo/enrichPeople";
+// import { evaluateLeadsWithAI } from "../../utils/services/ai/evaluateLeadsQuery";
+// import { Leads } from "../../models/Leads";
+// import logger from "../../logger";
 
-const getCustomerPrefByUserId = async (userId: string) => {
-  const pref = await CustomerPref.findOne({ where: { userId } });
-  if (!pref) throw new Error("Customer preferences not found");
-  return pref;
-};
+// const getCustomerPrefByUserId = async (userId: string) => {
+//   const pref = await CustomerPref.findOne({ where: { userId } });
+//   if (!pref) throw new Error("Customer preferences not found");
+//   return pref;
+// };
 
-export const findLeads = async (userId: string, totalLeads: number) => {
-  try {
-    const customerPref = await getCustomerPrefByUserId(userId);
-    let leads: any[] = [];
-    let attempts = 0;
-    const maxAttempts = 3; // Maximum attempts to find unique leads
+// export const findLeads = async (userId: string, totalLeads: number) => {
+//   try {
+//     const customerPref = await getCustomerPrefByUserId(userId);
+//     let leads: any[] = [];
+//     let attempts = 0;
+//     const maxAttempts = 3; // Maximum attempts to find unique leads
 
-    while (leads.length < totalLeads && attempts < maxAttempts) {
-      // Step 1: Find relevant organizations
-      const orgSearchQuery = await orgSearchQueryPrompt(customerPref);
-      const organizations = await organizationSearch(orgSearchQuery);
-      if (organizations === false) {
-        return;
-      }
+//     while (leads.length < totalLeads && attempts < maxAttempts) {
+//       // Step 1: Find relevant organizations
+//       const orgSearchQuery = await orgSearchQueryPrompt(customerPref);
+//       const organizations = await organizationSearch(orgSearchQuery);
+//       if (organizations === false) {
+//         return;
+//       }
 
-      // Step 2: Find people from these organizations
-      const peopleSearchQuery = await peopleSearchQueryPrompt(customerPref);
-      let peopleIds: string[] = [];
-      let peopleSearchPage = 1;
-      let totalPeopleSearchPage = 0;
+//       // Step 2: Find people from these organizations
+//       const peopleSearchQuery = await peopleSearchQueryPrompt(customerPref);
+//       let peopleIds: string[] = [];
+//       let peopleSearchPage = 1;
+//       let totalPeopleSearchPage = 0;
 
-      while (peopleIds.length < totalLeads - leads.length) {
-        const people = await peopleSearch(
-          {
-            ...peopleSearchQuery,
-            organization_id: organizations.model_ids, // Filter by organization IDs
-          },
-          peopleSearchPage
-        );
-        if (people === false) {
-          return;
-        }
-        if (totalPeopleSearchPage === 0) {
-          totalPeopleSearchPage = people.pagination.total_pages;
-          peopleSearchPage = 1;
-        }
+//       while (peopleIds.length < totalLeads - leads.length) {
+//         const people = await peopleSearch(
+//           {
+//             ...peopleSearchQuery,
+//             organization_id: organizations.model_ids, // Filter by organization IDs
+//           },
+//           peopleSearchPage
+//         );
+//         if (people === false) {
+//           return;
+//         }
+//         if (totalPeopleSearchPage === 0) {
+//           totalPeopleSearchPage = people.pagination.total_pages;
+//           peopleSearchPage = 1;
+//         }
 
-        // Add new IDs, ensuring we don't exceed the required total
-        const newIds = people.model_ids.slice(
-          0,
-          totalLeads - leads.length - peopleIds.length
-        );
-        peopleIds = [...peopleIds, ...newIds];
-        peopleIds = Array.from(new Set(peopleIds)); // Remove duplicates
+//         // Add new IDs, ensuring we don't exceed the required total
+//         const newIds = people.model_ids.slice(
+//           0,
+//           totalLeads - leads.length - peopleIds.length
+//         );
+//         peopleIds = [...peopleIds, ...newIds];
+//         peopleIds = Array.from(new Set(peopleIds)); // Remove duplicates
 
-        if (peopleSearchPage > totalPeopleSearchPage) break;
-        peopleSearchPage++;
-      }
+//         if (peopleSearchPage > totalPeopleSearchPage) break;
+//         peopleSearchPage++;
+//       }
 
-      logger.info(
-        `Found ${peopleIds.length} potential leads from organizations`
-      );
+//       logger.info(
+//         `Found ${peopleIds.length} potential leads from organizations`
+//       );
 
-      // Step 3: Check database for existing leads
-      const existingLeads = await Leads.findAll({
-        where: {
-          owner_id: userId,
-        },
-        attributes: ["external_id"],
-      });
+//       // Step 3: Check database for existing leads
+//       const existingLeads = await Leads.findAll({
+//         where: {
+//           owner_id: userId,
+//         },
+//         attributes: ["external_id"],
+//       });
 
-      const existingLeadIds = existingLeads.map((lead) => lead.external_id);
-      const newLeadIds = peopleIds.filter(
-        (id) => !existingLeadIds.includes(id)
-      );
+//       const existingLeadIds = existingLeads.map((lead) => lead.external_id);
+//       const newLeadIds = peopleIds.filter(
+//         (id) => !existingLeadIds.includes(id)
+//       );
 
-      logger.info(
-        `After deduplication, ${newLeadIds.length} new leads to process`
-      );
+//       logger.info(
+//         `After deduplication, ${newLeadIds.length} new leads to process`
+//       );
 
-      // Step 4: Enrich and evaluate new leads
-      if (newLeadIds.length > 0) {
-        for (let i = 0; i < newLeadIds.length; i += 10) {
-          const batchIds = newLeadIds.slice(i, i + 10);
-          const batchDetails = batchIds.map((id) => ({ id }));
+//       // Step 4: Enrich and evaluate new leads
+//       if (newLeadIds.length > 0) {
+//         for (let i = 0; i < newLeadIds.length; i += 10) {
+//           const batchIds = newLeadIds.slice(i, i + 10);
+//           const batchDetails = batchIds.map((id) => ({ id }));
 
-          try {
-            const enrichedBatch = await enrichPeople(
-              { details: batchDetails },
-              1
-            );
-            const evaluatedLeads = await evaluateLeadsWithAI(
-              customerPref,
-              enrichedBatch.matches,
-              userId
-            );
-            leads = [...leads, ...evaluatedLeads];
+//           try {
+//             const enrichedBatch = await enrichPeople(
+//               { details: batchDetails },
+//               1
+//             );
+//             const evaluatedLeads = await evaluateLeadsWithAI(
+//               customerPref,
+//               enrichedBatch.matches,
+//               userId
+//             );
+//             leads = [...leads, ...evaluatedLeads];
 
-            // Stop if we've reached the required number
-            if (leads.length >= totalLeads) {
-              leads = leads.slice(0, totalLeads);
-              break;
-            }
-          } catch (error: any) {
-            logger.error(
-                error,
-              `Error processing batch ${i / 10 + 1}:`
-            );
-          }
-        }
-      }
+//             // Stop if we've reached the required number
+//             if (leads.length >= totalLeads) {
+//               leads = leads.slice(0, totalLeads);
+//               break;
+//             }
+//           } catch (error: any) {
+//             logger.error(
+//                 error,
+//               `Error processing batch ${i / 10 + 1}:`
+//             );
+//           }
+//         }
+//       }
 
-      attempts++;
-      if (leads.length < totalLeads) {
-          logger.info(
-          `Attempt ${attempts}: Found ${leads.length}/${totalLeads} leads. Trying again...`
-        );
-      }
-    }
+//       attempts++;
+//       if (leads.length < totalLeads) {
+//           logger.info(
+//           `Attempt ${attempts}: Found ${leads.length}/${totalLeads} leads. Trying again...`
+//         );
+//       }
+//     }
 
-    if (leads.length < totalLeads) {
-      logger.warn(
-        `Only found ${leads.length} unique leads after ${maxAttempts} attempts`
-      );
-    }
-    await CustomerPref.update(
-      { leadsGenerationStatus: LeadsGenerationStatus.COMPLETED },
-      { where: { userId } }
-    );
-    return leads.slice(0, totalLeads);
-  } catch (error: any) {
-    logger.error(error, "Error in findLeads:");
-  }
-};
+//     if (leads.length < totalLeads) {
+//       logger.warn(
+//         `Only found ${leads.length} unique leads after ${maxAttempts} attempts`
+//       );
+//     }
+//     await CustomerPref.update(
+//       { leadsGenerationStatus: LeadsGenerationStatus.COMPLETED },
+//       { where: { userId } }
+//     );
+//     return leads.slice(0, totalLeads);
+//   } catch (error: any) {
+//     logger.error(error, "Error in findLeads:");
+//   }
+// };

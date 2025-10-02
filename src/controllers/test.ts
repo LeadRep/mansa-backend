@@ -8,6 +8,7 @@ import { Leads } from "../models/Leads";
 import { aiEvaluatedLeads } from "./leadsController/aiEvaluatedLeads";
 import { step2LeadGen } from "./leadsController/step2LeadGen";
 import axios from "axios";
+import logger from "../logger";
 
 export const test = async (req: Request, res: Response) => {
   try {

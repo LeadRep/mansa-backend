@@ -3,9 +3,9 @@ import { JwtPayload } from "jsonwebtoken";
 import sendResponse from "../../utils/http/sendResponse";
 import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
 import Users from "../../models/Users";
-import { findLeads } from "../aiControllers/findLeads";
 import { Leads, LeadStatus } from "../../models/Leads";
 import logger from "../../logger";
+import { step2LeadGen } from "../leadsController/step2LeadGen";
 
 export const refreshLeads = async (request: JwtPayload, response: Response) => {
   const userId = request.user.id;
@@ -64,11 +64,11 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       { where: { userId } }
     );
     logger.info("Deleting all existing leads");
-    await Leads.destroy({
+    await Leads.update({status:LeadStatus.VIEWED},{
       where: { owner_id: userId, status: LeadStatus.NEW },
     });
     sendResponse(response, 200, "Leads refresh in progress");
-    await findLeads(userId, 24);
+    await step2LeadGen(userId, 24);
     return;
   } catch (error: any) {
     logger.error(error, "Error in refreshLeads controller:");

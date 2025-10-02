@@ -1,5 +1,6 @@
 import axios from "axios";
-import logger from "../../../logger";
+import logger from "../../logger";
+
 
 interface organizationSearchQuery {
   organization_num_employees_ranges?: string[];
