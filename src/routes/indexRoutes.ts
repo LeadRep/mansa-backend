@@ -13,6 +13,6 @@ indexRoutes.use("/ai", aiRoutes);
 indexRoutes.use("/users", usersRoutes);
 indexRoutes.use("/contacts", contactsRoutes);
 indexRoutes.get("/test", test);
-indexRoutes.use("/organizations", organizationsRoutes)
+indexRoutes.use("/organizations", organizationsRoutes);
 
 export default indexRoutes;
