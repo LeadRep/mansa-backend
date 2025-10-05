@@ -32,7 +32,7 @@ export const getOrganization = async (request: Request, response: Response) => {
         const isCallerPartOfOrg = userResp.some(u => u.id === userId);
 
         if (!isCallerPartOfOrg) {
-            sendResponse(response, 403, "Forbidden: insufficient permissions");
+            return sendResponse(response, 403, "Forbidden: insufficient permissions");
         }
 
         const teams = await Teams.findAll(
