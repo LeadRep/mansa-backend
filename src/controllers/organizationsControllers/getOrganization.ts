@@ -26,7 +26,7 @@ export const getOrganization = async (request: Request, response: Response) => {
         const users = await Users.findAll(
             { where: { organization_id: organization_id } }
         );
-        const userResp = users.map(u =>  u.get({plain: true}));
+        const userResp = users.map(u => u.get({plain: true}));
 
         //check if userId is part of userResp
         const isCallerPartOfOrg = userResp.some(u => u.id === userId);
