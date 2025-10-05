@@ -38,7 +38,7 @@ export const getOrganization = async (request: Request, response: Response) => {
         const teams = await Teams.findAll(
             { where: { organization_id: organization_id } }
         );
-        const teamsResp = teams.map(team => team.get({plain: true}))
+        const teamsResp = teams.map(team => team.get({plain: true}));
         const organization = { ...org.get({plain: true}), teams: teamsResp, users: userResp };
 
         return sendResponse(response, 200, "Organization retrieved successfully", {
