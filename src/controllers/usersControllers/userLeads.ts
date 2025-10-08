@@ -26,6 +26,7 @@ export const userLeads = async (req: Request, res: Response) => {
           "Currently generating leads, please wait a moment",
           userLeads
         );
+        
         if (
           customer?.leadsGenerationStatus === LeadsGenerationStatus.COMPLETED
         ) {
@@ -36,7 +37,7 @@ export const userLeads = async (req: Request, res: Response) => {
       sendResponse(res, 200, "Leads gotten", userLeads.slice(0, 10));
       return;
     } else {
-      if (userLeads.length < 24) {
+      if (userLeads.length < 20) {
         sendResponse(
           res,
           200,
@@ -46,7 +47,7 @@ export const userLeads = async (req: Request, res: Response) => {
         if (
           customer?.leadsGenerationStatus === LeadsGenerationStatus.COMPLETED
         ) {
-          await step2LeadGen(userId, 24 - userLeads.length);
+          await step2LeadGen(userId, 20 - userLeads.length);
         }
         return;
       }
@@ -56,7 +57,7 @@ export const userLeads = async (req: Request, res: Response) => {
       res,
       200,
       "Leads gotten",
-      !user.subscriptionName ? userLeads.slice(0, 10) : userLeads.slice(0, 24)
+      !user.subscriptionName ? userLeads.slice(0, 10) : userLeads.slice(0, 20)
     );
     return;
   } catch (error: any) {

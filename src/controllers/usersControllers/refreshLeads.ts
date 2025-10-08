@@ -63,12 +63,12 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       },
       { where: { userId } }
     );
-    logger.info("Deleting all existing leads");
+    logger.info("Updaing existing leads to viewed");
     await Leads.update({status:LeadStatus.VIEWED},{
       where: { owner_id: userId, status: LeadStatus.NEW },
     });
     sendResponse(response, 200, "Leads refresh in progress");
-    await step2LeadGen(userId, 24);
+    await step2LeadGen(userId, 20);
     return;
   } catch (error: any) {
     logger.error(error, "Error in refreshLeads controller:");
