@@ -6,7 +6,11 @@ import { apolloPeopleSearch } from "./apolloPeopleSearch";
 import { aiEvaluatedLeads } from "./aiEvaluatedLeads";
 import { apolloEnrichedPeople } from "./apolloEnrichedPeople";
 
-export const step2LeadGen = async (userId: string, totalLeads: number) => {
+export const step2LeadGen = async (
+  userId: string,
+  totalLeads: number,
+  restart?: boolean
+) => {
   try {
     const customerPref = await CustomerPref.findOne({ where: { userId } });
     if (!customerPref) {
@@ -16,7 +20,7 @@ export const step2LeadGen = async (userId: string, totalLeads: number) => {
     customerPref.leadsGenerationStatus = LeadsGenerationStatus.ONGOING;
     await customerPref.save();
 
-    let aiQueryParams = customerPref.aiQueryParams;
+    let aiQueryParams = restart ? "" : customerPref.aiQueryParams;
     if (!aiQueryParams) {
       aiQueryParams = await aiPeopleSearchQuery(customerPref);
       await customerPref.update({ aiQueryParams });
@@ -38,7 +42,10 @@ export const step2LeadGen = async (userId: string, totalLeads: number) => {
 
       const pageToFetch = currentPage;
       const searchParams = JSON.parse(JSON.stringify(aiQueryParams));
-      const apolloResponse = await apolloPeopleSearch(searchParams, pageToFetch);
+      const apolloResponse = await apolloPeopleSearch(
+        searchParams,
+        pageToFetch
+      );
       const { people = [], pagination } = apolloResponse || {};
 
       if (!totalPages && pagination?.total_pages) {
