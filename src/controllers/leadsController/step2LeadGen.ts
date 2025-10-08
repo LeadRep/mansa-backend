@@ -22,12 +22,19 @@ export const step2LeadGen = async (
     await customerPref.save();
 
     let aiQueryParams = customerPref.aiQueryParams;
+    let currentPage = customerPref.currentPage;
+    if (currentPage < 1) {
+      currentPage = 1;
+    }
+    let totalPages = customerPref.totalPages ?? 0;
+    let reachedEndOfResults = false;
     if (restart) {
       customerPref.currentPage = 1;
       customerPref.totalPages = 0;
       await customerPref.save();
       aiQueryParams = "";
       await Leads.destroy({ where: { owner_id: userId } });
+      currentPage = 1;
     }
     if (!aiQueryParams) {
       aiQueryParams = await aiPeopleSearchQuery(customerPref);
@@ -36,12 +43,6 @@ export const step2LeadGen = async (
     console.log("AI Query Params:", aiQueryParams);
     const leadsToEvaluate: any[] = [];
     const collectedLeadIds: string[] = [];
-    let currentPage = customerPref.currentPage ?? 1;
-    if (currentPage < 1) {
-      currentPage = 1;
-    }
-    let totalPages = customerPref.totalPages ?? 0;
-    let reachedEndOfResults = false;
 
     while (leadsToEvaluate.length < totalLeads && !reachedEndOfResults) {
       if (totalPages > 0 && currentPage > totalPages) {
