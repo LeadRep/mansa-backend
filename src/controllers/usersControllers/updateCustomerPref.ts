@@ -127,7 +127,7 @@ export const updateCustomerPref = async (
       where: { owner_id: userId, status: LeadStatus.NEW },
     });
     sendResponse(response, 200, "Customer preferences updated successfully");
-    step2LeadGen(userId, 24);
+    step2LeadGen(userId, 24, true);
     return;
   } catch (error: any) {
     logger.error(error, "Error updating customer preferences:");

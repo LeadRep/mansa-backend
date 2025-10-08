@@ -22,3 +22,9 @@ Note: after calling the apolloPeopleSearch is the CustomerPref has no totalPages
 
 5. then we can save them to the leads table
 Note: id is generated using v4, external_id is the id of the lead, owner_id is userId, views should be set to 1, status should be new
+
+work on step1LeadGen
+it should be same process with step1LeadGen, the only difference is that it runs organization search first before people search
+
+the flow will be this way
+generate organization search query using aiOrganizationSearchQuery then use apolloOrganizationSearch to get the organizations from apollo, the organizations are normally returned in pages so we have to go page by page to get the organizations id and then use the their ids to get the people in those organinzation we need using

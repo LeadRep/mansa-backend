@@ -11,6 +11,6 @@ indexRoutes.get("/", index);
 indexRoutes.use("/ai", aiRoutes);
 indexRoutes.use("/users", usersRoutes);
 indexRoutes.use("/contacts", contactsRoutes);
-indexRoutes.get("/test", test);
+indexRoutes.get("/test", generateLeads);
 
 export default indexRoutes;
