@@ -21,6 +21,7 @@ export const step2LeadGen = async (
     await customerPref.save();
 
     let aiQueryParams = restart ? "" : customerPref.aiQueryParams;
+    restart ? await Leads.destroy({ where: { owner_id: userId } }) : null;
     if (!aiQueryParams) {
       aiQueryParams = await aiPeopleSearchQuery(customerPref);
       await customerPref.update({ aiQueryParams });
@@ -41,7 +42,7 @@ export const step2LeadGen = async (
       }
 
       const pageToFetch = currentPage;
-      const searchParams = JSON.parse(JSON.stringify(aiQueryParams));
+      const searchParams = aiQueryParams;
       const apolloResponse = await apolloPeopleSearch(
         searchParams,
         pageToFetch
@@ -60,38 +61,17 @@ export const step2LeadGen = async (
 
       const pageProcessed = pagination?.page ?? pageToFetch;
 
-      const candidateIds = people.map((lead: any) => lead.id).filter(Boolean);
-      const existingLeads = candidateIds.length
-        ? await Leads.findAll({
-            where: {
-              owner_id: userId,
-              external_id: { [Op.in]: candidateIds },
-            },
-            attributes: ["external_id"],
-          })
-        : [];
-      const existingIds = new Set(
-        existingLeads.map((lead: any) => lead.external_id)
-      );
-
       for (const lead of people) {
-        if (
-          !lead?.id ||
-          existingIds.has(lead.id) ||
-          collectedLeadIds.includes(lead.id)
-        ) {
-          continue;
-        }
-        leadsToEvaluate.push(lead);
-        collectedLeadIds.push(lead.id);
-        if (leadsToEvaluate.length === totalLeads) {
+        if(totalLeads === leadsToEvaluate.length){
           break;
         }
-      }
-
-      if (leadsToEvaluate.length >= totalLeads) {
-        currentPage = pageProcessed;
-        break;
+        const leadExist = await Leads.findOne({
+          where: { owner_id: userId, external_id: lead.id },
+        });
+        if(!leadExist){
+          collectedLeadIds.push(lead.id);
+          leadsToEvaluate.push(lead);
+        }
       }
 
       if (totalPages && pageProcessed >= totalPages) {
