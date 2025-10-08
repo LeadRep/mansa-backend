@@ -21,8 +21,21 @@ export const step2LeadGen = async (
     customerPref.leadsGenerationStatus = LeadsGenerationStatus.ONGOING;
     await customerPref.save();
 
-    let aiQueryParams = restart ? "" : customerPref.aiQueryParams;
-    restart ? await Leads.destroy({ where: { owner_id: userId } }) : null;
+    let aiQueryParams = customerPref.aiQueryParams;
+    let currentPage = customerPref.currentPage;
+    if (currentPage < 1) {
+      currentPage = 1;
+    }
+    let totalPages = customerPref.totalPages ?? 0;
+    let reachedEndOfResults = false;
+    if (restart) {
+      customerPref.currentPage = 1;
+      customerPref.totalPages = 0;
+      await customerPref.save();
+      aiQueryParams = "";
+      await Leads.destroy({ where: { owner_id: userId } });
+      currentPage = 1;
+    }
     if (!aiQueryParams) {
       aiQueryParams = await aiPeopleSearchQuery(customerPref);
       await customerPref.update({ aiQueryParams });
@@ -30,12 +43,6 @@ export const step2LeadGen = async (
     console.log("AI Query Params:", aiQueryParams);
     const leadsToEvaluate: any[] = [];
     const collectedLeadIds: string[] = [];
-    let currentPage = customerPref.currentPage ?? 1;
-    if (currentPage < 1) {
-      currentPage = 1;
-    }
-    let totalPages = customerPref.totalPages ?? 0;
-    let reachedEndOfResults = false;
 
     while (leadsToEvaluate.length < totalLeads && !reachedEndOfResults) {
       if (totalPages > 0 && currentPage > totalPages) {
@@ -64,13 +71,13 @@ export const step2LeadGen = async (
       const pageProcessed = pagination?.page ?? pageToFetch;
 
       for (const lead of people) {
-        if(totalLeads === leadsToEvaluate.length){
+        if (totalLeads === leadsToEvaluate.length) {
           break;
         }
         const leadExist = await Leads.findOne({
           where: { owner_id: userId, external_id: lead.id },
         });
-        if(!leadExist){
+        if (!leadExist) {
           collectedLeadIds.push(lead.id);
           leadsToEvaluate.push(lead);
         }
