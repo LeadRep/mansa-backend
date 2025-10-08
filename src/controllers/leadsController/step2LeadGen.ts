@@ -21,8 +21,14 @@ export const step2LeadGen = async (
     customerPref.leadsGenerationStatus = LeadsGenerationStatus.ONGOING;
     await customerPref.save();
 
-    let aiQueryParams = restart ? "" : customerPref.aiQueryParams;
-    restart ? await Leads.destroy({ where: { owner_id: userId } }) : null;
+    let aiQueryParams = customerPref.aiQueryParams;
+    if (restart) {
+      customerPref.currentPage = 1;
+      customerPref.totalPages = 0;
+      await customerPref.save();
+      aiQueryParams = "";
+      await Leads.destroy({ where: { owner_id: userId } });
+    }
     if (!aiQueryParams) {
       aiQueryParams = await aiPeopleSearchQuery(customerPref);
       await customerPref.update({ aiQueryParams });
@@ -64,13 +70,13 @@ export const step2LeadGen = async (
       const pageProcessed = pagination?.page ?? pageToFetch;
 
       for (const lead of people) {
-        if(totalLeads === leadsToEvaluate.length){
+        if (totalLeads === leadsToEvaluate.length) {
           break;
         }
         const leadExist = await Leads.findOne({
           where: { owner_id: userId, external_id: lead.id },
         });
-        if(!leadExist){
+        if (!leadExist) {
           collectedLeadIds.push(lead.id);
           leadsToEvaluate.push(lead);
         }
