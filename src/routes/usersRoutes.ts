@@ -12,11 +12,15 @@ import { getUserDeals } from "../controllers/usersControllers/deals/getDeal";
 import { getContactsByDealAndStage } from "../controllers/usersControllers/deals/getStageContacts";
 import { moveContactToStage } from "../controllers/usersControllers/deals/moveContactStage";
 import { addLeadToDeal } from "../controllers/usersControllers/addLeadToDeal";
+import { forgotPassword } from "../controllers/usersControllers/forgotPassword";
+import { resetPassword } from "../controllers/usersControllers/resetPassword";
 
 const usersRoutes = express.Router();
 usersRoutes.post("/register", registerUserWithOrganization);
 usersRoutes.post("/login", loginUser);
 usersRoutes.post("/autologin", autologin);
+usersRoutes.post("/forgot-password", forgotPassword);
+usersRoutes.post("/reset-password", resetPassword);
 usersRoutes.get("/leads", userAuth, userLeads);
 usersRoutes.post("/add-lead-to-deal", userAuth, addLeadToDeal);
 usersRoutes.post("/pay", userAuth, payment);
