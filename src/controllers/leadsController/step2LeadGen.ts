@@ -57,6 +57,7 @@ export const step2LeadGen = async (
         pageToFetch
       );
       const { people = [], pagination } = apolloResponse || {};
+      console.log(people.length, "leads fetched from Apollo on page", pageToFetch);
 
       if (!totalPages && pagination?.total_pages) {
         totalPages = pagination.total_pages;
