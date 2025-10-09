@@ -13,6 +13,8 @@ export const step2LeadGen = async (
 ) => {
   try {
     console.log("step2LeadGen started for user:", userId);
+    const userLeads = await Leads.findAll({});
+    console.log("User has ",userLeads.length, "leads");
     const customerPref = await CustomerPref.findOne({ where: { userId } });
     if (!customerPref) {
       console.error("Customer preferences not found for user:", userId);
@@ -57,7 +59,11 @@ export const step2LeadGen = async (
         pageToFetch
       );
       const { people = [], pagination } = apolloResponse || {};
-      console.log(people.length, "leads fetched from Apollo on page", pageToFetch);
+      console.log(
+        people.length,
+        "leads fetched from Apollo on page",
+        pageToFetch
+      );
 
       if (!totalPages && pagination?.total_pages) {
         totalPages = pagination.total_pages;

@@ -64,6 +64,28 @@ export const aiPeopleSearchQuery = async (customers: any) => {
         .trim();
     }
     const result = JSON.parse(aiContent);
+
+    const keysToClean = [
+      "person_titles",
+      "organization_locations",
+      "organization_num_employees_ranges",
+      "revenue_range[min]",
+      "revenue_range[max]",
+      "person_seniorities",
+    ];
+
+    keysToClean.forEach((key) => {
+      const value = result?.[key];
+
+      if (Array.isArray(value) && value.length === 0) {
+        delete result[key];
+        return;
+      }
+
+      if (typeof value === "string" && value.trim() === "") {
+        delete result[key];
+      }
+    });
     if (customers) {
       customers.aiQueryParams = result;
       await customers?.save();
