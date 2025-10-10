@@ -4,8 +4,8 @@ import usersRoutes from "./usersRoutes";
 import { index } from "../controllers";
 import contactsRoutes from "./contactsRoutes";
 import { test } from "../controllers/test";
-import { generateLeads } from "../controllers/generateLeads";
 import organizationsRoutes from "./organizationsRoutes";
+import invitationsRoutes from "./InvitationsRoutes";
 
 const indexRoutes = express.Router();
 indexRoutes.get("/", index);
@@ -14,5 +14,7 @@ indexRoutes.use("/users", usersRoutes);
 indexRoutes.use("/contacts", contactsRoutes);
 indexRoutes.get("/test", test);
 indexRoutes.use("/organizations", organizationsRoutes);
+indexRoutes.use("/invitations", invitationsRoutes);
+
 
 export default indexRoutes;
