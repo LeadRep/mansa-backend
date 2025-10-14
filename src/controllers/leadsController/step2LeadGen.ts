@@ -5,12 +5,14 @@ import { aiPeopleSearchQuery } from "./aiPeopleSearchQuery";
 import { apolloPeopleSearch } from "./apolloPeopleSearch";
 import { aiEvaluatedLeads } from "./aiEvaluatedLeads";
 import { apolloEnrichedPeople } from "./apolloEnrichedPeople";
+import { emitLeadUpdate } from "../../utils/socket";
 
 export const step2LeadGen = async (
   userId: string,
   totalLeads: number,
   restart?: boolean
 ) => {
+  console.log("Starting step2LeadGen for user:", userId, "for", totalLeads, "leads. Restart:", restart);
   try {
     const userLeads = await Leads.findAll({});
     const customerPref = await CustomerPref.findOne({ where: { userId } });
@@ -56,6 +58,7 @@ export const step2LeadGen = async (
         pageToFetch
       );
       const { people = [], pagination } = apolloResponse || {};
+      console.log("Leads fetched from Apollo:", people.length);
     
 
       if (!totalPages && pagination?.total_pages) {
@@ -155,6 +158,12 @@ export const step2LeadGen = async (
     const createdLeads = await Leads.bulkCreate(scoredLeads, {
       returning: true,
     });
+
+    if (createdLeads?.length) {
+      emitLeadUpdate(userId, {
+        leadIds: createdLeads.map((lead) => lead.id),
+      });
+    }
 
     return createdLeads;
   } catch (error: any) {

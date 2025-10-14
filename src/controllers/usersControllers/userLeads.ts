@@ -17,48 +17,32 @@ export const userLeads = async (req: Request, res: Response) => {
       return;
     }
     const userLeads = await Leads.findAll({ where: { owner_id: userId } });
+    console.log("Total leads for user:", userLeads.length);
+    const hasSubscription = Boolean(user.subscriptionName);
+    const generationStatus = customer?.leadsGenerationStatus;
+    const maxLeads = hasSubscription ? 20 : 10;
+    const needsMoreLeads = userLeads.length < maxLeads;
 
-    if (!user.subscriptionName) {
-      if (userLeads.length < 10) {
-        sendResponse(
-          res,
-          200,
-          "Currently generating leads, please wait a moment",
-          userLeads
+    if (needsMoreLeads) {
+      sendResponse(
+        res,
+        200,
+        "Currently generating leads, please wait a moment",
+        userLeads
+      );
+
+      if (generationStatus !== LeadsGenerationStatus.ONGOING) {
+        await step2LeadGen(
+          userId,
+          maxLeads - userLeads.length,
+          generationStatus === LeadsGenerationStatus.FAILED ||
+            generationStatus === LeadsGenerationStatus.NOT_STARTED
         );
-        
-        if (
-          customer?.leadsGenerationStatus === LeadsGenerationStatus.COMPLETED
-        ) {
-          await step2LeadGen(userId, 10 - userLeads.length);
-        }
-        return;
       }
-      sendResponse(res, 200, "Leads gotten", userLeads.slice(0, 10));
       return;
-    } else {
-      if (userLeads.length < 20) {
-        sendResponse(
-          res,
-          200,
-          "Currently generating leads, please wait a moment",
-          userLeads
-        );
-        if (
-          customer?.leadsGenerationStatus === LeadsGenerationStatus.COMPLETED
-        ) {
-          await step2LeadGen(userId, 20 - userLeads.length);
-        }
-        return;
-      }
     }
 
-    sendResponse(
-      res,
-      200,
-      "Leads gotten",
-      !user.subscriptionName ? userLeads.slice(0, 10) : userLeads.slice(0, 20)
-    );
+    sendResponse(res, 200, "Leads gotten", userLeads.slice(0, maxLeads));
     return;
   } catch (error: any) {
     logger.error(error, "Error in userLeads:");
