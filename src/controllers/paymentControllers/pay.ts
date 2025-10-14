@@ -36,17 +36,25 @@ export const stripeSession = async (plan: string) => {
 export const payment = async (request: JwtPayload, response: Response) => {
   let basicMonthly = "";
   let basicYearly = "";
+  let starterMonthly="";
+  let starterYearly="";
   let growthMonthly = "";
   let growthYearly = "";
   let teamMonthly = "";
   let teamYearly = "";
+  let scaleMonthly ="";
+  let scaleYearly=""
   if (process.env.APP_ENV === "poduction") {
     basicMonthly = "price_1RP4cyJlttlFevLMsbWAahtg";
     basicYearly = "price_1RP4cyJlttlFevLMigbEa2Ek";
-    growthMonthly = "price_1RP4eaJlttlFevLMuVo2zImh";
-    growthYearly = "price_1RP4fEJlttlFevLM5tegvdNR";
-    teamMonthly = "price_1RP4gmJlttlFevLMFNFLAZZU";
-    teamYearly = "price_1RP4hGJlttlFevLMmtLHoqaO";
+    starterMonthly="price_1RP4eaJlttlFevLMuVo2zImh"
+    starterYearly="price_1RP4fEJlttlFevLM5tegvdNR"
+    growthMonthly = "price_1SHiUWJlttlFevLM9jQD0p8J";
+    growthYearly = "price_1SHiUWJlttlFevLMX652dOyr";
+    teamMonthly = "price_1SHiMoJlttlFevLMLEDJ5xiX";
+    teamYearly = "price_1SHiMoJlttlFevLM16jtqMp0";
+    scaleMonthly="price_1RrlThJlttlFevLM7qs7Mod2"
+    scaleYearly="price_1RrlThJlttlFevLMBSpjtdUe"
   } else {
     basicMonthly = "price_1RP3rtQwj7e0FQ8k5TRLrFOD";
     basicYearly = "price_1RP3w8Qwj7e0FQ8k0PK1ynTJ";
@@ -111,10 +119,14 @@ export const successPayment = async (
       let planType = "";
       if (subscription.plan.amount === 1400) planType = "Basic-Monthly";
       if (subscription.plan.amount === 15000) planType = "Basic-Yearly";
-      if (subscription.plan.amount === 2900) planType = "Growth-Monthly";
-      if (subscription.plan.amount === 30000) planType = "Growth-Yearly";
-      if (subscription.plan.amount === 9900) planType = "Team-Monthly";
-      if (subscription.plan.amount === 100000) planType = "Team-Yearly";
+      if (subscription.plan.amount === 2900) planType = "Starter-Monthly";
+      if (subscription.plan.amount === 30000) planType = "Starter-Yearly";
+      if (subscription.plan.amount === 5900) planType = "Growth-Monthly";
+      if (subscription.plan.amount === 59900) planType = "Growth-Yearly";
+      if (subscription.plan.amount === 149) planType = "Team-Monthly";
+      if (subscription.plan.amount === 1499) planType = "Team-Yearly";
+      if (subscription.plan.amount === 34900) planType = "Scale-Monthly";
+      if (subscription.plan.amount === 349900) planType = "Scale-Yearly";
 
       const startDate = new Date(
         moment.unix(subscription.start_date).toDate().toISOString()
