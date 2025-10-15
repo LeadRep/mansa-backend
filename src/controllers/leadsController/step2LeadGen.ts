@@ -24,6 +24,7 @@ export const step2LeadGen = async (
     await customerPref.save();
 
     let aiQueryParams = customerPref.aiQueryParams;
+    console.log(customerPref.aiQueryParams)
     let currentPage = customerPref.currentPage;
     if (currentPage < 1) {
       currentPage = 1;
