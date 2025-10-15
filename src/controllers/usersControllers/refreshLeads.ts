@@ -55,20 +55,32 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       );
       return;
     }
+    const hasSubscription = Boolean(user?.subscriptionName);
+    const targetLeadCount = hasSubscription ? 20 : 10;
+
     await CustomerPref.update(
       {
-        refreshLeads: customer?.refreshLeads - 1,
+        refreshLeads: customer?.refreshLeads
+          ? customer.refreshLeads - 1
+          : customer?.refreshLeads,
         nextRefresh: new Date(Date.now() + 3600000), // 1 hour later
-        leadsGenerationStatus: LeadsGenerationStatus.ONGOING,
+        leadsGenerationStatus: LeadsGenerationStatus.NOT_STARTED,
       },
       { where: { userId } }
     );
-    logger.info("Updaing existing leads to viewed");
-    await Leads.update({status:LeadStatus.VIEWED},{
-      where: { owner_id: userId, status: LeadStatus.NEW },
-    });
+    logger.info("Updating existing leads to viewed");
+    await Leads.update(
+      { status: LeadStatus.VIEWED },
+      {
+        where: { owner_id: userId, status: LeadStatus.NEW },
+      }
+    );
     sendResponse(response, 200, "Leads refresh in progress");
-    await step2LeadGen(userId, 20);
+    try {
+      await step2LeadGen(userId, targetLeadCount);
+    } catch (generationError: any) {
+      logger.error(generationError, "Error triggering lead refresh");
+    }
     return;
   } catch (error: any) {
     logger.error(error, "Error in refreshLeads controller:");

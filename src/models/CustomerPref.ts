@@ -52,7 +52,7 @@ export interface CustomerPrefAttributes {
   leadsGenerationStatus?: LeadsGenerationStatus;
   refreshLeads?: number;
   nextRefresh?: Date;
-  aiQueryParams?: JSON;
+  aiQueryParams?: JSON | null;
   totalPages?: number;
   currentPage?: number;
 }
