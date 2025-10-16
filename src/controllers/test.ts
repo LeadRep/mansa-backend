@@ -13,7 +13,7 @@ import logger from "../logger";
 export const test = async (req: Request, res: Response) => {
   try {
     const userId = "aa862323-f8b5-48a8-a97a-a601b6f6acca";
-    const newLeads = await step2LeadGen(userId, 10, true);
+    // const newLeads = await step2LeadGen(userId, 10, true);
     // const searchResponse = await axios.post(
     //   "https://api.apollo.io/v1/mixed_people/search",
     //   {
@@ -40,7 +40,11 @@ export const test = async (req: Request, res: Response) => {
     //     },
     //   }
     // );
-    sendResponse(res, 200, "Leads generated successfully", newLeads);
+    const search = await apolloPeopleSearch({
+      person_titles: ["angel investor"],
+      organization_locations: ["frankfurt"],
+    });
+    sendResponse(res, 200, "Leads generated successfully", search);
     return;
   } catch (error: any) {
     logger.error(error, "Error");

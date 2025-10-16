@@ -60,6 +60,7 @@ export const getSocket = () => {
   if (!io) {
     throw new Error("Socket.IO has not been initialized");
   }
+  console.log("Socket.IO has not been initialized");
   return io;
 };
 
@@ -72,4 +73,3 @@ export const emitLeadUpdate = (
   }
   io.to(`leads:${userId}`).emit("leads:new", payload);
 };
-

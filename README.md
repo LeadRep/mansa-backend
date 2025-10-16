@@ -28,3 +28,7 @@ it should be same process with step1LeadGen, the only difference is that it runs
 
 the flow will be this way
 generate organization search query using aiOrganizationSearchQuery then use apolloOrganizationSearch to get the organizations from apollo, the organizations are normally returned in pages so we have to go page by page to get the organizations id and then use the their ids to get the people in those organinzation we need using
+
+
+
+fix the refresh number ending at zero
