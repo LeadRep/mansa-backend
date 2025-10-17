@@ -106,7 +106,10 @@ export const step2LeadGen = async (
     await customerPref.save();
 
     if (!leadsToEvaluate.length) {
-      return [];
+      return {
+        leads: [],
+        message: "No lead found, please update buyer persona",
+      };
     }
 
     const enrichedLeads = await apolloEnrichedPeople(collectedLeadIds);
@@ -158,7 +161,10 @@ export const step2LeadGen = async (
     }, []);
 
     if (!scoredLeads.length) {
-      return [];
+      return {
+        leads: [],
+        message: "No lead found, please update buyer persona",
+      };
     }
 
     const createdLeads = await Leads.bulkCreate(scoredLeads, {

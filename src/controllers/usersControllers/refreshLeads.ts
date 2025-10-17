@@ -10,7 +10,10 @@ import { step2LeadGen } from "../leadsController/step2LeadGen";
 export const refreshLeads = async (request: JwtPayload, response: Response) => {
   const userId = request.user.id;
   try {
-    const removeLimit =process.env.SKIP_LEADS_REFRESH_LIMIT
+    const skipLimit =
+      String(process.env.SKIP_LEADS_REFRESH_LIMIT ?? "")
+        .trim()
+        .toLowerCase() === "true";
 
     const customer = await CustomerPref.findOne({ where: { userId } });
     if (!customer) {
@@ -20,7 +23,7 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
 
     const user = await Users.findByPk(userId);
     const hasSubscription = Boolean(user?.subscriptionName);
-    if (!removeLimit && !hasSubscription) {
+    if (!skipLimit && !hasSubscription) {
       sendResponse(
         response,
         400,
@@ -28,17 +31,20 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       );
       return;
     }
-    if (!removeLimit && customer.refreshLeads  < 1) {
+
+    const currentRefreshAllowance = customer.refreshLeads ?? 0;
+    if (!skipLimit && currentRefreshAllowance < 1) {
       sendResponse(
         response,
         400,
-        "You have used up your 5 refresh for today"
+        "You have used up your number of refresh for today"
       );
       return;
     }
+
     if (
-      !removeLimit &&
-      (customer.refreshLeads) > 1 &&
+      !skipLimit &&
+      currentRefreshAllowance > 1 &&
       customer.nextRefresh &&
       new Date(customer.nextRefresh) > new Date()
     ) {
@@ -58,18 +64,17 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       sendResponse(
         response,
         400,
-        `Your next refresh available at ${formattedDate}`
+        `Your next refresh is available at ${formattedDate}`
       );
       return;
     }
-    
+
     const targetLeadCount = hasSubscription ? 20 : 10;
 
-    const currentRefreshAllowance = customer.refreshLeads;
     let updatedRefreshAllowance = currentRefreshAllowance;
     let nextRefresh: Date | undefined = customer.nextRefresh || undefined;
 
-    if (!removeLimit) {
+    if (!skipLimit) {
       if (currentRefreshAllowance > 1) {
         updatedRefreshAllowance = currentRefreshAllowance - 1;
         nextRefresh = new Date(Date.now() + 3600000); // 1 hour later
@@ -88,6 +93,7 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       nextRefresh: nextRefresh ?? undefined,
       leadsGenerationStatus: LeadsGenerationStatus.NOT_STARTED,
     });
+
     logger.info("Updating existing leads to viewed");
     await Leads.update(
       { status: LeadStatus.VIEWED },
@@ -95,12 +101,38 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
         where: { owner_id: userId, status: LeadStatus.NEW },
       }
     );
-    sendResponse(response, 200, "Leads refresh in progress");
+
+    let generationOutcome: any = null;
     try {
-      await step2LeadGen(userId, targetLeadCount);
+      generationOutcome = await step2LeadGen(userId, targetLeadCount);
     } catch (generationError: any) {
-      logger.error(generationError, "Error triggering lead refresh");
+      logger.error("Lead generation error:", generationError.message);
     }
+
+    const generatedLeads = Array.isArray(generationOutcome)
+      ? generationOutcome
+      : Array.isArray(generationOutcome?.leads)
+      ? generationOutcome.leads
+      : [];
+
+    const message =
+      (generationOutcome &&
+      typeof generationOutcome?.message === "string"
+        ? generationOutcome.message
+        : undefined) ||
+      (generatedLeads.length
+        ? "Leads refreshed successfully!"
+        : "No lead found, please update buyer persona");
+
+    const latestLeads =
+      generatedLeads.length > 0
+        ? generatedLeads
+        : await Leads.findAll({
+            where: { owner_id: userId, status: LeadStatus.NEW },
+            limit: targetLeadCount,
+          });
+
+    sendResponse(response, 200, message, latestLeads);
     return;
   } catch (error: any) {
     logger.error(error, "Error in refreshLeads controller:");

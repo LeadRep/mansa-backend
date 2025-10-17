@@ -24,14 +24,24 @@ export const userLeads = async (req: Request, res: Response) => {
     const needsMoreLeads = userLeads.length < maxLeads;
 
     if (needsMoreLeads) {
+      const message =
+        generationStatus === LeadsGenerationStatus.COMPLETED &&
+        userLeads.length === 0
+          ? "No lead found, please update buyer persona"
+          : "Currently generating leads, please wait a moment";
+
       sendResponse(
         res,
         200,
-        "Currently generating leads, please wait a moment",
+        message,
         userLeads
       );
 
-      if (generationStatus !== LeadsGenerationStatus.ONGOING) {
+      const shouldTriggerGeneration =
+        generationStatus === LeadsGenerationStatus.FAILED ||
+        generationStatus === LeadsGenerationStatus.NOT_STARTED;
+
+      if (shouldTriggerGeneration) {
         await step2LeadGen(
           userId,
           maxLeads - userLeads.length,
