@@ -15,7 +15,7 @@ export const apolloPeopleSearch = async (
     };
 
     effectiveParams.include_similar_titles = true;
-    effectiveParams.contact_email_status = ["verified", "likely to engage"];
+    // effectiveParams.contact_email_status = ["verified", "likely to engage"];
     effectiveParams.per_page = 100;
     effectiveParams.page = page || 1;
 
