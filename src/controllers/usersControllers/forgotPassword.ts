@@ -46,7 +46,7 @@ export const forgotPassword = async (request: Request, response: Response) => {
     const separator = baseUrl.includes("?") ? "&" : "?";
     const resetLink = `${baseUrl}${separator}token=${rawToken}`;
 
-    const subject = "Reset your Mansa password";
+    const subject = "Reset your LeadRep password";
     const text =
       `You recently requested to reset your password.\n\n` +
       `Use the link below to set a new password. This link will expire in 1 hour.\n\n${resetLink}\n\n` +
