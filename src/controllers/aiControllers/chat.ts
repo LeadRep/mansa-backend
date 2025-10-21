@@ -129,14 +129,87 @@ export const chatStream: RequestHandler = async (
   res.setHeader("Connection", "keep-alive");
   const userId = req.user.id;
   try {
-    const user = await Users.findByPk(userId);
-    const leads = await Leads.findAll({ where: { owner_id: userId } });
-    const customerPreference = await CustomerPref.findOne({
-      where: { userId },
+    const [
+      userRecord,
+      leadsRecords,
+      customerPreferenceRecord,
+      leadsTotal,
+    ] =
+      await Promise.all([
+        Users.findByPk(userId, {
+          attributes: [
+            "id",
+            "firstName",
+            "lastName",
+            "email",
+            "role",
+            "companyName",
+            "country",
+          ],
+        }),
+        Leads.findAll({
+          where: { owner_id: userId },
+          attributes: [
+            "id",
+            "full_name",
+            "title",
+            "email",
+            "phone",
+            "organization",
+            "country",
+            "score",
+            "category",
+            "reason",
+            "createdAt",
+            "updatedAt",
+          ],
+          order: [["updatedAt", "DESC"]],
+          limit: 25,
+        }),
+        CustomerPref.findOne({
+          where: { userId },
+          attributes: [
+            "ICP",
+            "BP",
+            "territories",
+            "leadsGenerationStatus",
+            "refreshLeads",
+            "nextRefresh",
+          ],
+        }),
+        Leads.count({ where: { owner_id: userId } }),
+      ]);
+
+    const user = userRecord ? userRecord.toJSON() : null;
+    const leads = leadsRecords.map((lead) => {
+      const json = lead.toJSON() as any;
+      return {
+        id: json.id,
+        name: json.full_name,
+        title: json.title,
+        email: json.email,
+        phone: json.phone,
+        company:
+          typeof json.organization === "object"
+            ? json.organization?.name ||
+              json.organization?.company ||
+              json.organization?.legal_name ||
+              null
+            : null,
+        country: json.country,
+        score: json.score,
+        category: json.category,
+        reason: json.reason,
+        createdAt: json.createdAt,
+      };
     });
+    const customerPreference = customerPreferenceRecord
+      ? customerPreferenceRecord.toJSON()
+      : null;
     const dbBundle = {
       user: user ?? null,
       leads: leads ?? null,
+      leads_total: leadsTotal,
       customerPreference: customerPreference ?? null,
       // add anything else you fetched for this user/chat
       // pipelines, settings, preferences, past reports, etc.
