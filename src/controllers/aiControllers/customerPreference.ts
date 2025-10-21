@@ -144,9 +144,9 @@ export async function getCRMInsights(
       {
         "ideal_customer_profile": {
           "industry": "",
-          "company_size": "",
+          "company_size": [""],
           "geographical_focus": "",
-          "revenue": "min-max",
+          "revenue": [""],
           "tech_stack": "",
           "growth_stage": "",
           "pain_points": "",
@@ -157,7 +157,7 @@ export async function getCRMInsights(
           "name": "",
           "role": "",
           "similar_titles": "",
-          "person_seniorities": "",
+          "person_seniorities": [""],
           "gender": "",
           "department": "",
           "age_range": "min-max",
@@ -184,21 +184,12 @@ export async function getCRMInsights(
       If a company has several office locations, results are still based on the headquarters location. For example, if you search chicago but a company's HQ location is in boston, any Boston-based companies will not appearch in your search results, even if they match other parameters.
       To exclude companies based on location, use the organization_not_locations parameter.
       Examples: texas; tokyo; spain
-      * revenue[min]integer
-      Search for organizations based on their revenue.
-      Use this parameter to set the lower range of organization revenue. Use the revenue_range[max] parameter to set the upper range of revenue.
-      Add dollar symbol and commas in the figure where necessary. Example: $300,000
-      * revenue[max]integer
-      Search for organizations based on their revenue.
-      Use this parameter to set the upper range of organization revenue. Use the revenue_range[min] parameter to set the lower range of revenue.
-      Add dollar symbol and commas in the figure where necessary. Example: $300,000
-      * company_size: strings separated by commas
-      The number range of employees working for the company. This enables you to find companies based on headcount. You can add multiple ranges to expand your search results.
-      Each range you add needs to be a string, with the upper and lower numbers of the range separated only by - and commas should be added for very large values. 
-      The different range should be separated by a comma and a space.
-      Examples: 1-10, 250-500, 10,000-20,000
-      always return 3 ranges for company_size:
-      for ***High Net Worth Individual*** company_size should always be very large for example 500,1000,10000,20000,50000,100000,200000,500000
+      * revenue: array of strings chosen only from the following list (include multiple values if needed, or an empty array when unknown):
+        ["Less than $1M", "$1M-$10M", "$10M-$50M", "$50M-$100M", "$100M-$250M", "$250M-$500M", "$500M-$1B", "$1B-$10B", "$10B+"]
+      * company_size: array of strings chosen only from the following list (include multiple values if needed, or an empty array when unknown):
+        ["1-10", "11-50", "51-200", "201-500", "501-1,000", "1,001-5,000", "5,001-10,000", "10,001+"]
+      * person_seniorities: array of strings chosen only from the following list (you may select multiple values, or use an empty array when unknown):
+        ["owner", "founder", "c_suite", "partner", "vp", "head", "director", "manager", "senior", "entry", "intern"]
       * role: strings separated by commas
       Job titles held by the people you want to find. For a person to be included in search results, they only need to match 1 of the job titles you add. Adding more job titles expands your search results.
       Results also include job titles with the same terms, even if they are not exact matches. For example, searching for marketing manager might return people with the job title content marketing manager.
