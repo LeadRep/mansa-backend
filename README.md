@@ -32,3 +32,5 @@ generate organization search query using aiOrganizationSearchQuery then use apol
 
 
 fix the refresh number ending at zero
+
+now let's make a few other adjustments, whe i delete all the chats on the frontend i still see 2 chat empty chat history auto created, please fix this and when the send button is clicked the user should not be able to send another chat untill the response has been recieved, you change also add a stop sign instead so that the user knows that a process is ongoing and clicking the button again will stop the previous process
