@@ -16,27 +16,26 @@ export const getACIQuotas = async (request: Request, response: Response) => {
         const userId = request.user?.id;
         const user = await Users.findOne({ where: { id: userId } });
         if(!user) {
-            sendResponse(response, 400, "Account not found");
+            sendResponse(response, 401, "User not found");
             return;
         }
         const monthStart = getMonthStart();
         const quota = await MonthlyQuotas.findOne(
             { where: { organization_id: user.organization_id , startDate: monthStart} }
         )
-        if (quota){
+        if (quota) {
             sendResponse(response, 200, "get quotas for this month", quota);
             return;
         }
-            const q = await MonthlyQuotas.create(
-                {
-                    organization_id: user.organization_id,
-                    startDate: monthStart,
-                    remaining: 300
-                }
-            )
-            sendResponse(response, 200, "No quotas found for this month", q);
-            return;
-        }
+        const q = await MonthlyQuotas.create(
+            {
+                organization_id: user.organization_id,
+                startDate: monthStart,
+                remaining: 300
+            }
+        )
+        sendResponse(response, 200, "No quotas found for this month", q);
+        return;
 
     } catch (error: any) {
         logger.error(error, "Get ACI Quotas Error:");

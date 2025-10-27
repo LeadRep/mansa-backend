@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import sendResponse from "../../utils/http/sendResponse";
 import logger from "../../logger";
+import Users from "../../models/Users";
 
 type Lead = {
     id: number;
@@ -81,7 +82,11 @@ function generateLeads(count = 1000): Lead[] {
 export const getACILeads = async (request: Request, response: Response) => {
     try {
         const userId = request.user?.id;
-
+        const user = await Users.findOne({ where: { id: userId } });
+        if(!user) {
+            sendResponse(response, 401, "User not found");
+            return;
+        }
         const data = generateLeads(1000);
         return sendResponse(response, 200, "leads generated successfully", {
             data
