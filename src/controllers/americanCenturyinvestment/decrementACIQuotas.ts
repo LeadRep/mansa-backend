@@ -30,7 +30,7 @@ export const decrementACIQuotas = async (request: Request, response: Response) =
             where: { organization_id: user.organization_id, startDate: monthStart }
         });
         if (!quota) {
-            sendResponse(response, 404, "limit exceeded for this month", { ok: false, remaining: 0, message: "Update" } );
+            sendResponse(response, 404, "No quota found for this month", { ok: false, remaining: 0, message: "Update" } );
             return;
         }
         const remaining = quota.remaining - decrement;
