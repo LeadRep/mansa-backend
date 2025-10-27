@@ -29,7 +29,7 @@ export const getACIQuotas = async (request: Request, response: Response) => {
         }
             const q = await MonthlyQuotas.create(
                 {
-                    organization_id: user.get().organization_id,
+                    organization_id: user.organization_id,
                     startDate: monthStart,
                     remaining: 300
                 }
