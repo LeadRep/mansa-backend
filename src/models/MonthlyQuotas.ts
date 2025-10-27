@@ -1,14 +1,20 @@
-import { Model, DataTypes } from "sequelize";
+import {Model, DataTypes, Optional} from "sequelize";
 import { database } from "../configs/database/database";
 import Organizations from "./Organizations";
 
 export interface MonthlyQuotasAttributes {
     organization_id: string;
-    startDate: Date,
+    startDate: string,
     remaining: number;
 }
 
-export class MonthlyQuotas extends Model<MonthlyQuotasAttributes> {
+// 2. Define the Creation Attributes Interface (what can be omitted during creation)
+// We make the composite primary keys 'organization_id' and 'startDate' optional
+// because they are passed in the 'where' clause of findOrCreate.
+export interface MonthlyQuotasCreationAttributes extends
+    Optional<MonthlyQuotasAttributes, 'organization_id' | 'startDate'> {}
+
+export class MonthlyQuotas extends Model<MonthlyQuotasAttributes, MonthlyQuotasCreationAttributes> {
     [x: string]: any;
 }
 
@@ -25,7 +31,7 @@ MonthlyQuotas.init(
             primaryKey: true,
         },
         startDate: {
-            type: DataTypes.DATE,
+            type: DataTypes.STRING,
             allowNull: false,
             validate: {
                 isDate: true,
