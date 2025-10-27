@@ -25,9 +25,8 @@ export const getACIQuotas = async (request: Request, response: Response) => {
         )
         if (quota){
             sendResponse(response, 200, "get quotas for this month", quota);
+            return;
         }
-
-        if (!quota) {
             const q = await MonthlyQuotas.create(
                 {
                     organization_id: user.get().organization_id,
