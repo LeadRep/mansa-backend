@@ -40,7 +40,7 @@ export const decrementACIQuotas = async (request: Request, response: Response) =
             return;
         }
         await quota.update({ remaining: remaining });
-        sendResponse(response, 200, "Quota updated for this month", { ok: true, remaining: quota.remaining, message: "Update" });
+        sendResponse(response, 200, "Quota updated for this month", { ok: true, remaining: remaining, message: "Update" });
         return;
 
     } catch (error: any) {
