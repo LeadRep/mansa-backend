@@ -7,7 +7,7 @@ import {getACIQuotas} from "../controllers/americanCenturyinvestment/getACIQuota
 
 const aciRoutes = express.Router();
 
-aciRoutes.get("/leads", getACILeads);
+aciRoutes.get("/leads", userAuth, getACILeads);
 aciRoutes.get("/quota", userAuth, getACIQuotas);
 
 export default aciRoutes;
