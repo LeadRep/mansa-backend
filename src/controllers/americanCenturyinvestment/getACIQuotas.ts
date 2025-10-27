@@ -23,6 +23,8 @@ export const getACIQuotas = async (request: Request, response: Response) => {
             where: { organization_id: user.organization_id, startDate: monthStart },
             defaults: {
                 remaining: 300,
+                organization_id: user.organization_id,
+                startDate: monthStart
             }
         });
         if (created) {

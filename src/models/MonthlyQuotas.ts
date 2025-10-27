@@ -8,13 +8,7 @@ export interface MonthlyQuotasAttributes {
     remaining: number;
 }
 
-// 2. Define the Creation Attributes Interface (what can be omitted during creation)
-// We make the composite primary keys 'organization_id' and 'startDate' optional
-// because they are passed in the 'where' clause of findOrCreate.
-export interface MonthlyQuotasCreationAttributes extends
-    Optional<MonthlyQuotasAttributes, 'organization_id' | 'startDate'> {}
-
-export class MonthlyQuotas extends Model<MonthlyQuotasAttributes, MonthlyQuotasCreationAttributes> {
+export class MonthlyQuotas extends Model<MonthlyQuotasAttributes> {
     [x: string]: any;
 }
 
@@ -33,9 +27,6 @@ MonthlyQuotas.init(
         startDate: {
             type: DataTypes.STRING,
             allowNull: false,
-            validate: {
-                isDate: true,
-            },
             primaryKey: true,
         },
         remaining: {
