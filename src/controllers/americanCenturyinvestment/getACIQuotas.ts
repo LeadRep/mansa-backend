@@ -39,7 +39,7 @@ export const getACIQuotas = async (request: Request, response: Response) => {
         }
 
     } catch (error: any) {
-        logger.error(error, "Get Organization Error:");
+        logger.error(error, "Get ACI Quotas Error:");
         return sendResponse(response, 500, "Internal Server Error");
     }
 };
