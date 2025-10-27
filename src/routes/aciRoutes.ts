@@ -4,10 +4,12 @@ import { getOrganization } from "../controllers/organizationsControllers/getOrga
 import { updateOrganization } from "../controllers/organizationsControllers/updateOrganization";
 import {getACILeads} from "../controllers/americanCenturyinvestment/getACILeads";
 import {getACIQuotas} from "../controllers/americanCenturyinvestment/getACIQuotas";
+import {decrementACIQuotas} from "../controllers/americanCenturyinvestment/decrementACIQuotas";
 
 const aciRoutes = express.Router();
 
 aciRoutes.get("/leads", userAuth, getACILeads);
 aciRoutes.get("/quota", userAuth, getACIQuotas);
+aciRoutes.put("/quota", userAuth, decrementACIQuotas);
 
 export default aciRoutes;

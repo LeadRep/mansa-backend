@@ -1,10 +1,10 @@
-import { Model, DataTypes } from "sequelize";
+import {Model, DataTypes, Optional} from "sequelize";
 import { database } from "../configs/database/database";
 import Organizations from "./Organizations";
 
 export interface MonthlyQuotasAttributes {
     organization_id: string;
-    startDate: Date,
+    startDate: string,
     remaining: number;
 }
 
@@ -25,11 +25,8 @@ MonthlyQuotas.init(
             primaryKey: true,
         },
         startDate: {
-            type: DataTypes.DATE,
+            type: DataTypes.STRING,
             allowNull: false,
-            validate: {
-                isDate: true,
-            },
             primaryKey: true,
         },
         remaining: {

@@ -4,11 +4,10 @@ import logger from "../../logger";
 import Users from "../../models/Users";
 import MonthlyQuotas from "../../models/MonthlyQuotas";
 
-function getMonthStart(): Date /* YYYY-MM-DD */ {
-    // JS doesn't shift zones natively without Intl; we can rely on server time + tz offset via Intl API:
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-}
+
+const formatMonthYear = (date: Date) =>
+    date.toLocaleString("default", { month: "short", year: "numeric" });
+
 
 export const getACIQuotas = async (request: Request, response: Response) => {
     try {
@@ -19,22 +18,22 @@ export const getACIQuotas = async (request: Request, response: Response) => {
             sendResponse(response, 401, "User not found");
             return;
         }
-        const monthStart = getMonthStart();
-        const quota = await MonthlyQuotas.findOne(
-            { where: { organization_id: user.organization_id , startDate: monthStart} }
-        )
-        if (quota) {
-            sendResponse(response, 200, "get quotas for this month", quota);
-            return;
-        }
-        const q = await MonthlyQuotas.create(
-            {
+        const monthStart = formatMonthYear(new Date());
+        const [quota, created] = await MonthlyQuotas.findOrCreate({
+            where: { organization_id: user.organization_id, startDate: monthStart },
+            defaults: {
+                remaining: 300,
                 organization_id: user.organization_id,
-                startDate: monthStart,
-                remaining: 300
+                startDate: monthStart
             }
-        )
-        sendResponse(response, 200, "No quotas found for this month", q);
+        });
+        if (created) {
+            logger.info("quota created", quota.remaining);
+            sendResponse(response, 200, "No quotas found for this month", quota);
+        } else {
+            logger.info("quota found", quota.remaining);
+            sendResponse(response, 200, "get quotas for this month", quota);
+        }
         return;
 
     } catch (error: any) {
