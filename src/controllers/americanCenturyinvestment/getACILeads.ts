@@ -87,7 +87,7 @@ export const getACILeads = async (request: Request, response: Response) => {
             data
         });
     } catch (error: any) {
-        logger.error(error, "Get Organization Error:");
+        logger.error(error, "Get ACI Leads Error:");
         return sendResponse(response, 500, "Internal Server Error");
     }
 };
