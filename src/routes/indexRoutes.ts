@@ -6,10 +6,10 @@ import contactsRoutes from "./contactsRoutes";
 import { test } from "../controllers/test";
 import { generateLeads } from "../controllers/scripts/generateLeads";
 import organizationsRoutes from "./organizationsRoutes";
-import { getOrgs } from "../controllers/scripts/getOrganizations";
-import { findOrganizations } from "../controllers/scripts/findOrganizations";
-import { findOrganizationLeads } from "../controllers/scripts/findOrganizationLeads";
 import aciRoutes from "./aciRoutes";
+import { findOrganizations } from "../controllers/scripts/findOrganizations";
+import { getOrgs } from "../controllers/scripts/getOrganizations";
+import { findOrganizationLeads } from "../controllers/scripts/findOrganizationLeads";
 
 const indexRoutes = express.Router();
 indexRoutes.get("/", index);
@@ -22,5 +22,6 @@ indexRoutes.get("/get-orgs", getOrgs);
 indexRoutes.get("/find-orgs", findOrganizations);
 indexRoutes.get("/find-orgs-leads", findOrganizationLeads)
 indexRoutes.use("/organizations", organizationsRoutes);
+indexRoutes.use("/aci", aciRoutes);
 
 export default indexRoutes;

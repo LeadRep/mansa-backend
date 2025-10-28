@@ -171,4 +171,6 @@ Users.init(
   }
 );
 
+Users.belongsTo(Organizations, { foreignKey: "organization_id", as: "organization" });
+
 export default Users;
