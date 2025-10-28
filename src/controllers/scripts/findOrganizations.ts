@@ -6,7 +6,7 @@ import Companies, { CompaniesAttributes } from "../../models/Companies";
 const APOLLO_ORG_URL = "https://api.apollo.io/v1/mixed_companies/search";
 
 const DEFAULT_LIMIT = 100;
-const DEFAULT_PER_PAGE = 25;
+const DEFAULT_PER_PAGE = 100;
 const BATCH_SIZE = 5;
 const MAX_FAILURES_REPORTED = 10;
 const MAX_RESULTS_PREVIEW = 25;
