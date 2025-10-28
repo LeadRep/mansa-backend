@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { Op } from "sequelize";
 import Companies from "../../models/Companies";
 import sendResponse from "../../utils/http/sendResponse";
 import logger from "../../logger";
@@ -23,11 +22,6 @@ export const sanitizeCompanyNames = async (_req: Request, res: Response) => {
   try {
     const companies = await Companies.findAll({
       attributes: ["id", "name"],
-      where: {
-        name: {
-          [Op.ne]: null,
-        },
-      },
     });
 
     if (!companies.length) {
@@ -43,7 +37,9 @@ export const sanitizeCompanyNames = async (_req: Request, res: Response) => {
     let skipped = 0;
 
     for (const company of companies) {
-      const sanitized = sanitizeCompanyName(company.name as string | null);
+      const currentName =
+        typeof company.name === "string" ? company.name : null;
+      const sanitized = sanitizeCompanyName(currentName);
       if (!sanitized || sanitized === company.name) {
         skipped += 1;
         continue;
