@@ -84,3 +84,44 @@ SAMPLE PEOPLE SEAERCH DATA
   email_domain_catchall: false,
   revealed_for_current_team: true
 }
+
+
+SAMPLE ORGANIZATION SEARCH DATA
+{
+  id: '54a25f4774686930c2b5cc1d',
+  name: 'APPLE TREE',
+  website_url: 'http://www.appletree.agency',
+  blog_url: null,
+  angellist_url: null,
+  linkedin_url: 'http://www.linkedin.com/company/apple-tree-communications',
+  twitter_url: 'https://twitter.com/appletreeagency/',
+  facebook_url: null,
+  primary_phone: {
+    number: '+34 933 18 46 69',
+    source: 'Account',
+    sanitized_number: '+34933184669'
+  },
+  languages: [ 'English', 'Spanish' ],
+  alexa_ranking: null,
+  phone: '+34 933 18 46 69',
+  linkedin_uid: '126164',
+  founded_year: 2007,
+  publicly_traded_symbol: null,
+  publicly_traded_exchange: null,
+  logo_url: 'https://zenprospect-production.s3.amazonaws.com/uploads/pictures/68e4e457bf136e0001a951ad/picture',
+  crunchbase_url: null,
+  primary_domain: 'appletree.agency',
+  sic_codes: [ '7311' ],
+  naics_codes: [ '54182' ],
+  sanitized_phone: '+34933184669',
+  owned_by_organization_id: null,
+  organization_revenue_printed: '3.5M',
+  organization_revenue: 3500000,
+  intent_strength: null,
+  show_intent: true,
+  has_intent_signal_account: false,
+  intent_signal_account: null,
+  organization_headcount_six_month_growth: 0,
+  organization_headcount_twelve_month_growth: 0,
+  organization_headcount_twenty_four_month_growth: 0.09433962264150944
+}

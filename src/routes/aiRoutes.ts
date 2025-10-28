@@ -2,7 +2,7 @@ import express from "express";
 import { customerPreference } from "../controllers/aiControllers/customerPreference";
 import { leadsPrompt } from "../controllers/aiControllers/leadPrompt";
 import { userAuth } from "../middlewares/userAuth";
-import { generateLeads } from "../controllers/generateLeads";
+import { generateLeads } from "../controllers/scripts/generateLeads";
 import { newSignUp } from "../controllers/aiControllers/newSignUp";
 import { chatStream } from "../controllers/aiControllers/chat";
 import {

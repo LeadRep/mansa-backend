@@ -4,8 +4,8 @@ import fs from "fs";
 import path from "path";
 import { parse } from "json2csv";
 
-import sendResponse from "../utils/http/sendResponse";
-import logger from "../logger";
+import sendResponse from "../../utils/http/sendResponse";
+import logger from "../../logger";
 
 const APOLLO_PEOPLE_URL = "https://api.apollo.io/v1/mixed_people/search";
 const APOLLO_ENRICH_URL = "https://api.apollo.io/v1/people/bulk_match";
