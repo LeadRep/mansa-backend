@@ -16,6 +16,12 @@ const CSV_FILE_PATH = path.resolve(
 
 const APOLLO_ORG_URL = "https://api.apollo.io/v1/mixed_companies/search";
 
+const APOLLO_ORG_CONCURRENCY = (() => {
+  const raw = process.env.APOLLO_ORG_CONCURRENCY ?? "5";
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isNaN(parsed) || parsed < 1 ? 5 : parsed;
+})();
+
 const buildApolloHeaders = () => ({
   "Cache-Control": "no-cache",
   "Content-Type": "application/json",
@@ -446,6 +452,100 @@ const upsertCompanyFromMatch = async (
   return "created";
 };
 
+interface ProcessRecordResult {
+  status: "created" | "updated" | "not_found" | "skipped" | "failure";
+  record: CsvRecord;
+  sanitizedName?: string | null;
+  reason?: string;
+}
+
+const processRecord = async (
+  record: CsvRecord
+): Promise<ProcessRecordResult> => {
+  const sanitizedName = sanitize(record.collectorParent);
+  if (!sanitizedName) {
+    return {
+      status: "skipped",
+      record,
+      sanitizedName: null,
+      reason: "Company name missing",
+    };
+  }
+
+  const csvPayload = buildCompanyPayload(record);
+  if (!csvPayload.name) {
+    csvPayload.name = sanitizedName;
+  }
+  if (!csvPayload.primary_domain) {
+    csvPayload.primary_domain =
+      normalizeDomain(csvPayload.website_url ?? null) ?? null;
+  }
+
+  const { matches, error } = await searchApolloOrganizations(sanitizedName);
+  if (error && !matches.length) {
+    const reason =
+      error?.response?.data?.error ??
+      error?.response?.data?.message ??
+      error?.message ??
+      "Apollo search failed";
+    return {
+      status: "failure",
+      record,
+      sanitizedName,
+      reason,
+    };
+  }
+
+  if (!matches.length) {
+    return {
+      status: "not_found",
+      record,
+      sanitizedName,
+    };
+  }
+
+  const bestMatch = findBestMatch(
+    sanitizedName,
+    csvPayload.primary_domain,
+    matches
+  );
+
+  if (!bestMatch) {
+    return {
+      status: "not_found",
+      record,
+      sanitizedName,
+    };
+  }
+
+  try {
+    const action = await upsertCompanyFromMatch(
+      csvPayload,
+      sanitizedName,
+      bestMatch
+    );
+    return {
+      status: action,
+      record,
+      sanitizedName,
+    };
+  } catch (error: any) {
+    logger.error(
+      {
+        name: sanitizedName,
+        message: error?.message,
+      },
+      "Failed to upsert company"
+    );
+    return {
+      status: "failure",
+      record,
+      sanitizedName,
+      reason: error?.message ?? "Failed to upsert company",
+    };
+  }
+};
+
 interface GetOrganizationsResult {
   importedCount: number;
   totalRowsParsed: number;
@@ -514,75 +614,48 @@ export const getOrganizations = async (): Promise<GetOrganizationsResult> => {
     let updatedCount = 0;
     let skippedCount = 0;
 
-    for (const record of uniqueRecords) {
-      const sanitizedName = sanitize(record.collectorParent);
-      if (!sanitizedName) {
-        skippedCount += 1;
-        notFoundRecords.push(record);
-        continue;
-      }
-
-      const csvPayload = buildCompanyPayload(record);
-      if (!csvPayload.name) {
-        csvPayload.name = sanitizedName;
-      }
-      if (!csvPayload.primary_domain) {
-        csvPayload.primary_domain =
-          normalizeDomain(csvPayload.website_url ?? null) ?? null;
-      }
-
-      const { matches, error } = await searchApolloOrganizations(
-        sanitizedName
+    for (
+      let index = 0;
+      index < uniqueRecords.length;
+      index += APOLLO_ORG_CONCURRENCY
+    ) {
+      const batch = uniqueRecords.slice(
+        index,
+        index + APOLLO_ORG_CONCURRENCY
       );
-      if (error) {
-        const reason =
-          error?.response?.data?.error ??
-          error?.response?.data?.message ??
-          error?.message ??
-          "Apollo search failed";
-        lookupFailures.push({ name: sanitizedName, reason });
-      }
-
-      if (!matches.length) {
-        notFoundRecords.push(record);
-        continue;
-      }
-
-      const bestMatch = findBestMatch(
-        sanitizedName,
-        csvPayload.primary_domain,
-        matches
+      const batchResults = await Promise.all(
+        batch.map((record) => processRecord(record))
       );
 
-      if (!bestMatch) {
-        notFoundRecords.push(record);
-        continue;
-      }
-
-      try {
-        const action = await upsertCompanyFromMatch(
-          csvPayload,
-          sanitizedName,
-          bestMatch
-        );
-        if (action === "created") {
-          createdCount += 1;
-        } else if (action === "updated") {
-          updatedCount += 1;
+      for (const result of batchResults) {
+        switch (result.status) {
+          case "created":
+            createdCount += 1;
+            break;
+          case "updated":
+            updatedCount += 1;
+            break;
+          case "skipped":
+            skippedCount += 1;
+            notFoundRecords.push(result.record);
+            break;
+          case "not_found":
+            notFoundRecords.push(result.record);
+            break;
+          case "failure":
+            lookupFailures.push({
+              name:
+                result.sanitizedName ??
+                sanitize(result.record.collectorParent) ??
+                result.record.collectorParent ??
+                "Unknown",
+              reason: result.reason ?? "Unknown error",
+            });
+            notFoundRecords.push(result.record);
+            break;
+          default:
+            break;
         }
-      } catch (upsertError: any) {
-        logger.error(
-          {
-            name: sanitizedName,
-            message: upsertError?.message,
-          },
-          "Failed to upsert company"
-        );
-        lookupFailures.push({
-          name: sanitizedName,
-          reason: upsertError?.message ?? "Failed to upsert company",
-        });
-        notFoundRecords.push(record);
       }
     }
 
