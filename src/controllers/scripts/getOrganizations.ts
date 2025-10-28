@@ -1,8 +1,11 @@
+import axios from "axios";
 import fs from "fs";
 import path from "path";
+import { Op } from "sequelize";
 import Companies, { CompaniesAttributes } from "../../models/Companies";
 import sendResponse from "../../utils/http/sendResponse";
 import { Request, Response } from "express";
+import logger from "../../logger";
 
 type CsvRecord = Record<string, string>;
 
@@ -10,6 +13,15 @@ const CSV_FILE_PATH = path.resolve(
   __dirname,
   "../../../exports/scr/organizationsFile.csv"
 );
+
+const APOLLO_ORG_URL = "https://api.apollo.io/v1/mixed_companies/search";
+
+const buildApolloHeaders = () => ({
+  "Cache-Control": "no-cache",
+  "Content-Type": "application/json",
+  accept: "application/json",
+  "x-api-key": process.env.APOLLO_API_KEY!,
+});
 
 const sanitize = (value?: string | null): string | null => {
   if (value === undefined || value === null) {
@@ -33,6 +45,39 @@ const sanitize = (value?: string | null): string | null => {
   }
 
   return trimmed;
+};
+
+const normalizeName = (value?: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+};
+
+const normalizeDomain = (value?: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  let candidate = value.trim().toLowerCase();
+  if (!candidate) {
+    return null;
+  }
+
+  try {
+    if (candidate.startsWith("http")) {
+      candidate = new URL(candidate).hostname;
+    }
+  } catch {
+    // ignore parse errors, continue cleanup
+  }
+
+  candidate = candidate
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .replace(/^www\./, "");
+
+  return candidate || null;
 };
 
 const parseCsv = (content: string): string[][] => {
@@ -131,9 +176,9 @@ const buildCompanyPayload = (
   const formattedAum = sanitize(record["AUM (Original Currency)"]);
 
   return {
-    name: name ?? "",
-    website_url: website,
-    primary_domain: extractDomain(website),
+    name: name ?? record.collectorParent ?? "",
+    website_url: website ?? null,
+    primary_domain: extractDomain(website) ?? null,
     organization_revenue_printed: formattedAum,
     organization_revenue: parseRevenue(formattedAum),
   };
@@ -189,26 +234,252 @@ const dedupeRecords = (records: CsvRecord[]) => {
   };
 };
 
-export const getOrganizations = async (): Promise<{
+const extractOrganization = (candidate: Record<string, any>) =>
+  candidate?.organization ?? candidate ?? {};
+
+const findBestMatch = (
+  name: string,
+  targetDomain: string | null,
+  candidates: any[]
+) => {
+  if (!Array.isArray(candidates) || !candidates.length) {
+    return null;
+  }
+
+  const normalizedName = normalizeName(name);
+
+  const evaluated = candidates.map((candidate) => {
+    const organization = extractOrganization(candidate);
+    const candidateName = normalizeName(
+      organization.name ?? organization.organization_name ?? organization.company
+    );
+    const candidateDomain = normalizeDomain(
+      organization.primary_domain ??
+        organization.domain ??
+        organization.website_url ??
+        organization.website ??
+        null
+    );
+
+    return {
+      candidate,
+      domainMatches:
+        Boolean(targetDomain) &&
+        Boolean(candidateDomain) &&
+        targetDomain === candidateDomain,
+      nameMatches:
+        Boolean(normalizedName) &&
+        Boolean(candidateName) &&
+        normalizedName === candidateName,
+    };
+  });
+
+  return (
+    evaluated.find(
+      (item) => item.domainMatches && item.nameMatches
+    )?.candidate ??
+    evaluated.find((item) => item.domainMatches)?.candidate ??
+    evaluated.find((item) => item.nameMatches)?.candidate ??
+    candidates[0] ??
+    null
+  );
+};
+
+const searchApolloOrganizations = async (name: string) => {
+  try {
+    const response = await axios.post(
+      APOLLO_ORG_URL,
+      {
+        q_organization_name: name,
+        per_page: 25,
+      },
+      {
+        headers: buildApolloHeaders(),
+      }
+    );
+
+    const matches =
+      response.data?.organizations ?? response.data?.companies ?? [];
+
+    return {
+      matches,
+      error: null as any,
+    };
+  } catch (error: any) {
+    logger.error(
+      {
+        name,
+        status: error?.response?.status,
+        details: error?.response?.data,
+        message: error?.message,
+      },
+      "Apollo organization search failed"
+    );
+    return {
+      matches: [],
+      error,
+    };
+  }
+};
+
+const buildNotFoundCsv = (headers: string[], records: CsvRecord[]) => {
+  const lines: string[] = [];
+  const headerLine = headers
+    .map((header) => header.replace(/"/g, '""'))
+    .map((header) => `"${header}"`)
+    .join(",");
+  lines.push(headerLine);
+
+  for (const record of records) {
+    const row = headers
+      .map((header) => {
+        const raw = record[header] ?? "";
+        const value = String(raw);
+        if (value.includes('"') || value.includes(",") || value.includes("\n")) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+      })
+      .join(",");
+    lines.push(row);
+  }
+
+  return lines.join("\n");
+};
+
+const upsertCompanyFromMatch = async (
+  csvPayload: Partial<CompaniesAttributes>,
+  sanitizedName: string,
+  match: Record<string, any>
+): Promise<"created" | "updated"> => {
+  const organization = extractOrganization(match);
+
+  const updatePayload: Partial<CompaniesAttributes> = {
+    ...csvPayload,
+  };
+
+  const matchNameCandidate =
+    typeof organization.name === "string"
+      ? organization.name
+      : typeof organization.organization_name === "string"
+      ? organization.organization_name
+      : null;
+
+  if (matchNameCandidate?.trim()) {
+    updatePayload.name = matchNameCandidate.trim();
+  } else if (sanitizedName) {
+    updatePayload.name = sanitizedName;
+  }
+
+  const websiteCandidate =
+    typeof organization.website_url === "string"
+      ? organization.website_url.trim()
+      : typeof organization.website === "string"
+      ? organization.website.trim()
+      : null;
+  if (websiteCandidate) {
+    updatePayload.website_url = websiteCandidate;
+  }
+
+  const domainCandidate =
+    normalizeDomain(
+      organization.primary_domain ??
+        organization.domain ??
+        organization.website_url ??
+        organization.website ??
+        updatePayload.primary_domain ??
+        null
+    ) ?? updatePayload.primary_domain;
+  if (domainCandidate) {
+    updatePayload.primary_domain = domainCandidate;
+  }
+
+  const externalId =
+    typeof organization.id === "string"
+      ? organization.id
+      : typeof organization.organization_id === "string"
+      ? organization.organization_id
+      : null;
+
+  if (externalId) {
+    updatePayload.external_id = externalId;
+  }
+
+  let existingCompany: Companies | null = null;
+
+  if (externalId) {
+    existingCompany = await Companies.findOne({
+      where: { external_id: externalId },
+    });
+  }
+
+  if (
+    !existingCompany &&
+    typeof updatePayload.primary_domain === "string" &&
+    updatePayload.primary_domain
+  ) {
+    existingCompany = await Companies.findOne({
+      where: {
+        primary_domain: {
+          [Op.iLike]: updatePayload.primary_domain,
+        },
+      },
+    });
+  }
+
+  if (!existingCompany && sanitizedName) {
+    existingCompany = await Companies.findOne({
+      where: {
+        name: {
+          [Op.iLike]: sanitizedName,
+        },
+      },
+    });
+  }
+
+  if (existingCompany) {
+    await existingCompany.update(updatePayload);
+    return "updated";
+  }
+
+  await Companies.create(updatePayload as CompaniesAttributes);
+  return "created";
+};
+
+interface GetOrganizationsResult {
   importedCount: number;
   totalRowsParsed: number;
   totalLinesInFile: number;
   duplicateCount: number;
   duplicates: Array<{ key: string; occurrences: number }>;
-}> => {
+  createdCount: number;
+  updatedCount: number;
+  skippedCount: number;
+  notFoundCount: number;
+  notFoundCsv?: string;
+  notFoundFileName?: string;
+  lookupFailures: Array<{ name: string; reason: string }>;
+}
+
+export const getOrganizations = async (): Promise<GetOrganizationsResult> => {
   try {
     const csvContent = await fs.promises.readFile(CSV_FILE_PATH, "utf-8");
     const grid = parseCsv(csvContent);
     const totalLinesInFile = countFileLines(csvContent);
 
     if (grid.length < 2) {
-      console.log("No organization data found in CSV file.");
+      logger.warn("No organization data found in CSV file.");
       return {
         importedCount: 0,
         totalRowsParsed: 0,
         totalLinesInFile,
         duplicateCount: 0,
         duplicates: [],
+        createdCount: 0,
+        updatedCount: 0,
+        skippedCount: 0,
+        notFoundCount: 0,
+        lookupFailures: [],
       };
     }
 
@@ -220,37 +491,129 @@ export const getOrganizations = async (): Promise<{
       .filter((record) => Boolean(sanitize(record.collectorParent)));
 
     if (!rawRecords.length) {
-      console.log("Organizations CSV had no valid rows to import.");
+      logger.warn("Organizations CSV had no valid rows to import.");
       return {
         importedCount: 0,
         totalRowsParsed: 0,
         totalLinesInFile,
         duplicateCount: 0,
         duplicates: [],
+        createdCount: 0,
+        updatedCount: 0,
+        skippedCount: 0,
+        notFoundCount: 0,
+        lookupFailures: [],
       };
     }
 
     const { uniqueRecords, duplicates } = dedupeRecords(rawRecords);
 
-    const companiesPayload = uniqueRecords.map((record) =>
-      buildCompanyPayload(record)
-    );
+    const notFoundRecords: CsvRecord[] = [];
+    const lookupFailures: Array<{ name: string; reason: string }> = [];
+    let createdCount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
 
-    await Companies.bulkCreate(companiesPayload as CompaniesAttributes[], {
-      updateOnDuplicate: [
-        "website_url",
-        "primary_domain",
-        "organization_revenue_printed",
-        "organization_revenue",
-      ],
-    });
+    for (const record of uniqueRecords) {
+      const sanitizedName = sanitize(record.collectorParent);
+      if (!sanitizedName) {
+        skippedCount += 1;
+        notFoundRecords.push(record);
+        continue;
+      }
 
-    const importedCount = companiesPayload.length;
-    console.log(`Imported ${importedCount} organizations.`);
+      const csvPayload = buildCompanyPayload(record);
+      if (!csvPayload.name) {
+        csvPayload.name = sanitizedName;
+      }
+      if (!csvPayload.primary_domain) {
+        csvPayload.primary_domain =
+          normalizeDomain(csvPayload.website_url ?? null) ?? null;
+      }
+
+      const { matches, error } = await searchApolloOrganizations(
+        sanitizedName
+      );
+      if (error) {
+        const reason =
+          error?.response?.data?.error ??
+          error?.response?.data?.message ??
+          error?.message ??
+          "Apollo search failed";
+        lookupFailures.push({ name: sanitizedName, reason });
+      }
+
+      if (!matches.length) {
+        notFoundRecords.push(record);
+        continue;
+      }
+
+      const bestMatch = findBestMatch(
+        sanitizedName,
+        csvPayload.primary_domain,
+        matches
+      );
+
+      if (!bestMatch) {
+        notFoundRecords.push(record);
+        continue;
+      }
+
+      try {
+        const action = await upsertCompanyFromMatch(
+          csvPayload,
+          sanitizedName,
+          bestMatch
+        );
+        if (action === "created") {
+          createdCount += 1;
+        } else if (action === "updated") {
+          updatedCount += 1;
+        }
+      } catch (upsertError: any) {
+        logger.error(
+          {
+            name: sanitizedName,
+            message: upsertError?.message,
+          },
+          "Failed to upsert company"
+        );
+        lookupFailures.push({
+          name: sanitizedName,
+          reason: upsertError?.message ?? "Failed to upsert company",
+        });
+        notFoundRecords.push(record);
+      }
+    }
+
+    const importedCount = createdCount + updatedCount;
+
+    let notFoundCsv: string | undefined;
+    let notFoundFileName: string | undefined;
+
+    if (notFoundRecords.length) {
+      const unmatchedHeaders = [...normalizedHeaders];
+      for (const record of notFoundRecords) {
+        for (const key of Object.keys(record)) {
+          if (!unmatchedHeaders.includes(key)) {
+            unmatchedHeaders.push(key);
+          }
+        }
+      }
+      const csvString = buildNotFoundCsv(unmatchedHeaders, notFoundRecords);
+      notFoundCsv = Buffer.from(csvString, "utf-8").toString("base64");
+      notFoundFileName = `unmatched-organizations-${Date.now()}.csv`;
+    }
+
     if (duplicates.length) {
-      console.log(
-        `Skipped ${duplicates.length} duplicate entries:`,
-        duplicates.map((dup) => `${dup.key} (${dup.occurrences})`).join(", ")
+      logger.info(
+        {
+          duplicateCount: duplicates.length,
+          duplicates: duplicates.map(
+            (dup) => `${dup.key} (${dup.occurrences})`
+          ),
+        },
+        "Skipped duplicate entries while importing organizations"
       );
     }
 
@@ -260,9 +623,16 @@ export const getOrganizations = async (): Promise<{
       totalLinesInFile,
       duplicateCount: duplicates.length,
       duplicates,
+      createdCount,
+      updatedCount,
+      skippedCount,
+      notFoundCount: notFoundRecords.length,
+      notFoundCsv,
+      notFoundFileName,
+      lookupFailures,
     };
   } catch (error) {
-    console.error("Failed to import organizations from CSV.", error);
+    logger.error(error, "Failed to import organizations from CSV");
     throw error;
   }
 };
@@ -270,11 +640,44 @@ export const getOrganizations = async (): Promise<{
 export const getOrgs = async (req: Request, res: Response) => {
   try {
     const result = await getOrganizations();
-    sendResponse(res, 200, "Organizations fetched successfully", result);
-    return;
+
+    const {
+      notFoundCsv,
+      notFoundFileName,
+      duplicates,
+      lookupFailures,
+      ...summary
+    } = result;
+
+    const responseData: Record<string, any> = {
+      summary,
+      duplicates,
+      lookupFailures,
+    };
+
+    if (notFoundCsv && notFoundFileName) {
+      responseData.unmatchedReport = {
+        fileName: notFoundFileName,
+        csvBase64: notFoundCsv,
+      };
+    } else {
+      responseData.unmatchedReport = null;
+    }
+
+    sendResponse(
+      res,
+      200,
+      "Organizations processed successfully",
+      responseData
+    );
   } catch (error: any) {
-    console.log("Error :", error.message);
-    sendResponse(res, 500, "Internal server error", null, error.message);
-    return;
+    logger.error(
+      {
+        error: error?.message,
+        stack: error?.stack,
+      },
+      "Failed to process organizations"
+    );
+    sendResponse(res, 500, "Internal server error", null, error?.message);
   }
 };

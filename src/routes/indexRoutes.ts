@@ -10,6 +10,7 @@ import { findOrganizations } from "../controllers/scripts/findOrganizations";
 import { getOrgs } from "../controllers/scripts/getOrganizations";
 import { findOrganizationLeads } from "../controllers/scripts/findOrganizationLeads";
 import { sanitizeCompanyNames } from "../controllers/scripts/sanitizeCompanyNames";
+import { deleteCompanies } from "../controllers/scripts/deleteCompanies";
 
 const indexRoutes = express.Router();
 indexRoutes.get("/", index);
@@ -18,6 +19,7 @@ indexRoutes.use("/users", usersRoutes);
 indexRoutes.use("/contacts", contactsRoutes);
 indexRoutes.use("/aci", aciRoutes);
 indexRoutes.get("/test", findOrganizations);
+indexRoutes.get("/delete-companies", deleteCompanies);
 indexRoutes.get("/get-orgs", getOrgs);
 indexRoutes.get("/find-orgs", findOrganizations);
 indexRoutes.get("/find-orgs-leads", findOrganizationLeads);
