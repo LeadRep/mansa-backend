@@ -9,6 +9,7 @@ import { aiEvaluatedLeads } from "./leadsController/aiEvaluatedLeads";
 import { step2LeadGen } from "./leadsController/step2LeadGen";
 import axios from "axios";
 import logger from "../logger";
+import { apolloOrganizationSearch } from "./leadsController/apolloOrganizationSearch";
 
 export const test = async (req: Request, res: Response) => {
   try {
@@ -40,10 +41,11 @@ export const test = async (req: Request, res: Response) => {
     //     },
     //   }
     // );
-    const search = await apolloPeopleSearch({
-      person_titles: ["angel investor"],
-      organization_locations: ["frankfurt"],
-    });
+    const search = await apolloOrganizationSearch(
+      { q_organization_name: "apple" },
+      1
+    );
+    console.log(search.organizations[0]);
     sendResponse(res, 200, "Leads generated successfully", search);
     return;
   } catch (error: any) {
