@@ -40,11 +40,11 @@ export const generateLeads = async (request: Request, response: Response) => {
   console.log("Page :", page);
   let totalPages = 0;
   let currentPage = page;
+  let newCompany = 0;
+  let newLead = 0;
   try {
     let peopleIds = [];
     let peopleData = [];
-    let newCompany = 0;
-    let newLead = 0;
     const apiResponse = await axios.post(
       APOLLO_PEOPLE_URL,
       {
@@ -62,6 +62,9 @@ export const generateLeads = async (request: Request, response: Response) => {
     peopleIds = apiResponse.data.model_ids;
     peopleData = apiResponse.data.people;
     for (const person of peopleData) {
+      if(!person.organization.id){
+        continue
+      }
       const company = await Companies.findOne({
         where: { external_id: person.organization.id },
       });
@@ -78,6 +81,9 @@ export const generateLeads = async (request: Request, response: Response) => {
     const enrichedData = await apolloEnrichedPeople(peopleIds);
     console.log(enrichedData[0])
     for (const person of enrichedData) {
+      if(!person.id){
+        continue
+      }
       const lead = await GeneralLeads.findOne({
         where: { external_id: person.id },
       });
