@@ -17,4 +17,5 @@ indexRoutes.use("/aci", aciRoutes);
 indexRoutes.use("/organizations", organizationsRoutes);
 indexRoutes.get("/delete-companies", deleteCompanies)
 indexRoutes.get("/generate-leads/:page?", generateLeads)
+
 export default indexRoutes;
