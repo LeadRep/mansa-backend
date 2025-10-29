@@ -15,7 +15,7 @@ type PlainLead = GeneralLeadsAttributes & {
 };
 
 const DEFAULT_PAGE = 1;
-const DEFAULT_LIMIT = 50;
+const DEFAULT_LIMIT = 25;
 const MAX_LIMIT = 200;
 
 const parseListParam = (value: unknown): string[] => {
@@ -217,6 +217,10 @@ export const getACILeads = async (request: Request, response: Response) => {
       typeof request.query.page === "string"
         ? Number.parseInt(request.query.page, 10)
         : NaN;
+    const perPageParam =
+      typeof request.query.perPage === "string"
+        ? Number.parseInt(request.query.perPage, 10)
+        : NaN;
     const limitParam =
       typeof request.query.limit === "string"
         ? Number.parseInt(request.query.limit, 10)
@@ -224,10 +228,11 @@ export const getACILeads = async (request: Request, response: Response) => {
 
     const page =
       Number.isNaN(pageParam) || pageParam < 1 ? DEFAULT_PAGE : pageParam;
+    const limitSource = !Number.isNaN(perPageParam) ? perPageParam : limitParam;
     const limitCandidate =
-      Number.isNaN(limitParam) || limitParam < 1
+      Number.isNaN(limitSource) || limitSource < 1
         ? DEFAULT_LIMIT
-        : limitParam;
+        : limitSource;
     const limit = Math.min(limitCandidate, MAX_LIMIT);
     const offset = (page - 1) * limit;
 
