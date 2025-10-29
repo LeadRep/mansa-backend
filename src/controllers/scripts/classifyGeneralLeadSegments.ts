@@ -193,10 +193,20 @@ export const classifyGeneralLeadSegments = async (
   res: Response
 ) => {
   const limitParam =
-    typeof req.query.limit === "string"
-      ? Number.parseInt(req.params.limit, 10)
-      : NaN;
-  const limit = Number.isNaN(limitParam) || limitParam < 1 ? 25 : limitParam;
+    typeof req.params.limit === "string" ? req.params.limit : "";
+  const parsedLimit = Number.parseInt(limitParam, 10);
+
+  if (Number.isNaN(parsedLimit) || parsedLimit < 1) {
+    sendResponse(
+      res,
+      400,
+      "Invalid limit",
+      null,
+      "Please provide a positive integer for limit"
+    );
+    return;
+  }
+  const limit = parsedLimit;
 
   try {
     const leads = await GeneralLeads.findAll({
