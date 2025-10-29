@@ -43,8 +43,8 @@ export const generateLeads = async (request: Request, response: Response) => {
   let newCompany = 0;
   let newLead = 0;
   try {
-    let peopleIds = [];
-    let peopleData = [];
+    let peopleIds: Array<string | null | undefined> = [];
+    let peopleData: Array<any> = [];
     const apiResponse = await axios.post(
       APOLLO_PEOPLE_URL,
       {
@@ -62,37 +62,44 @@ export const generateLeads = async (request: Request, response: Response) => {
     peopleIds = apiResponse.data.model_ids;
     peopleData = apiResponse.data.people;
     for (const person of peopleData) {
-      if(!person.organization.id){
-        continue
+      const organizationId = person?.organization?.id;
+      if (!organizationId) {
+        continue;
       }
       const company = await Companies.findOne({
-        where: { external_id: person.organization.id },
+        where: { external_id: organizationId },
       });
       if (!company) {
-        const { id, ...companyInfo } = person.organization;
+        const organizationPayload = person.organization ?? {};
+        const { id, ...companyInfo } = organizationPayload;
         await Companies.create({
           id: v4(),
           ...companyInfo,
-          external_id: person.organization.id,
+          external_id: organizationId,
         });
         newCompany++;
       }
     }
-    const enrichedData = await apolloEnrichedPeople(peopleIds);
-    console.log(enrichedData[0])
+    const validPeopleIds = peopleIds.filter(
+      (candidate): candidate is string =>
+        typeof candidate === "string" && candidate.trim().length > 0
+    );
+    const enrichedData = await apolloEnrichedPeople(validPeopleIds);
+    console.log(enrichedData[0]);
     for (const person of enrichedData) {
-      if(!person.id){
-        continue
+      const personId = person?.id ?? person?.person_id;
+      if (!personId) {
+        continue;
       }
       const lead = await GeneralLeads.findOne({
-        where: { external_id: person.id },
+        where: { external_id: personId },
       });
       if (!lead) {
-        const { id, ...leadInfo } = person;
+        const { id, person_id, ...leadInfo } = person ?? {};
         await GeneralLeads.create({
           id: v4(),
           ...leadInfo,
-          external_id: person.id,
+          external_id: personId,
         });
         newLead++;
       }
