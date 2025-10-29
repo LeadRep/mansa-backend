@@ -206,7 +206,6 @@ export const classifyGeneralLeadSegments = async (
           { segments: { [Op.eq]: [] } },
         ],
       },
-      limit,
       order: [["updatedAt", "ASC"]],
     });
 

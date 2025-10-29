@@ -37,7 +37,7 @@ const buildApolloHeaders = () => ({
 
 export const generateLeads = async (request: Request, response: Response) => {
   const startPageParam = request.params.page;
-  const endPageParam = request.query.endPage;
+  const endPageParam = request.params.endPage;
 
   const startPage = Number.parseInt(startPageParam ?? "", 10);
 
