@@ -40,9 +40,14 @@ export interface GeneralLeadsAttributes {
   show_intent: boolean | null;
   email_domain_catchall: boolean | null;
   revealed_for_current_team: boolean | null;
+  industries: string[] | null;
+  segments: string[] | null;
 }
 
-export type GeneralLeadsCreationAttributes = Optional<GeneralLeadsAttributes, "id">;
+export type GeneralLeadsCreationAttributes = Optional<
+  GeneralLeadsAttributes,
+  "id" | "industries" | "segments"
+>;
 
 export class GeneralLeads extends Model<GeneralLeadsAttributes, GeneralLeadsCreationAttributes> {
   [x: string]: any;
@@ -238,6 +243,16 @@ GeneralLeads.init(
     },
     revealed_for_current_team: {
       type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: null,
+    },
+    industries: {
+      type: DataTypes.ARRAY(DataTypes.STRING),
+      allowNull: true,
+      defaultValue: null,
+    },
+    segments: {
+      type: DataTypes.ARRAY(DataTypes.STRING),
       allowNull: true,
       defaultValue: null,
     },

@@ -11,7 +11,7 @@ export const apolloEnrichedPeople = async (ids: string[]) => {
       const batchDetails = batchIds.map((id: string) => ({ id }));
       const response = await axios.post(
         "https://api.apollo.io/v1/people/bulk_match",
-        { details: batchDetails },
+        { details: batchDetails, reveal_phone_number:true },
         {
           headers: {
             "Cache-Control": "no-cache",
