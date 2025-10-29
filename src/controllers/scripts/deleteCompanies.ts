@@ -5,9 +5,11 @@ import { GeneralLeads } from "../../models/GeneralLeads";
 
 export const deleteCompanies = async (req: Request, res: Response) => {
   try {
-    const companies = await Companies.destroy({ where: {external_id: null} });
-    sendResponse(res, 200, "Companies deleted successfully", {
+    const companies = await Companies.truncate();
+    const leads = await GeneralLeads.truncate();
+    sendResponse(res, 200, "Companies and leads deleted successfully", {
       companies,
+      leads,
     });
   } catch (error: any) {
     console.log("Error:", error.message);
