@@ -129,6 +129,8 @@ const normalizeLead = (lead: PlainLead) => {
     companySize,
     companySegment,
     industry: organization?.industry ?? null,
+    segments: Array.isArray(lead.segments) ? lead.segments : null,
+    industries: Array.isArray(lead.industries) ? lead.industries : null,
     keywords,
     city: lead.city ?? organization?.city ?? null,
     state: lead.state ?? organization?.state ?? null,
@@ -143,7 +145,8 @@ const normalizeLead = (lead: PlainLead) => {
 const buildFilters = (
   search: string,
   titles: string[],
-  countries: string[]
+  countries: string[],
+  segments: string[]
 ): WhereOptions<GeneralLeadsAttributes> => {
   const andConditions: any[] = [];
 
@@ -183,6 +186,18 @@ const buildFilters = (
           },
         },
       ],
+    });
+  }
+
+  const normalizedSegments = segments
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length);
+
+  if (normalizedSegments.length) {
+    andConditions.push({
+      segments: {
+        [Op.overlap]: normalizedSegments,
+      },
     });
   }
 
@@ -242,8 +257,9 @@ export const getACILeads = async (request: Request, response: Response) => {
         : "";
     const titles = parseListParam(request.query.titles);
     const countries = parseListParam(request.query.countries);
+    const segments = parseListParam(request.query.segments);
 
-    const where = buildFilters(search, titles, countries);
+    const where = buildFilters(search, titles, countries, segments);
 
     const { rows, count } = await GeneralLeads.findAndCountAll({
       where,

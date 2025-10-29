@@ -7,6 +7,7 @@ import organizationsRoutes from "./organizationsRoutes";
 import aciRoutes from "./aciRoutes";
 import { deleteCompanies } from "../controllers/scripts/deleteCompanies";
 import { generateLeads } from "../controllers/scripts/generateLeads";
+import { classifyGeneralLeadSegments } from "../controllers/scripts/classifyGeneralLeadSegments";
 
 const indexRoutes = express.Router();
 indexRoutes.get("/", index);
@@ -15,7 +16,8 @@ indexRoutes.use("/users", usersRoutes);
 indexRoutes.use("/contacts", contactsRoutes);
 indexRoutes.use("/aci", aciRoutes);
 indexRoutes.use("/organizations", organizationsRoutes);
-indexRoutes.get("/delete-companies", deleteCompanies)
-indexRoutes.get("/generate-leads/:page?", generateLeads)
+indexRoutes.get("/delete-companies", deleteCompanies);
+indexRoutes.get("/generate-leads/:page/:endPage", generateLeads);
+indexRoutes.post("/classify-general-leads", classifyGeneralLeadSegments);
 
 export default indexRoutes;
