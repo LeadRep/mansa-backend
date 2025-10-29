@@ -18,6 +18,6 @@ indexRoutes.use("/aci", aciRoutes);
 indexRoutes.use("/organizations", organizationsRoutes);
 indexRoutes.get("/delete-companies", deleteCompanies);
 indexRoutes.get("/generate-leads/:page/:endPage", generateLeads);
-indexRoutes.get("/classify-general-leads", classifyGeneralLeadSegments);
+indexRoutes.get("/classify-general-leads/:limit", classifyGeneralLeadSegments);
 
 export default indexRoutes;

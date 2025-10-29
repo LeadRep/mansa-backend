@@ -194,7 +194,7 @@ export const classifyGeneralLeadSegments = async (
 ) => {
   const limitParam =
     typeof req.query.limit === "string"
-      ? Number.parseInt(req.query.limit, 10)
+      ? Number.parseInt(req.params.limit, 10)
       : NaN;
   const limit = Number.isNaN(limitParam) || limitParam < 1 ? 25 : limitParam;
 
@@ -206,6 +206,7 @@ export const classifyGeneralLeadSegments = async (
           { segments: { [Op.eq]: [] } },
         ],
       },
+      limit,
       order: [["updatedAt", "ASC"]],
     });
 
