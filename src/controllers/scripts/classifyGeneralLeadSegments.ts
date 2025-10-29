@@ -97,7 +97,9 @@ const formatLeadSummary = (lead: any) => {
       "N/A"
     }`
   );
-  sections.push(`Organization Industry: ${org.industry ?? org.categories ?? "N/A"}`);
+  sections.push(
+    `Organization Industry: ${org.industry ?? org.categories ?? "N/A"}`
+  );
   sections.push(
     `Existing Categories: ${lead.category ?? ""} | ${lead.reason ?? ""}`
   );
@@ -211,10 +213,7 @@ export const classifyGeneralLeadSegments = async (
   try {
     const leads = await GeneralLeads.findAll({
       where: {
-        [Op.or]: [
-          { segments: { [Op.is]: null } },
-          { segments: { [Op.eq]: [] } },
-        ],
+        segments: { [Op.is]: null },
       },
       limit,
       order: [["updatedAt", "ASC"]],
@@ -270,6 +269,12 @@ export const classifyGeneralLeadSegments = async (
       { error: error?.message, stack: error?.stack },
       "Failed to classify lead segments"
     );
-    sendResponse(res, 500, "Failed to classify lead segments", null, error?.message);
+    sendResponse(
+      res,
+      500,
+      "Failed to classify lead segments",
+      null,
+      error?.message
+    );
   }
 };
