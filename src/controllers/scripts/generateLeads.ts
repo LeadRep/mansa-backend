@@ -72,13 +72,8 @@ export const generateLeads = async (request: Request, response: Response) => {
     return;
   }
   try {
-    let newCompany = 0;
-    let newLead = 0;
-    for (let currentPage = startPage; currentPage <= endPage; currentPage += 1) {
-      let peopleIds: Array<string | null | undefined> = [];
-      let peopleData: Array<any> = [];
-
-      const apiResponse = await axios.post(
+    const fetchPage = async (pageNumber: number) => {
+      return axios.post(
         APOLLO_PEOPLE_URL,
         {
           person_titles: DEFAULT_TITLES,
@@ -86,13 +81,15 @@ export const generateLeads = async (request: Request, response: Response) => {
           include_similar_titles: true,
           contact_email_status: ["verified", "likely to engage"],
           per_page: 100,
-          page: currentPage,
+          page: pageNumber,
         },
         { headers: buildApolloHeaders() }
       );
+    };
 
-      peopleIds = apiResponse.data.model_ids;
-      peopleData = apiResponse.data.people;
+    const processPageData = async (data: any) => {
+      const peopleIds: Array<string | null | undefined> = data?.model_ids ?? [];
+      const peopleData: Array<any> = data?.people ?? [];
 
       for (const person of peopleData) {
         const organizationId = person?.organization?.id;
@@ -118,8 +115,9 @@ export const generateLeads = async (request: Request, response: Response) => {
         (candidate): candidate is string =>
           typeof candidate === "string" && candidate.trim().length > 0
       );
+
       if (!validPeopleIds.length) {
-        continue;
+        return;
       }
 
       const enrichedData = await apolloEnrichedPeople(validPeopleIds);
@@ -141,10 +139,84 @@ export const generateLeads = async (request: Request, response: Response) => {
           newLead++;
         }
       }
+    };
+
+    let newCompany = 0;
+    let newLead = 0;
+
+    let firstResponse;
+    try {
+      firstResponse = await fetchPage(startPage);
+    } catch (apiError: any) {
+      const status = apiError?.response?.status;
+      const message =
+        apiError?.response?.data?.error ??
+        apiError?.response?.data?.message ??
+        apiError?.message ??
+        "Apollo request failed";
+      logger.error({ status, message, page: startPage }, "Failed to fetch page");
+      sendResponse(
+        response,
+        status ?? 500,
+        "Failed to fetch leads",
+        null,
+        message
+      );
+      return;
     }
+
+    const totalPages =
+      firstResponse?.data?.pagination?.total_pages &&
+      Number.isFinite(firstResponse.data.pagination.total_pages)
+        ? Number(firstResponse.data.pagination.total_pages)
+        : null;
+
+    if (!totalPages || totalPages < 1) {
+      sendResponse(response, 200, "No pages available from Apollo", {
+        totalPages: totalPages ?? 0,
+      });
+      return;
+    }
+
+    if (startPage > totalPages) {
+      sendResponse(response, 400, "Requested start page exceeds available pages", {
+        totalPages,
+      });
+      return;
+    }
+
+    if (endPage > totalPages) {
+      sendResponse(response, 400, "Requested end page exceeds available pages", {
+        totalPages,
+      });
+      return;
+    }
+
+    await processPageData(firstResponse.data);
+
+    for (let currentPage = startPage + 1; currentPage <= endPage; currentPage += 1) {
+      try {
+        const pageResponse = await fetchPage(currentPage);
+        await processPageData(pageResponse.data);
+      } catch (apiError: any) {
+        const status = apiError?.response?.status;
+        const message =
+          apiError?.response?.data?.error ??
+          apiError?.response?.data?.message ??
+          apiError?.message ??
+          "Apollo request failed";
+        logger.error(
+          { status, message, page: currentPage },
+          "Stopping pagination due to error"
+        );
+        break;
+      }
+    }
+
     sendResponse(response, 200, "Success", {
       newCompany,
       newLead,
+      totalPages,
     });
     return;
   } catch (error: any) {
