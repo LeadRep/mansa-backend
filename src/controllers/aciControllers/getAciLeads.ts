@@ -145,6 +145,7 @@ const normalizeLead = (lead: PlainLead) => {
     organization,
     updatedAt: lead.updatedAt ?? null,
     createdAt: lead.createdAt ?? null,
+    consumed: Boolean(!lead.revealed_for_current_team),
   };
 };
 
@@ -246,7 +247,7 @@ export const getAciLeads = async (req: Request, res: Response) => {
       where,
       limit,
       offset,
-      order: [["updatedAt", "DESC"]],
+      order: [["createdAt", "DESC"]],
     });
 
     const leads = rows.map((lead) =>

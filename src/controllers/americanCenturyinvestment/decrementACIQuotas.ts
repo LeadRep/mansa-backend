@@ -3,6 +3,8 @@ import sendResponse from "../../utils/http/sendResponse";
 import logger from "../../logger";
 import Users from "../../models/Users";
 import MonthlyQuotas from "../../models/MonthlyQuotas";
+import {GeneralLeads} from "../../models/GeneralLeads";
+import {Op} from "sequelize";
 
 const formatMonthYear = (date: Date) =>
     date.toLocaleString("default", { month: "short", year: "numeric" });
@@ -17,7 +19,7 @@ export const decrementACIQuotas = async (request: Request, response: Response) =
             sendResponse(response, 401, "User not found");
             return;
         }
-        const { decrement } = request.body;
+        const { decrement} = request.body;
 
         if (!decrement) {
             sendResponse(response, 400, "Bad Request: decrement field is required");
@@ -40,6 +42,13 @@ export const decrementACIQuotas = async (request: Request, response: Response) =
             return;
         }
         await quota.update({ remaining: remaining });
+        const {ids } = request.body as {ids: string[]};
+        if(ids && ids.length > 0) {
+            await GeneralLeads.update(
+                { revealed_for_current_team: false },
+                { where: { id: { [Op.in]: ids } }  }
+            );
+        }
         sendResponse(response, 200, "Quota updated for this month", { ok: true, remaining: remaining, message: "Update" });
         return;
 
