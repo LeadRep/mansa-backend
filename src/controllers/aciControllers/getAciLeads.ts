@@ -54,6 +54,14 @@ const parseListParam = (value: unknown): string[] => {
   return [];
 };
 
+const getCompanySizeRange = (size?: number) => {
+    if (!size) return "-";
+    if (size < 10) return "<10";
+    if (size < 100) return "10-99";
+    if (size < 1000) return "100-999";
+    return "1000+";
+}
+
 const coerceOrganization = (value: unknown): Record<string, any> | null => {
   if (!value) {
     return null;
@@ -100,12 +108,14 @@ const normalizeLead = (lead: PlainLead) => {
     null;
 
   const companySize =
+     getCompanySizeRange(organization?.estimated_num_employees) ??
     organization?.employee_count_range ??
     organization?.organization_size ??
     organization?.company_size ??
     null;
 
   const companySegment =
+      lead.segments ??
     organization?.category ??
     organization?.segment ??
     organization?.company_segment ??
@@ -122,8 +132,8 @@ const normalizeLead = (lead: PlainLead) => {
     title: lead.title ?? null,
     company: organizationName,
     country: organizationCountry,
-    email: lead.email ?? null,
-    phone: lead.phone ?? null,
+    email: lead.email ?? organization?.email ?? null,
+    phone: lead.phone ?? organization?.phone ?? null,
     aum,
     companySize,
     companySegment,
@@ -135,13 +145,15 @@ const normalizeLead = (lead: PlainLead) => {
     organization,
     updatedAt: lead.updatedAt ?? null,
     createdAt: lead.createdAt ?? null,
+    consumed: Boolean(!lead.revealed_for_current_team),
   };
 };
 
 const buildFilters = (
   search: string,
   titles: string[],
-  countries: string[]
+  countries: string[],
+  segments: string[]
 ): WhereOptions<GeneralLeadsAttributes> => {
   const andConditions: any[] = [];
 
@@ -186,6 +198,12 @@ const buildFilters = (
     });
   }
 
+    if (segments.length) {
+        andConditions.push({
+            segments: { [Op.overlap]: segments },
+        });
+    }
+
   if (!andConditions.length) {
     return {};
   }
@@ -221,14 +239,15 @@ export const getAciLeads = async (req: Request, res: Response) => {
       typeof req.query.search === "string" ? req.query.search.trim() : "";
     const titles = parseListParam(req.query.titles);
     const countries = parseListParam(req.query.countries);
+    const segments = parseListParam(req.query.segments);
 
-    const where = buildFilters(search, titles, countries);
+    const where = buildFilters(search, titles, countries, segments);
 
     const { rows, count } = await GeneralLeads.findAndCountAll({
       where,
       limit,
       offset,
-      order: [["updatedAt", "DESC"]],
+      order: [["createdAt", "DESC"]],
     });
 
     const leads = rows.map((lead) =>
