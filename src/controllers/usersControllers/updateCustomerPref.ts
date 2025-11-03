@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { JwtPayload } from "jsonwebtoken";
 import sendResponse from "../../utils/http/sendResponse";
-import { CustomerPref } from "../../models/CustomerPref";
+import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
 import Users from "../../models/Users";
 import { Leads, LeadStatus } from "../../models/Leads";
 import {
@@ -116,18 +116,39 @@ export const updateCustomerPref = async (
     //   newICP,
     //   newBP
     // );
-    await CustomerPref.update(
-      {
-        BP,
-        ICP
-      },
-      { where: { userId } }
-    );
-    await Leads.destroy({
-      where: { owner_id: userId, status: LeadStatus.NEW },
+    const customer = await CustomerPref.findOne({ where: { userId } });
+    if (!customer) {
+      sendResponse(response, 404, "Customer preferences not found");
+      return;
+    }
+
+    const hasSubscription = Boolean(user?.subscriptionName);
+    const targetLeadCount = hasSubscription ? 20 : 10;
+
+    await customer.update({
+      BP,
+      ICP,
+      leadsGenerationStatus: LeadsGenerationStatus.NOT_STARTED,
+      aiQueryParams: null,
+      currentPage: 0,
+      totalPages: 0,
     });
+
+    // Remove all existing leads so the next generation starts fresh.
+    await Leads.destroy({
+      where: { owner_id: userId },
+    });
+
     sendResponse(response, 200, "Customer preferences updated successfully");
-    step2LeadGen(userId, 24, true);
+
+    try {
+      await step2LeadGen(userId, targetLeadCount, true);
+    } catch (generationError: any) {
+      logger.error(
+        generationError,
+        "Error triggering lead generation after customer pref update"
+      );
+    }
     return;
   } catch (error: any) {
     logger.error(error, "Error updating customer preferences:");

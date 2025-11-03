@@ -1,28 +1,45 @@
 import axios from "axios";
 import logger from "../../logger";
 
-export const apolloPeopleSearch = async (searchParams: any, page?:number) => {
+type ApolloSearchParams = Record<string, any> | null | undefined;
+
+export const apolloPeopleSearch = async (
+  searchParams: ApolloSearchParams,
+  page?: number
+) => {
   try {
-    searchParams.include_similar_titles = true;
-    searchParams.contact_email_status = ["verified", "likely to engage"];
-    searchParams.per_page = 100;
-    searchParams.page = page || 1;
-    if (searchParams.organization_num_employees_ranges.length === 0) {
-      delete searchParams.organization_num_employees_ranges;
+    const effectiveParams: Record<string, any> = {
+      ...(typeof searchParams === "object" && searchParams !== null
+        ? searchParams
+        : {}),
+    };
+
+    effectiveParams.include_similar_titles = true;
+    // effectiveParams.contact_email_status = ["verified", "likely to engage"];
+    effectiveParams.per_page = 100;
+    effectiveParams.page = page || 1;
+
+    if (!effectiveParams.organization_num_employees_ranges) {
+      delete effectiveParams.organization_num_employees_ranges;
     }
+
+    const revenueMin = effectiveParams["revenue_range[min]"];
+    const revenueMax = effectiveParams["revenue_range[max]"];
+    if (revenueMin === "" && revenueMax === "") {
+      delete effectiveParams["revenue_range[min]"];
+      delete effectiveParams["revenue_range[max]"];
+    }
+
     if (
-      searchParams["revenue_range[min]"] === "" &&
-      searchParams["revenue_range[max]"] === ""
+      !Array.isArray(effectiveParams.person_seniorities) ||
+      effectiveParams.person_seniorities.length === 0
     ) {
-      delete searchParams["revenue_range[min]"];
-      delete searchParams["revenue_range[max]"];
+      delete effectiveParams.person_seniorities;
     }
-    if (searchParams.person_seniorities.length === 0) {
-      delete searchParams.person_seniorities;
-    }
+
     const response = await axios.post(
       "https://api.apollo.io/v1/mixed_people/search",
-      { ...searchParams },
+      { ...effectiveParams },
       {
         headers: {
           "Cache-Control": "no-cache",

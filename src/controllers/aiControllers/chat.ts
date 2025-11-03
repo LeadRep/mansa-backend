@@ -1,21 +1,22 @@
 // controllers/chat.ts (Azure OpenAI, SSE streaming, friendlier tone, no CRM gate)
-import type { Request, Response, RequestHandler } from "express";
+import type { Response, RequestHandler } from "express";
 import fetch from "node-fetch";
-import * as crypto from "crypto";
-import Redis from "ioredis";
 import Users from "../../models/Users";
 import { Leads } from "../../models/Leads";
 import { CustomerPref } from "../../models/CustomerPref";
 import { JwtPayload } from "jsonwebtoken";
+import { ChatSession } from "../../models/ChatSession";
+import {
+  ChatMessage,
+  ChatMessageRole,
+} from "../../models/ChatMessage";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
 const OPENAI_ENDPOINT = process.env.OPENAI_ENDPOINT!; // full Azure URL incl. api-version
 const BING_API_KEY = process.env.BING_API_KEY || "";
-const redis = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL) : null;
 
 type ModelRole = "system" | "user" | "assistant";
 type Msg = { role: ModelRole; content: string };
-const CHAT_TTL = 60 * 60 * 24;
 
 function asModelRole(role: "user" | "ai"): ModelRole {
   return role === "ai" ? "assistant" : "user";
@@ -82,16 +83,6 @@ function chunkString(str: string, size = 6000): string[] {
   return out;
 }
 
-async function getHistory(chatId: string): Promise<Msg[]> {
-  if (!redis) return [];
-  const raw = await redis.get(`chat:${chatId}`);
-  return raw ? (JSON.parse(raw) as Msg[]) : [];
-}
-async function saveHistory(chatId: string, history: Msg[]) {
-  if (!redis) return;
-  await redis.set(`chat:${chatId}`, JSON.stringify(history), "EX", CHAT_TTL);
-}
-
 const SYSTEM_PROMPT = `
 You are LeadRep, a friendly helpful AI. 
 Always format responses cleanly:
@@ -103,6 +94,32 @@ Always format multi-item results as a short ordered or unordered list with each 
 
 `;
 
+async function getSessionWithMessages(
+  sessionId: string,
+  userId: string
+) {
+  const session = await ChatSession.findOne({
+    where: { id: sessionId, userId },
+  });
+  if (!session) {
+    return { session: null, messages: [] };
+  }
+  const messages = await ChatMessage.findAll({
+    where: { sessionId },
+    order: [["createdAt", "ASC"]],
+  });
+  return { session, messages };
+}
+
+async function createMessage(
+  sessionId: string,
+  userId: string,
+  role: ChatMessageRole,
+  content: string
+) {
+  return ChatMessage.create({ sessionId, userId, role, content });
+}
+
 export const chatStream: RequestHandler = async (
   req: JwtPayload,
   res: Response
@@ -112,14 +129,87 @@ export const chatStream: RequestHandler = async (
   res.setHeader("Connection", "keep-alive");
   const userId = req.user.id;
   try {
-    const user = await Users.findByPk(userId);
-    const leads = await Leads.findAll({ where: { owner_id: userId } });
-    const customerPreference = await CustomerPref.findOne({
-      where: { userId },
+    const [
+      userRecord,
+      leadsRecords,
+      customerPreferenceRecord,
+      leadsTotal,
+    ] =
+      await Promise.all([
+        Users.findByPk(userId, {
+          attributes: [
+            "id",
+            "firstName",
+            "lastName",
+            "email",
+            "role",
+            "companyName",
+            "country",
+          ],
+        }),
+        Leads.findAll({
+          where: { owner_id: userId },
+          attributes: [
+            "id",
+            "full_name",
+            "title",
+            "email",
+            "phone",
+            "organization",
+            "country",
+            "score",
+            "category",
+            "reason",
+            "createdAt",
+            "updatedAt",
+          ],
+          order: [["updatedAt", "DESC"]],
+          limit: 25,
+        }),
+        CustomerPref.findOne({
+          where: { userId },
+          attributes: [
+            "ICP",
+            "BP",
+            "territories",
+            "leadsGenerationStatus",
+            "refreshLeads",
+            "nextRefresh",
+          ],
+        }),
+        Leads.count({ where: { owner_id: userId } }),
+      ]);
+
+    const user = userRecord ? userRecord.toJSON() : null;
+    const leads = leadsRecords.map((lead) => {
+      const json = lead.toJSON() as any;
+      return {
+        id: json.id,
+        name: json.full_name,
+        title: json.title,
+        email: json.email,
+        phone: json.phone,
+        company:
+          typeof json.organization === "object"
+            ? json.organization?.name ||
+              json.organization?.company ||
+              json.organization?.legal_name ||
+              null
+            : null,
+        country: json.country,
+        score: json.score,
+        category: json.category,
+        reason: json.reason,
+        createdAt: json.createdAt,
+      };
     });
+    const customerPreference = customerPreferenceRecord
+      ? customerPreferenceRecord.toJSON()
+      : null;
     const dbBundle = {
       user: user ?? null,
       leads: leads ?? null,
+      leads_total: leadsTotal,
       customerPreference: customerPreference ?? null,
       // add anything else you fetched for this user/chat
       // pipelines, settings, preferences, past reports, etc.
@@ -127,18 +217,62 @@ export const chatStream: RequestHandler = async (
     const safeDb = redact(dbBundle);
     const dbJson = JSON.stringify(safeDb, null, 2);
     const dbChunks = chunkString(dbJson, 6000);
-    const { chatId, messages } = req.body as {
-      chatId: string;
-      messages: { role: "user" | "ai"; content: string }[];
+    const { chatId, message, messages } = req.body as {
+      chatId?: string;
+      message?: string;
+      messages?: { role: "user" | "ai"; content: string }[];
     };
-    const id = chatId || crypto.randomUUID();
-    const userText = messages[messages.length - 1]?.content || "";
 
-    // Memory
-    const history = await getHistory(id);
+    if (!chatId) {
+      throw new Error("chatId is required");
+    }
+
+    const { session, messages: persistedMessages } = await getSessionWithMessages(
+      chatId,
+      userId
+    );
+
+    if (!session) {
+      throw new Error("Chat session not found");
+    }
+
+    const latestUserText =
+      typeof message === "string" && message.trim().length
+        ? message.trim()
+        : messages?.[messages.length - 1]?.content?.trim() ?? "";
+
+    if (!latestUserText) {
+      throw new Error("Message text is required");
+    }
+
+    // Persist user message immediately
+    const userMsgRecord = await createMessage(
+      chatId,
+      userId,
+      "user",
+      latestUserText
+    );
+
+    const history: Msg[] = persistedMessages
+      .concat([userMsgRecord])
+      .map((m) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content,
+      }));
+
+    if (
+      (!session.title || session.title === "New Chat") &&
+      latestUserText.length
+    ) {
+      const newTitle =
+        latestUserText.length > 60
+          ? `${latestUserText.slice(0, 60)}…`
+          : latestUserText;
+      await session.update({ title: newTitle });
+    }
 
     // Optional browse (generic, anonymized)
-    const browseBullets = await browseIfNeeded(userText);
+    const browseBullets = await browseIfNeeded(latestUserText);
     const browseMsg: Msg[] = browseBullets
       ? [
           {
@@ -164,9 +298,6 @@ export const chatStream: RequestHandler = async (
       { role: "system", content: SYSTEM_PROMPT },
       ...dbContextMessages,
       ...history,
-      ...messages.map(
-        (m): Msg => ({ role: asModelRole(m.role), content: m.content })
-      ),
       ...browseMsg,
     ];
 
@@ -256,14 +387,10 @@ export const chatStream: RequestHandler = async (
     }
 
     // Save memory (assistant reply appended)
-    const appended: Msg[] = [
-      ...history,
-      ...messages.map(
-        (m): Msg => ({ role: asModelRole(m.role), content: m.content })
-      ),
-      { role: "assistant", content: fullText },
-    ];
-    await saveHistory(id, appended);
+    if (fullText.trim().length) {
+      await createMessage(chatId, userId, "assistant", fullText);
+      await session.update({ updatedAt: new Date() });
+    }
 
     res.end();
   } catch (err) {

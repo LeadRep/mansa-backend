@@ -5,6 +5,7 @@ import { aiPeopleSearchQuery } from "./aiPeopleSearchQuery";
 import { apolloPeopleSearch } from "./apolloPeopleSearch";
 import { aiEvaluatedLeads } from "./aiEvaluatedLeads";
 import { apolloEnrichedPeople } from "./apolloEnrichedPeople";
+import { emitLeadUpdate } from "../../utils/socket";
 
 export const step2LeadGen = async (
   userId: string,
@@ -26,7 +27,7 @@ export const step2LeadGen = async (
     if (currentPage < 1) {
       currentPage = 1;
     }
-    let totalPages = customerPref.totalPages ?? 0;
+    let totalPages = customerPref.totalPages;
     let reachedEndOfResults = false;
     if (restart) {
       customerPref.currentPage = 1;
@@ -70,14 +71,22 @@ export const step2LeadGen = async (
 
       const pageProcessed = pagination?.page ?? pageToFetch;
 
+      const existingLeadIds = new Set(
+        userLeads
+          .filter((existingLead) => existingLead.owner_id === userId)
+          .map((existingLead) => existingLead.external_id)
+      );
+
       for (const lead of people) {
-        if (totalLeads === leadsToEvaluate.length) {
+        if (leadsToEvaluate.length >= totalLeads) {
           break;
         }
-        const leadExist = await Leads.findOne({
-          where: { owner_id: userId, external_id: lead.id },
-        });
-        if (!leadExist) {
+
+        const alreadyHaveLead =
+          existingLeadIds.has(lead.id) ||
+          collectedLeadIds.includes(lead.id);
+
+        if (!alreadyHaveLead) {
           collectedLeadIds.push(lead.id);
           leadsToEvaluate.push(lead);
         }
@@ -97,7 +106,10 @@ export const step2LeadGen = async (
     await customerPref.save();
 
     if (!leadsToEvaluate.length) {
-      return [];
+      return {
+        leads: [],
+        message: "No lead found, please update buyer persona",
+      };
     }
 
     const enrichedLeads = await apolloEnrichedPeople(collectedLeadIds);
@@ -149,12 +161,21 @@ export const step2LeadGen = async (
     }, []);
 
     if (!scoredLeads.length) {
-      return [];
+      return {
+        leads: [],
+        message: "No lead found, please update buyer persona",
+      };
     }
 
     const createdLeads = await Leads.bulkCreate(scoredLeads, {
       returning: true,
     });
+
+    if (createdLeads?.length) {
+      emitLeadUpdate(userId, {
+        leadIds: createdLeads.map((lead) => lead.id),
+      });
+    }
 
     return createdLeads;
   } catch (error: any) {
@@ -164,7 +185,7 @@ export const step2LeadGen = async (
         { where: { userId } }
       );
     }
-    console.error("step2LeadGen error", error);
+    console.error("step2LeadGen error", error.message);
     return null;
   }
 };

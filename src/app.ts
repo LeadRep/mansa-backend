@@ -6,6 +6,7 @@ import cors from "cors";
 import { database } from "./configs/database/database";
 import { json, urlencoded } from "body-parser";
 import cron from "node-cron";
+import http from "http";
 import {
   pinoHttpMiddleware,
   httpLoggingMiddleware,
@@ -17,9 +18,11 @@ import indexRoutes from "./routes/indexRoutes";
 import { healthCheck } from "./controllers/healthCheck";
 import { newUserSequence } from "./utils/services/newUserSequence";
 import pinoLogger from "./logger";
+import { initSocket } from "./utils/socket";
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
 const port = process.env.APP_PORT || 3000;
 app.use(json());
 app.use(urlencoded({ extended: true }));
@@ -51,6 +54,8 @@ app.get("/", (request: Request, response: Response) => {
 });
 app.use("/v1", indexRoutes);
 app.get("/health-check", healthCheck);
+
+initSocket(server, allowedOrigins);
 database
   .sync({})
   .then(() => {
@@ -76,7 +81,7 @@ cron.schedule(
     timezone: "America/New_York", // Set your timezone
   }
 );
-app.listen(port, () => {
+server.listen(port, () => {
     pinoLogger.info(`App running at port ${port}`);
 });
 

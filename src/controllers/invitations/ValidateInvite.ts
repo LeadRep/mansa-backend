@@ -1,16 +1,7 @@
 import { Request, Response } from "express";
-import Users, {userRole} from "../../models/Users";
 import Invitations from "../../models/Invitations";
 import sendResponse from "../../utils/http/sendResponse";
 import logger from "../../logger";
-import TeamMemberships from "../../models/TeamMemberships";
-import Teams from "../../models/Teams";
-import { v4 } from "uuid";
-import {hashPassword} from "../../utils/services/password";
-import {CustomerPref} from "../../models/CustomerPref";
-import {createDeal} from "../usersControllers/deals/createDeal";
-import {step2LeadGen} from "../leadsController/step2LeadGen";
-
 
 export const ValidateInvite = async (request: Request, response: Response) => {
     try {
@@ -36,7 +27,7 @@ console.log("RVRV token");
 
         return sendResponse(response, 200, "Invitation valid.", { invitation });
     } catch (error: any) {
-        logger.error(error, "Accept Invite Error:");
+        logger.error(error, "validate Invite Error:");
         return sendResponse(response, 500, "Internal Server Error");
     }
 };

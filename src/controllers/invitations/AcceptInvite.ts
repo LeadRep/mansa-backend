@@ -3,8 +3,6 @@ import Users, {userRole} from "../../models/Users";
 import Invitations from "../../models/Invitations";
 import sendResponse from "../../utils/http/sendResponse";
 import logger from "../../logger";
-import TeamMemberships from "../../models/TeamMemberships";
-import Teams from "../../models/Teams";
 import { v4 } from "uuid";
 import {hashPassword} from "../../utils/services/password";
 import {CustomerPref} from "../../models/CustomerPref";
@@ -80,20 +78,6 @@ export const AcceptInvite = async (request: Request, response: Response) => {
             lastName: lastName || invitation.lastName,
             password: hashedPassword,
             isVerified: true
-        });
-
-        const team = await Teams.findOne({
-            where: { organization_id: invitation.inviter_id }
-        })
-        if (!team) {
-            return sendResponse(response, 400, "Team not found");
-        }
-
-        await TeamMemberships.create({
-            team_id: team.team_id,
-            user_id: user.id,
-            organization_id: invitation.organization_id,
-            team_role: invitation.role || "member"
         });
 
         const adminCustomerPref = await CustomerPref.findOne({

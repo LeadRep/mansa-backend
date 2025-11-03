@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import Organizations from "../../models/Organizations";
 import sendResponse from "../../utils/http/sendResponse";
 import logger from "../../logger";
-import Teams from "../../models/Teams";
 import Users from "../../models/Users";
 
 export const getOrganization = async (request: Request, response: Response) => {
@@ -35,11 +34,7 @@ export const getOrganization = async (request: Request, response: Response) => {
             return sendResponse(response, 403, "Forbidden: insufficient permissions");
         }
 
-        const teams = await Teams.findAll(
-            { where: { organization_id: organization_id } }
-        );
-        const teamsResp = teams.map(team => team.get({plain: true}));
-        const organization = { ...org.get({plain: true}), teams: teamsResp, users: userResp };
+        const organization = { ...org.get({plain: true}), users: userResp };
 
         return sendResponse(response, 200, "Organization retrieved successfully", {
             organization

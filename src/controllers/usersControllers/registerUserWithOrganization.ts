@@ -15,8 +15,6 @@ import { sequence1 } from "../../utils/mails/newUsers/sequence1";
 import { createDeal } from "./deals/createDeal";
 import logger from "../../logger";
 import Organizations from "../../models/Organizations";
-import Teams from "../../models/Teams";
-import TeamMemberships from "../../models/TeamMemberships";
 import { step2LeadGen } from "../leadsController/step2LeadGen";
 
 export const registerUserWithOrganization = async (req: Request, res: Response) => {
@@ -77,13 +75,6 @@ export const registerUserWithOrganization = async (req: Request, res: Response) 
           organization_id: org.organization_id,
       };
 
-    const team = await Teams.create({
-        team_id: v4(),
-        organization_id: org.organization_id,
-        name: "primary_team",
-        description: "primary team"
-    });
-
     if (user.google || user.microsoft) {
       userData = await Users.create({
         ...commonFields,
@@ -104,13 +95,6 @@ export const registerUserWithOrganization = async (req: Request, res: Response) 
         isVerified: false,
       });
     }
-
-    const teamMemberShips = await TeamMemberships.create({
-        team_id: team.team_id,
-        user_id: userId,
-        organization_id: org.organization_id,
-        team_role: "lead"
-    });
 
     // Create customer preferences
     await CustomerPref.create({

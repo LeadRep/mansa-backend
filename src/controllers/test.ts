@@ -9,11 +9,12 @@ import { aiEvaluatedLeads } from "./leadsController/aiEvaluatedLeads";
 import { step2LeadGen } from "./leadsController/step2LeadGen";
 import axios from "axios";
 import logger from "../logger";
+import { apolloOrganizationSearch } from "./leadsController/apolloOrganizationSearch";
 
 export const test = async (req: Request, res: Response) => {
   try {
     const userId = "aa862323-f8b5-48a8-a97a-a601b6f6acca";
-    const newLeads = await step2LeadGen(userId, 10, true);
+    // const newLeads = await step2LeadGen(userId, 10, true);
     // const searchResponse = await axios.post(
     //   "https://api.apollo.io/v1/mixed_people/search",
     //   {
@@ -40,7 +41,12 @@ export const test = async (req: Request, res: Response) => {
     //     },
     //   }
     // );
-    sendResponse(res, 200, "Leads generated successfully", newLeads);
+    const search = await apolloOrganizationSearch(
+      { q_organization_name: "apple" },
+      1
+    );
+    console.log(search.organizations[0]);
+    sendResponse(res, 200, "Leads generated successfully", search);
     return;
   } catch (error: any) {
     logger.error(error, "Error");

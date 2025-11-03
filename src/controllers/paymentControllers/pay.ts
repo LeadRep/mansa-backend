@@ -29,44 +29,76 @@ export const stripeSession = async (plan: string) => {
     });
     return session;
   } catch (error: any) {
-    return error;
+    logger.error(error, "Error creating Stripe session:");
+    throw error;
   }
 };
 
 export const payment = async (request: JwtPayload, response: Response) => {
   let basicMonthly = "";
   let basicYearly = "";
+  let starterMonthly = "";
+  let starterYearly = "";
   let growthMonthly = "";
   let growthYearly = "";
   let teamMonthly = "";
   let teamYearly = "";
+  let scaleMonthly = "";
+  let scaleYearly = "";
   if (process.env.APP_ENV === "poduction") {
     basicMonthly = "price_1RP4cyJlttlFevLMsbWAahtg";
     basicYearly = "price_1RP4cyJlttlFevLMigbEa2Ek";
-    growthMonthly = "price_1RP4eaJlttlFevLMuVo2zImh";
-    growthYearly = "price_1RP4fEJlttlFevLM5tegvdNR";
-    teamMonthly = "price_1RP4gmJlttlFevLMFNFLAZZU";
-    teamYearly = "price_1RP4hGJlttlFevLMmtLHoqaO";
+    starterMonthly = "price_1RP4eaJlttlFevLMuVo2zImh";
+    starterYearly = "price_1RP4fEJlttlFevLM5tegvdNR";
+    growthMonthly = "price_1SHiUWJlttlFevLM9jQD0p8J";
+    growthYearly = "price_1SHiUWJlttlFevLMX652dOyr";
+    teamMonthly = "price_1SHiMoJlttlFevLMLEDJ5xiX";
+    teamYearly = "price_1SHiMoJlttlFevLM16jtqMp0";
+    scaleMonthly = "price_1RrlThJlttlFevLM7qs7Mod2";
+    scaleYearly = "price_1RrlThJlttlFevLMBSpjtdUe";
   } else {
     basicMonthly = "price_1RP3rtQwj7e0FQ8k5TRLrFOD";
     basicYearly = "price_1RP3w8Qwj7e0FQ8k0PK1ynTJ";
-    growthMonthly = "price_1RP3q5Qwj7e0FQ8kVLcj6rRv";
-    growthYearly = "price_1RP3xSQwj7e0FQ8kZYhFJdhn";
-    teamMonthly = "price_1RP3teQwj7e0FQ8kvtBp90BN";
-    teamYearly = "price_1RP3v0Qwj7e0FQ8k7retS6kE";
+    starterMonthly = "price_1RP3q5Qwj7e0FQ8kVLcj6rRv";
+    starterYearly = "price_1RP3xSQwj7e0FQ8kZYhFJdhn";
+    growthMonthly = "price_1RP3teQwj7e0FQ8kvtBp90BN";
+    growthYearly = "price_1RP3v0Qwj7e0FQ8k7retS6kE";
+    teamMonthly = process.env.DEV_TEAM_MONTHLY_PRICE_ID || "";
+    teamYearly = process.env.DEV_TEAM_YEARLY_PRICE_ID || "";
+    scaleMonthly = process.env.DEV_SCALE_MONTHLY_PRICE_ID || "";
+    scaleYearly = process.env.DEV_SCALE_YEARLY_PRICE_ID || "";
   }
 
   const userId = request.user?.id;
   const { plan } = request.body;
+  const planAmount = Number(plan);
 
-  let planId = "";
+  const planMap: Record<number, string> = {
+    14: basicMonthly,
+    150: basicYearly,
+    29: starterMonthly,
+    300: starterYearly,
+    59: growthMonthly,
+    599: growthYearly,
+    149: teamMonthly,
+    1499: teamYearly,
+    349: scaleMonthly,
+    3490: scaleYearly,
+  };
 
-  if (plan == 14) planId = basicMonthly;
-  else if (plan == 150) planId = basicYearly;
-  else if (plan == 29) planId = growthMonthly;
-  else if (plan == 300) planId = growthYearly;
-  else if (plan == 99) planId = teamMonthly;
-  else if (plan == 1000) planId = teamYearly;
+  const planId = planMap[planAmount];
+
+  if (!planId) {
+    logger.error(
+      { planAmount, env: process.env.APP_ENV },
+      "No Stripe price ID configured for plan amount"
+    );
+    return response.status(400).json({
+      status: "error",
+      method: request.method,
+      message: "Unsupported plan selected. Please contact support.",
+    });
+  }
 
   try {
     const session = await stripeSession(planId);
@@ -108,13 +140,18 @@ export const successPayment = async (
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
       const planId = subscription.plan.id;
 
+      const amount = subscription.plan.amount ?? 0;
       let planType = "";
-      if (subscription.plan.amount === 1400) planType = "Basic-Monthly";
-      if (subscription.plan.amount === 15000) planType = "Basic-Yearly";
-      if (subscription.plan.amount === 2900) planType = "Growth-Monthly";
-      if (subscription.plan.amount === 30000) planType = "Growth-Yearly";
-      if (subscription.plan.amount === 9900) planType = "Team-Monthly";
-      if (subscription.plan.amount === 100000) planType = "Team-Yearly";
+      if (amount === 1400) planType = "Basic-Monthly";
+      if (amount === 15000) planType = "Basic-Yearly";
+      if (amount === 2900) planType = "Starter-Monthly";
+      if (amount === 30000) planType = "Starter-Yearly";
+      if (amount === 5900) planType = "Growth-Monthly";
+      if (amount === 59900) planType = "Growth-Yearly";
+      if (amount === 14900) planType = "Team-Monthly";
+      if (amount === 149900) planType = "Team-Yearly";
+      if (amount === 34900) planType = "Scale-Monthly";
+      if (amount === 349000) planType = "Scale-Yearly";
 
       const startDate = new Date(
         moment.unix(subscription.start_date).toDate().toISOString()
