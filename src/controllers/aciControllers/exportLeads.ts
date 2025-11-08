@@ -30,6 +30,15 @@ export const exportLeads = async (request: Request, response: Response) => {
         // 2. Generate CSV and upload (or serve)
         const { csv, exportId } = await generateExportCsv(ids);
 
+        // 4. Update asynchronously revealed_for_current_team to false all leads in ids
+        GeneralLeads.update(
+            {revealed_for_current_team: false},
+            {where: {id: {[Op.in]: ids}}}
+        ).catch(error => {
+            logger.error(error, "Error updating revealed_for_current_team status:");
+        });
+        
+
         // 3. Return download URL and updated quota
         response.json({
             data: {
@@ -73,5 +82,6 @@ export async function generateExportCsv(leadIds: number[]) {
     ];
     const parser = new Parser({ fields });
     const csv = parser.parse(leads);
+    
     return { csv, exportId };
 }
