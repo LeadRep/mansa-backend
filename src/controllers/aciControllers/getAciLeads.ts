@@ -148,7 +148,7 @@ export const getAciLeads = async (req: Request, res: Response) => {
       where,
       limit,
       offset,
-      order: [["createdAt", "DESC"]],
+      order: [["priority", "DESC"], ["createdAt", "DESC"]],
     });
 
     const leads = rows.map((lead) =>
