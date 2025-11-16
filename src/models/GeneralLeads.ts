@@ -42,6 +42,7 @@ export interface GeneralLeadsAttributes {
   revealed_for_current_team: boolean | null;
   industries: string[] | null;
   segments: string[] | null;
+  aum: JSON | null;
 }
 
 export type GeneralLeadsCreationAttributes = Optional<
@@ -253,6 +254,11 @@ GeneralLeads.init(
     },
     segments: {
       type: DataTypes.ARRAY(DataTypes.STRING),
+      allowNull: true,
+      defaultValue: null,
+    },
+    aum: {
+      type: DataTypes.JSON,
       allowNull: true,
       defaultValue: null,
     },

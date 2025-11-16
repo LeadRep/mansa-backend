@@ -7,7 +7,7 @@ export type PlainLead = GeneralLeadsAttributes & {
     updatedAt?: Date;
 };
 
-const coerceOrganization = (value: unknown): Record<string, any> | null => {
+const coerceJSON = (value: unknown, name: string): Record<string, any> | null => {
     if (!value) {
         return null;
     }
@@ -22,7 +22,7 @@ const coerceOrganization = (value: unknown): Record<string, any> | null => {
         } catch (error) {
             logger.warn(
                 { error: (error as Error)?.message },
-                "Unable to parse organization payload for lead"
+                `Unable to parse ${name} payload for lead`
             );
             return null;
         }
@@ -40,7 +40,8 @@ const getCompanySizeRange = (size?: number) => {
 }
 
 export const normalizeLead = (lead: PlainLead) => {
-    const organization = coerceOrganization(lead.organization);
+    const organization = coerceJSON(lead.organization, "organization");
+    const aumJson = coerceJSON(lead.aum, "aum");
     const organizationName =
         organization?.name ??
         organization?.organization_name ??
@@ -54,11 +55,9 @@ export const normalizeLead = (lead: PlainLead) => {
         organization?.location ??
         null;
 
-    const aum =
-        organization?.organization_revenue_printed ??
-        organization?.aum ??
-        organization?.assets_under_management ??
-        null;
+    const aum = (aumJson?.value && aumJson?.currency)
+        ? `${aumJson.value} ${aumJson.currency}`.trim()
+        : null;
 
     const companySize =
         getCompanySizeRange(organization?.estimated_num_employees) ??
@@ -87,7 +86,7 @@ export const normalizeLead = (lead: PlainLead) => {
         country: organizationCountry,
         email: lead.email ?? organization?.email ?? null,
         phone: lead.phone ?? organization?.phone ?? null,
-        aum,
+        aum: aum,
         companySize,
         companySegment,
         industry: organization?.industry ?? null,
