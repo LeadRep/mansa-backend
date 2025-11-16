@@ -49,7 +49,6 @@ export const normalizeLead = (lead: PlainLead) => {
         null;
 
     const organizationCountry =
-        lead.country ??
         organization?.country ??
         organization?.organization_country ??
         organization?.location ??
@@ -91,7 +90,7 @@ export const normalizeLead = (lead: PlainLead) => {
         companySegment,
         industry: organization?.industry ?? null,
         keywords,
-        city: lead.city ?? organization?.city ?? null,
+        city: organization?.city ?? null,
         state: lead.state ?? organization?.state ?? null,
         linkedinUrl: lead.linkedin_url ?? null,
         organization,
