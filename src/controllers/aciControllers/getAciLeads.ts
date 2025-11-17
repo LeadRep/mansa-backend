@@ -150,6 +150,10 @@ const buildFilters = (
     return andConditions[0];
   }
 
+    andConditions.push({
+        hidden: false,
+    });
+
   return {
     [Op.and]: andConditions,
   };
