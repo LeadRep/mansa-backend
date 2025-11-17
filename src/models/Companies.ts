@@ -35,6 +35,22 @@ export interface CompaniesAttributes {
     organization_headcount_six_month_growth: number | null;
     organization_headcount_twelve_month_growth: number | null;
     organization_headcount_twenty_four_month_growth: number | null;
+    // Additional fields from Apollo org object
+    industry: string | null;
+    industries: string[] | null;
+    secondary_industries: string[] | null;
+    keywords: string[] | null;
+    estimated_num_employees: number | null;
+    snippets_loaded: boolean | null;
+    industry_tag_id: string | null;
+    industry_tag_hash: JSON | null;
+    retail_location_count: number | null;
+    raw_address: string | null;
+    street_address: string | null;
+    city: string | null;
+    state: string | null;
+    postal_code: string | null;
+    country: string | null;
 }
 
 export class Companies extends Model<CompaniesAttributes> {
@@ -205,6 +221,82 @@ Companies.init(
         },
         organization_headcount_twenty_four_month_growth: {
             type: DataTypes.FLOAT,
+            allowNull: true,
+            defaultValue: null,
+        },
+        // Added fields mapped from Apollo organization object
+        industry: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: null,
+        },
+        industries: {
+            type: DataTypes.ARRAY(DataTypes.STRING),
+            allowNull: true,
+            defaultValue: null,
+        },
+        secondary_industries: {
+            type: DataTypes.ARRAY(DataTypes.STRING),
+            allowNull: true,
+            defaultValue: null,
+        },
+        keywords: {
+            type: DataTypes.ARRAY(DataTypes.STRING),
+            allowNull: true,
+            defaultValue: null,
+        },
+        estimated_num_employees: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: null,
+        },
+        snippets_loaded: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true,
+            defaultValue: null,
+        },
+        industry_tag_id: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: null,
+        },
+        industry_tag_hash: {
+            type: DataTypes.JSON,
+            allowNull: true,
+            defaultValue: null,
+        },
+        retail_location_count: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            defaultValue: null,
+        },
+        raw_address: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: null,
+        },
+        street_address: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: null,
+        },
+        city: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: null,
+        },
+        state: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: null,
+        },
+        postal_code: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: null,
+        },
+        country: {
+            type: DataTypes.STRING,
             allowNull: true,
             defaultValue: null,
         },
