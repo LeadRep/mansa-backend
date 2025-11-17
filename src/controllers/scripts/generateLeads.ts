@@ -91,26 +91,6 @@ export const generateLeads = async (request: Request, response: Response) => {
       const peopleIds: Array<string | null | undefined> = data?.model_ids ?? [];
       const peopleData: Array<any> = data?.people ?? [];
 
-      for (const person of peopleData) {
-        const organizationId = person?.organization?.id;
-        if (!organizationId) {
-          continue;
-        }
-        const company = await Companies.findOne({
-          where: { external_id: organizationId },
-        });
-        if (!company) {
-          const organizationPayload = person.organization ?? {};
-          const { id, ...companyInfo } = organizationPayload;
-          await Companies.create({
-            id: v4(),
-            ...companyInfo,
-            external_id: organizationId,
-          });
-          newCompany++;
-        }
-      }
-
       const validPeopleIds = peopleIds.filter(
         (candidate): candidate is string =>
           typeof candidate === "string" && candidate.trim().length > 0
@@ -121,7 +101,26 @@ export const generateLeads = async (request: Request, response: Response) => {
       }
 
       const enrichedData = await apolloEnrichedPeople(validPeopleIds);
+
       for (const person of enrichedData) {
+        // Ensure company using enriched organization payload (more complete)
+        const organizationId = person?.organization?.id;
+        if (organizationId) {
+          const company = await Companies.findOne({
+            where: { external_id: organizationId },
+          });
+          if (!company) {
+            const organizationPayload = person.organization ?? {};
+            const { id, ...companyInfo } = organizationPayload;
+            await Companies.create({
+              id: v4(),
+              ...companyInfo,
+              external_id: organizationId,
+            });
+            newCompany++;
+          }
+        }
+
         const personId = person?.id ?? person?.person_id;
         if (!personId) {
           continue;
@@ -137,7 +136,7 @@ export const generateLeads = async (request: Request, response: Response) => {
             external_id: personId,
           });
           newLead++;
-        }
+        }       
       }
     };
 
