@@ -54,7 +54,9 @@ const buildFilters = (
   search: string,
   titles: string[],
   countries: string[],
-  segments: string[]
+  segments: string[],
+  tags: string[],
+  lock: string | null
 ): WhereOptions<GeneralLeadsAttributes> => {
   const andConditions: any[] = [];
 
@@ -99,6 +101,20 @@ const buildFilters = (
     });
   }
 
+  // lock can be "locked", unlocked" or null
+    console.log("Lock value:", lock);
+  if (lock) {
+    if (lock === "locked") {
+      andConditions.push({
+        revealed_for_current_team: false,
+      });
+    } else if (lock === "unlocked") {
+      andConditions.push({
+        revealed_for_current_team: true,
+      });
+    }
+  }
+
     if (segments.length) {
         andConditions.push({
             segments: { [Op.overlap]: segments },
@@ -141,8 +157,11 @@ export const getAciLeads = async (req: Request, res: Response) => {
     const titles = parseListParam(req.query.titles);
     const countries = parseListParam(req.query.countries);
     const segments = parseListParam(req.query.segments);
+    const lock = typeof req.query.lock === "string" ? req.query.lock.trim() : null;
+    const tags = parseListParam(req.query.tags);
 
-    const where = buildFilters(search, titles, countries, segments);
+
+    const where = buildFilters(search, titles, countries, segments, tags, lock);
 
     const { rows, count } = await GeneralLeads.findAndCountAll({
       where,
