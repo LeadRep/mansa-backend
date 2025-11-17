@@ -102,7 +102,6 @@ const buildFilters = (
   }
 
   // lock can be "locked", unlocked" or null
-    console.log("Lock value:", lock);
   if (lock) {
     if (lock === "locked") {
       andConditions.push({
@@ -114,6 +113,28 @@ const buildFilters = (
       });
     }
   }
+
+  if (tags.length) {
+      const tagConditions: any[] = [];
+
+      for (const rawTag of tags) {
+          const tag = String(rawTag).toLowerCase().trim();
+          if (tag === "etf") {
+              tagConditions.push({ is_etf: true });
+          } else if (tag === "fixed income") {
+              tagConditions.push({ is_fixed_income: true });
+          } else if (tag === "equities") {
+              tagConditions.push({ is_equities: true });
+          }
+      }
+
+      if (tagConditions.length) {
+          andConditions.push({
+              [Op.or]: tagConditions,
+          });
+      }
+  }
+
 
     if (segments.length) {
         andConditions.push({
