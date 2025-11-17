@@ -10,7 +10,7 @@ module.exports = {
     };
 
     await addIfMissing('industry', { type: Sequelize.STRING, allowNull: true, defaultValue: null });
-    await addIfMissing('industries', { type: Sequelize.ARRAY(Sequelize.STRING), allowNull: true, defaultValue: null });
+    // await addIfMissing('industries', { type: Sequelize.ARRAY(Sequelize.STRING), allowNull: true, defaultValue: null });
     await addIfMissing('secondary_industries', { type: Sequelize.ARRAY(Sequelize.STRING), allowNull: true, defaultValue: null });
     await addIfMissing('keywords', { type: Sequelize.ARRAY(Sequelize.STRING), allowNull: true, defaultValue: null });
     await addIfMissing('estimated_num_employees', { type: Sequelize.INTEGER, allowNull: true, defaultValue: null });
