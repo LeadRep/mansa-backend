@@ -143,7 +143,9 @@ const buildFilters = (
     }
 
     andConditions.push({
-        hidden: false,
+        hidden: {
+            [Op.in]: [false, null],
+        }
     });
 
     if (!andConditions.length) {
