@@ -2,7 +2,9 @@ import { Request, Response } from "express";
 import sendResponse from "../../utils/http/sendResponse";
 import logger from "../../logger";
 import crypto from "crypto";
-import SharedLeads from "../../models/ShareLeads";
+import SharedLeads from "../../models/SharedLeads";
+import {Op} from "sequelize";
+import {Leads} from "../../models/Leads";
 
 function generateShareToken() {
     return crypto.randomBytes(32).toString('hex');
@@ -13,12 +15,19 @@ export const shareLeads = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     const { leads } = req.body; // Array of lead IDs
-      logger.info("Generating shareable link for user:", userId, "with leads:", leads);
+      logger.info({ userId, leadCount: Array.isArray(leads) ? leads.length : 0 }, "Generating shareable link");
 
       if (!Array.isArray(leads) || leads.length === 0) {
           return res.status(400).json({
               success: false,
               message: 'Please provide at least one lead to share'
+          });
+      }
+      // Validate each lead ID is a string
+      if (!leads.every(id => typeof id === 'string' && id.length > 0)) {
+          return res.status(400).json({
+              success: false,
+              message: 'All lead IDs must be valid strings'
           });
       }
 
@@ -27,6 +36,22 @@ export const shareLeads = async (req: Request, res: Response) => {
           return res.status(400).json({
               success: false,
               message: 'Cannot share more than 100 leads at once'
+          });
+      }
+
+      // Validate that all leads belong to the user
+      const ownedLeads = await Leads.findAll({
+          where: {
+              id: { [Op.in]: leads },
+              owner_id: userId
+          },
+          attributes: ['id']
+      });
+
+      if (ownedLeads.length !== leads.length) {
+          return res.status(403).json({
+              success: false,
+              message: 'You can only share leads that you own'
           });
       }
 
@@ -48,12 +73,10 @@ export const shareLeads = async (req: Request, res: Response) => {
           expiresAt: sharedLead.expiresAt,
           leadCount: leads.length
       })
-      return ;
 
 
   } catch (error: any) {
     logger.error(error, "Failed to generate shareable link");
     sendResponse(res, 500, "Failed to generate shareable link", null, error.message);
-    return;
   }
 };

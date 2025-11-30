@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import logger from "../../logger";
-import SharedLeads from "../../models/ShareLeads";
+import SharedLeads from "../../models/SharedLeads";
 import {Leads} from "../../models/Leads";
 import { Op } from "sequelize";
 import sendResponse from "../../utils/http/sendResponse";
@@ -34,13 +34,16 @@ export const viewSharedLeads = async (req: Request, res: Response) => {
                     [Op.in]: sharedLeads.leadIds
         }}})
 
-        sharedLeads.update(
-            {
-                accessedCount: sharedLeads.accessedCount + 1,
-                lastAccessedAt: new Date()
-            }
-        ).catch(error => {
-            logger.error(error, "Error updating accessedCount and lastAccessedAt status:");
+        SharedLeads.increment('accessedCount', {
+            by: 1,
+            where: { token: token }
+        }).then(() => {
+            SharedLeads.update(
+                { lastAccessedAt: new Date() },
+                { where: { token: token } }
+            );
+        }).catch(error => {
+            logger.error(error, "Error updating access tracking:");
         });
 
         sendResponse(res, 200,

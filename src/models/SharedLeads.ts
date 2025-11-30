@@ -1,5 +1,3 @@
-
-// typescript
 import { DataTypes, Model, Optional } from "sequelize";
 import Users from "./Users";
 import { database } from "../configs/database/database";
@@ -34,7 +32,7 @@ export class SharedLeads
     // Associations helper
     public static associate(models: any) {
         // expects `models.User` to exist
-        SharedLeads.belongsTo(models.User, {
+        SharedLeads.belongsTo(models.Users, {
             foreignKey: "user_id",
             as: "user",
             onDelete: "CASCADE",
