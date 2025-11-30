@@ -21,6 +21,13 @@ export const shareLeads = async (req: Request, res: Response) => {
               message: 'Please provide at least one lead to share'
           });
       }
+      // Validate each lead ID is a string
+      if (!leads.every(id => typeof id === 'string' && id.length > 0)) {
+          return res.status(400).json({
+              success: false,
+              message: 'All lead IDs must be valid strings'
+          });
+      }
 
       // Limit to reasonable number
       if (leads.length > 100) {
