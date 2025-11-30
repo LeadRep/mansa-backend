@@ -40,15 +40,16 @@ export const viewSharedLeads = async (req: Request, res: Response) => {
                     [Op.in]: sharedLeads.leadIds
         }}})
 
-        sharedLeads.update(
-            {
-                accessedCount: sharedLeads.accessedCount + 1,
-                lastAccessedAt: new Date()
-            },
-            {where: {token: token}}
-
-        ).catch(error => {
-            logger.error(error, "Error updating accessedCount and lastAccessedAt status:");
+        SharedLeads.increment('accessedCount', {
+            by: 1,
+            where: { token: token }
+        }).then(() => {
+            return SharedLeads.update(
+                { lastAccessedAt: new Date() },
+                { where: { token: token } }
+            );
+        }).catch(error => {
+            logger.error(error, "Error updating access tracking:");
         });
 
         sendResponse(res, 200,
