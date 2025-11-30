@@ -13,7 +13,7 @@ export const shareLeads = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
     const { leads } = req.body; // Array of lead IDs
-      logger.info("Generating shareable link for user:", userId, "with leads:", leads);
+      logger.info({ userId, leadCount: Array.isArray(leads) ? leads.length : 0 }, "Generating shareable link");
 
       if (!Array.isArray(leads) || leads.length === 0) {
           return res.status(400).json({
