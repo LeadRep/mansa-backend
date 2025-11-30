@@ -12,28 +12,22 @@ export const viewSharedLeads = async (req: Request, res: Response) => {
         logger.info(`Viewing shared leads with token: ${token}`);
         // Validate token format
         if (!token || token.length !== 64) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid share token'
-            });
+            sendResponse(res, 400, 'Invalid share token');
+            return;
         }
         const sharedLeads = await SharedLeads.findOne(
             {where: {token: token}}
         )
 
         if (sharedLeads === null) {
-            return res.status(404).json({
-                success: false,
-                message: 'Shared link not found or has been revoked'
-            });
+            sendResponse(res, 404, 'Shared link not found or has been revoked');
+            return;
         }
 
         // Check if expired
         if (new Date(sharedLeads.expiresAt) < new Date()) {
-            return res.status(410).json({
-                success: false,
-                message: 'This shared link has expired'
-            });
+            sendResponse(res, 410, 'This shared link has expired');
+            return;
         }
 
         const leads = await Leads.findAll({where: {id: {
@@ -44,9 +38,7 @@ export const viewSharedLeads = async (req: Request, res: Response) => {
             {
                 accessedCount: sharedLeads.accessedCount + 1,
                 lastAccessedAt: new Date()
-            },
-            {where: {token: token}}
-
+            }
         ).catch(error => {
             logger.error(error, "Error updating accessedCount and lastAccessedAt status:");
         });
@@ -64,9 +56,7 @@ export const viewSharedLeads = async (req: Request, res: Response) => {
     } catch (error: any) {
 
         logger.error(error, 'Error retrieving shared leads:');
-        return res.status(500).json({
-            success: false,
-            message: 'Failed to retrieve shared leads'
-        });
+        sendResponse(res, 500, 'Internal Server Error');
+        return;
     }
 };
