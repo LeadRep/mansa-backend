@@ -59,7 +59,7 @@ export const viewSharedLeads = async (req: Request, res: Response) => {
     } catch (error: any) {
 
         logger.error(error, 'Error retrieving shared leads:');
-        sendResponse(res, 500, 'Internal Server Error');
+        sendResponse(res, 500, 'Failed to retrieve shared leads');
         return;
     }
 };
