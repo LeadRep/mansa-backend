@@ -55,7 +55,11 @@ export const shareLeads = async (req: Request, res: Response) => {
       }
     const records = ownedLeads.map(l => l.get({ plain: true }));
 
-    await ArchivedSharedLeads.bulkCreate(records, { ignoreDuplicates: true });
+    try {
+        await ArchivedSharedLeads.bulkCreate(records, { ignoreDuplicates: true });
+    } catch (archiveError) {
+        logger.error(archiveError, "Failed to archive shared leads, proceeding with share link creation");
+    }
 
     // Generate unique token
       const token = generateShareToken();
