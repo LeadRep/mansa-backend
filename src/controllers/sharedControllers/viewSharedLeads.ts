@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import logger from "../../logger";
 import SharedLeads from "../../models/SharedLeads";
-import {Leads} from "../../models/Leads";
+import {ArchivedSharedLeads} from "../../models/Leads";
 import { Op } from "sequelize";
 import sendResponse from "../../utils/http/sendResponse";
 
@@ -30,7 +30,7 @@ export const viewSharedLeads = async (req: Request, res: Response) => {
             return;
         }
 
-        const leads = await Leads.findAll({where: {id: {
+        const leads = await ArchivedSharedLeads.findAll({where: {id: {
                     [Op.in]: sharedLeads.leadIds
         }}})
 

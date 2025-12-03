@@ -4,7 +4,7 @@ import logger from "../../logger";
 import crypto from "crypto";
 import SharedLeads from "../../models/SharedLeads";
 import {Op} from "sequelize";
-import {Leads} from "../../models/Leads";
+import {ArchivedSharedLeads, Leads} from "../../models/Leads";
 
 function generateShareToken() {
     return crypto.randomBytes(32).toString('hex');
@@ -44,8 +44,7 @@ export const shareLeads = async (req: Request, res: Response) => {
           where: {
               id: { [Op.in]: leads },
               owner_id: userId
-          },
-          attributes: ['id']
+          }
       });
 
       if (ownedLeads.length !== leads.length) {
@@ -54,8 +53,11 @@ export const shareLeads = async (req: Request, res: Response) => {
               message: 'You can only share leads that you own'
           });
       }
+    const records = ownedLeads.map(l => l.get({ plain: true }));
 
-      // Generate unique token
+    await ArchivedSharedLeads.bulkCreate(records, { ignoreDuplicates: true });
+
+    // Generate unique token
       const token = generateShareToken();
 
       // Calculate expiration (7 days from now)
