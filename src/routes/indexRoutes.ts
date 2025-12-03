@@ -11,6 +11,7 @@ import { deleteCompanies } from "../controllers/scripts/deleteCompanies";
 import { generateLeads } from "../controllers/scripts/generateLeads";
 import { classifyGeneralLeadSegments } from "../controllers/scripts/classifyGeneralLeadSegments";
 import { generateCSVLeads } from "../controllers/scripts/generateCSVLeads";
+import sharedRoutes from "./sharedRoutes";
 
 const indexRoutes = express.Router();
 indexRoutes.get("/", index);
@@ -21,6 +22,7 @@ indexRoutes.use("/aci", aciRoutes);
 indexRoutes.use("/scraper", scraperRoutes);
 indexRoutes.use("/organizations", organizationsRoutes);
 indexRoutes.use("/admin", adminRoutes);
+indexRoutes.use("/shared", sharedRoutes);
 indexRoutes.get("/delete-companies", deleteCompanies);
 indexRoutes.get("/generate-leads/:page/:endPage", generateLeads);
 indexRoutes.get("/classify-general-leads/:limit", classifyGeneralLeadSegments);

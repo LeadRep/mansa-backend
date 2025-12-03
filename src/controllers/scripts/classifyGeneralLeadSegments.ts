@@ -238,7 +238,7 @@ export const classifyGeneralLeadSegments = async (
         const segments = sanitizeArray(aiResult?.segments);
 
         await lead.update({
-          segments: segments.length ? segments : null,
+          segments: segments.length ? segments : [],
         });
         updated += 1;
         results.push({
