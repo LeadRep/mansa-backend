@@ -1,22 +1,9 @@
 import { Request, Response } from "express";
 import { apolloEnrichedPeople } from "../leadsController/apolloEnrichedPeople";
 import axios from "axios";
-import { Parser as Json2CsvParser } from "json2csv";
 import sendResponse from "../../utils/http/sendResponse";
 
 const APOLLO_PEOPLE_URL = "https://api.apollo.io/v1/mixed_people/search";
-const DEFAULT_TITLES = [
-  "Ressortleiter Innovationsförderung",
-  "Startup & Innovation Policy Officer",
-  "Head of Research & Innovation Policy",
-  "Leiter Technologie und Innovation",
-  "Head of Research & Innovation Policy",
-  "Leiter Standortförderung",
-  "Leiter Wirtschaftsförderung",
-  "Leiter Amt für Wirtschaft und Arbeit",
-];
-const DEFAULT_LOCATIONS = ["Germany"];
- 
 const buildApolloHeaders = () => ({
   "Cache-Control": "no-cache",
   "Content-Type": "application/json",
@@ -24,22 +11,62 @@ const buildApolloHeaders = () => ({
   "x-api-key": process.env.APOLLO_API_KEY!,
 });
 
+const parseInputArray = (value: any): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => `${item}`.trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(/[\n,]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+
+const parseBoolean = (value: any, defaultValue = false): boolean => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const lowered = value.toLowerCase();
+    if (lowered === "true") return true;
+    if (lowered === "false") return false;
+  }
+  return defaultValue;
+};
+
+const parseNumber = (value: any, fallback = 0): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
 export const generateCSVLeads = async (req: Request, res: Response) => {
   try {
+    const payload: any = req.method === "GET" ? req.query : req.body;
+    const titles = parseInputArray(payload?.titles);
+    const locations = parseInputArray(payload?.locations);
+    const person_seniorities = parseInputArray(payload?.person_seniorities);
+    const include_similar_titles = parseBoolean(
+      payload?.include_similar_titles,
+      true
+    );
+    const numberOfLeads = parseNumber(payload?.numberOfLeads, 10);
+    const effectiveCount = Math.max(1, Math.min(numberOfLeads, 25));
+
     const response = await axios.post(
       APOLLO_PEOPLE_URL,
       {
-        person_titles: DEFAULT_TITLES,
-        organization_locations: DEFAULT_LOCATIONS,
-        include_similar_titles: true,
+        person_titles: titles,
+        organization_locations: locations,
+        include_similar_titles: include_similar_titles,
+        person_seniorities: person_seniorities,
         contact_email_status: ["verified", "likely to engage"],
-        per_page: 100,
+        per_page: effectiveCount,
         page: 1,
       },
       { headers: buildApolloHeaders() }
     );
     const peopleData = response.data.model_ids;
-    const people = peopleData.slice(0, 50);
+    const people = peopleData.slice(0, effectiveCount);
     const enrichedData = await apolloEnrichedPeople(people);
     console.log("enrichedData:", enrichedData[0]);
     const records = enrichedData.map((lead: any) => {
@@ -73,26 +100,7 @@ export const generateCSVLeads = async (req: Request, res: Response) => {
       };
     });
 
-    const parser = new Json2CsvParser({
-      fields: [
-        "Name",
-        "Title",
-        "Company Name",
-        "Website",
-        "E-mail",
-        "Phone number",
-        "Location",
-        "Industry",
-        "Linkedin profile",
-      ],
-    });
-    const csv = parser.parse(records);
-
-    const fileName = `apollo-leads-${DEFAULT_LOCATIONS[0]}.csv`;
-
-    res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-    res.status(200).send(csv);
+    sendResponse(res, 200, "Leads generated successfully", records);
   } catch (error: any) {
     console.log("generateCSVLeads Error:", error.message);
     sendResponse(res, 500, "Internal Server Error", null, error.message);
