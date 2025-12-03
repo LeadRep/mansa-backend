@@ -53,7 +53,11 @@ export const shareLeads = async (req: Request, res: Response) => {
               message: 'You can only share leads that you own'
           });
       }
-    const records = ownedLeads.map(l => l.get({ plain: true }));
+    // Exclude createdAt and updatedAt so archive timestamps reflect archiving time
+    const records = ownedLeads.map(l => {
+      const { createdAt, updatedAt, ...rest } = l.get({ plain: true });
+      return rest;
+    });
 
     try {
         await ArchivedSharedLeads.bulkCreate(records, { ignoreDuplicates: true });
