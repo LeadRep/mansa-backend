@@ -147,6 +147,7 @@ export const step2LeadGen = async (
         logger.info(`ICP industry ${icpIndustries}`);
         if (icpIndustries != null) {
           const arr= icpIndustries.split(",").map((item) => item.trim());
+          logger.info(`ICP industry arr ${JSON.stringify(arr)}`);
           if (arr.length == 1 && INDUSTRIES.includes(arr[0])) {
             searchParams.industry = arr[0];
           }
