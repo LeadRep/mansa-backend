@@ -149,7 +149,7 @@ export const step2LeadGen = async (
             searchParams.industry = arr[0];
           }
         }
-        logger.info("ICP searchParams", searchParams);
+        logger.info(`ICP searchParams ${JSON.stringify(searchParams)}`);
       }
 
       const apolloResponse = await apolloPeopleSearch(
