@@ -6,12 +6,88 @@ import { apolloPeopleSearch } from "./apolloPeopleSearch";
 import { aiEvaluatedLeads } from "./aiEvaluatedLeads";
 import { apolloEnrichedPeople } from "./apolloEnrichedPeople";
 import { emitLeadUpdate } from "../../utils/socket";
+import logger from "../../logger";
+
+const INDUSTRIES = [
+  "Commercial Banking",
+  "Retail Banking",
+  "Corporate Banking",
+  "Investment Banking",
+  "Private Banking",
+  "Islamic Banking",
+  "Online Banking",
+  "Central Banking",
+  "Microfinance Institutions",
+  "Life Insurance",
+  "Health Insurance",
+  "Property and Casualty Insurance",
+  "Reinsurance",
+  "Auto Insurance",
+  "Travel Insurance",
+  "Insurance Brokerage",
+  "Actuarial Services",
+  "Asset Management",
+  "Wealth Management",
+  "Mutual Funds",
+  "Hedge Funds",
+  "Private Equity",
+  "Venture Capital",
+  "Investment Advisory",
+  "Portfolio Management",
+  "Financial Planning",
+  "Stock Exchanges",
+  "Brokerage Firms",
+  "Securities Trading",
+  "Derivatives Trading",
+  "Bond Markets",
+  "Commodities Trading",
+  "Market Making",
+  "Clearing and Settlement Services",
+  "Digital Payments",
+  "Neobanks",
+  "Blockchain and Cryptocurrency",
+  "Peer-to-Peer Lending",
+  "Robo-Advisors",
+  "Crowdfunding Platforms",
+  "Buy Now Pay Later (BNPL)",
+  "RegTech",
+  "InsurTech",
+  "Consumer Lending",
+  "Commercial Lending",
+  "Mortgage Banking",
+  "Credit Unions",
+  "Credit Card Services",
+  "Leasing and Hire Purchase",
+  "Factoring and Invoice Financing",
+  "Accounting Services",
+  "Auditing and Assurance",
+  "Tax Consultancy",
+  "Bookkeeping",
+  "Payroll Management",
+  "Financial Analytics",
+  "Sovereign Wealth Funds",
+  "Treasury Management",
+  "Government Financial Services",
+  "Development Finance Institutions",
+  "Independent Financial Advisor",
+  "Financial Advisor",
+  "Financial Planner",
+  "Certified Financial Planner",
+  "Financial Consultant",
+  "Pension funds",
+  "Church",
+  "Foundations",
+];
 
 export const step2LeadGen = async (
   userId: string,
   totalLeads: number,
   restart?: boolean
 ) => {
+  const skipLimit =
+    String(process.env.SKIP_LEADS_REFRESH_LIMIT ?? "")
+      .trim()
+      .toLowerCase() === "true";
   try {
     const userLeads = await Leads.findAll({});
     const customerPref = await CustomerPref.findOne({ where: { userId } });
@@ -34,7 +110,7 @@ export const step2LeadGen = async (
       customerPref.totalPages = 0;
       await customerPref.save();
       aiQueryParams = "";
-      await Leads.destroy({ where: { owner_id: userId } });
+      // await Leads.destroy({ where: { owner_id: userId } });
       currentPage = 1;
     }
     if (!aiQueryParams) {
@@ -52,6 +128,30 @@ export const step2LeadGen = async (
 
       const pageToFetch = currentPage;
       const searchParams = aiQueryParams;
+
+      if (process.env.APP_ENV === "test" || process.env.APP_ENV === "local" || process.env.APP_ENV === "development") {
+        // for test purposes
+        // get icp industries from customerPref
+        let icp: any = customerPref.ICP;
+        if (typeof icp === "string") {
+          try {
+            icp = JSON.parse(icp);
+          } catch {
+            icp = {};
+          }
+        }
+
+        const icpIndustries: string | null =
+          typeof icp?.industry === "string" ? icp.industry : null;
+        if (icpIndustries != null) {
+          const arr= icpIndustries.split(",").map((item) => item.trim());
+          if (arr.length == 1 && INDUSTRIES.includes(arr[0])) {
+            searchParams.industry = arr[0];
+          }
+        }
+        logger.info("ICP searchParams", searchParams);
+      }
+
       const apolloResponse = await apolloPeopleSearch(
         searchParams,
         pageToFetch
