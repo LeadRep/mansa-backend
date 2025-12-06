@@ -79,6 +79,8 @@ const INDUSTRIES = [
   "Foundations",
 ];
 
+const INDUSTRIES_LOWER_CASE = INDUSTRIES.map((industry) => industry.toLowerCase());
+
 export const step2LeadGen = async (
   userId: string,
   totalLeads: number,
@@ -148,8 +150,8 @@ export const step2LeadGen = async (
         logger.info(`ICP industry ${icpIndustries}`);
         if (icpIndustries != null) {
           const arr= icpIndustries.split(",").map((item) => item.trim());
-          logger.info(`ICP industry arr ${JSON.stringify(arr)}`);
-          if (arr.length == 1 && INDUSTRIES.includes(arr[0])) {
+          logger.info(`ICP industry arr ${JSON.stringify(arr)}/${arr.length}/${INDUSTRIES_LOWER_CASE.includes(arr[0].toLowerCase())}`);
+          if (arr.length == 1 && INDUSTRIES_LOWER_CASE.includes(arr[0].toLowerCase())) {
             searchParams.industry = arr[0];
             logger.info(`ICP industry searchParams ${JSON.stringify(searchParams)}`);
           }
