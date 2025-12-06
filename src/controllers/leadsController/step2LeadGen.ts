@@ -151,6 +151,7 @@ export const step2LeadGen = async (
           logger.info(`ICP industry arr ${JSON.stringify(arr)}`);
           if (arr.length == 1 && INDUSTRIES.includes(arr[0])) {
             searchParams.industry = arr[0];
+            logger.info(`ICP industry searchParams ${JSON.stringify(searchParams)}`);
           }
         }
         logger.info(`ICP searchParams ${JSON.stringify(searchParams)}`);
