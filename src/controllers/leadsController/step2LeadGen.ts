@@ -150,7 +150,10 @@ export const step2LeadGen = async (
         if (icpIndustries != null) {
           const arr= icpIndustries.split(",").map((item) => item.trim());
           logger.info(`ICP industry arr ${JSON.stringify(arr)}/${arr.length}/${INDUSTRIES_LOWER_CASE.includes(arr[0].toLowerCase())}`);
-          if (arr.length == 1 && INDUSTRIES_LOWER_CASE.includes(arr[0].toLowerCase())) {
+          if (
+            arr.length == 1
+            // && INDUSTRIES_LOWER_CASE.includes(arr[0].toLowerCase())
+          ) {
             searchParams.q_keywords = arr[0];
             logger.info(`ICP industry searchParams ${JSON.stringify(searchParams)}`);
           }
