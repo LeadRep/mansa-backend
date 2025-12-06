@@ -127,7 +127,8 @@ export const step2LeadGen = async (
       }
 
       const pageToFetch = currentPage;
-      const searchParams = aiQueryParams;
+      // create a plain mutable copy (shallow clone) so you can add `industry`
+      const searchParams = { ...(aiQueryParams ?? {}) };
 
       if (process.env.APP_ENV === "test" || process.env.APP_ENV === "local" || process.env.APP_ENV === "development") {
         // for test purposes
