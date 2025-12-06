@@ -129,8 +129,7 @@ export const step2LeadGen = async (
       }
 
       const pageToFetch = currentPage;
-      // create a plain mutable copy (shallow clone) so you can add `industry`
-      const searchParams = { ...(aiQueryParams ?? {}) };
+      const searchParams = aiQueryParams;
 
       if (process.env.APP_ENV === "test" || process.env.APP_ENV === "local" || process.env.APP_ENV === "development") {
         // for test purposes
@@ -152,7 +151,7 @@ export const step2LeadGen = async (
           const arr= icpIndustries.split(",").map((item) => item.trim());
           logger.info(`ICP industry arr ${JSON.stringify(arr)}/${arr.length}/${INDUSTRIES_LOWER_CASE.includes(arr[0].toLowerCase())}`);
           if (arr.length == 1 && INDUSTRIES_LOWER_CASE.includes(arr[0].toLowerCase())) {
-            searchParams.industry = arr[0];
+            searchParams.q_keywords = arr[0];
             logger.info(`ICP industry searchParams ${JSON.stringify(searchParams)}`);
           }
         }
