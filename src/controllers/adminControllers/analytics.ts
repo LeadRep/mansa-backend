@@ -111,30 +111,30 @@ export const getUserMetrics = async (req: Request, res: Response) => {
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const totalUsers = await Users.count();
-    
-    // Use raw query for created_at since it's a timestamp not in UsersAttributes
+
+    // Use raw query for createdAt (Sequelize uses createdAt not created_at)
     const thisMonthResult = await Users.count({
       where: {
         [Op.and]: [
           Sequelize.where(
-            Sequelize.fn("DATE", Sequelize.col("created_at")),
+            Sequelize.fn("DATE", Sequelize.col("createdAt")),
             Op.gte,
             startOfThisMonth.toISOString().split("T")[0]
           ),
         ],
       } as any,
     });
-    
+
     const lastMonthResult = await Users.count({
       where: {
         [Op.and]: [
           Sequelize.where(
-            Sequelize.fn("DATE", Sequelize.col("created_at")),
+            Sequelize.fn("DATE", Sequelize.col("createdAt")),
             Op.gte,
             startOfLastMonth.toISOString().split("T")[0]
           ),
           Sequelize.where(
-            Sequelize.fn("DATE", Sequelize.col("created_at")),
+            Sequelize.fn("DATE", Sequelize.col("createdAt")),
             Op.lt,
             endOfLastMonth.toISOString().split("T")[0]
           ),
@@ -180,10 +180,18 @@ export const getGeo = async (req: Request, res: Response) => {
         [Sequelize.fn("COUNT", Sequelize.col("id")), "count"],
       ],
       group: ["country"],
-      order: [[Sequelize.literal("count"), "DESC"]],
+      order: [[Sequelize.fn("COUNT", Sequelize.col("id")), "DESC"]],
       limit: 20,
+      subQuery: false,
     });
-    return res.json({ success: true, data: results });
+
+    // Format results to ensure proper field names
+    const formatted = results.map((r: any) => ({
+      country: r.get("country") || "Unknown",
+      count: parseInt(r.get("count") as string, 10) || 0,
+    }));
+
+    return res.json({ success: true, data: formatted });
   } catch (error: any) {
     console.error(error);
     return res.status(500).json({ success: false, message: error.message });
