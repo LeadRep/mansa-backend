@@ -15,7 +15,7 @@ interface PeopleSearchQuery {
 export const peopleSearch = async (query: PeopleSearchQuery, page?: number) => {
   try {
     const response = await axios.post(
-      "https://api.apollo.io/v1/mixed_people/search",
+      "https://api.apollo.io/v1/mixed_people/api_search",
       {
         ...query,
         include_similar_titles: true,
