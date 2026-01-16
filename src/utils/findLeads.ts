@@ -78,7 +78,7 @@ const getSearchParametersFromAzureAI = async (customerPref: any) => {
 const searchLeadsOnApollo = async (searchParams: any) => {
   try {
     const response = await axios.post(
-      "https://api.apollo.io/v1/mixed_people/search",
+      "https://api.apollo.io/v1/mixed_people/api_search",
       {
         q_organization_domains: [],
         ...searchParams,

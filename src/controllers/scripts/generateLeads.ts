@@ -7,7 +7,7 @@ import { v4 } from "uuid";
 import { apolloEnrichedPeople } from "../leadsController/apolloEnrichedPeople";
 import { GeneralLeads } from "../../models/GeneralLeads";
 
-const APOLLO_PEOPLE_URL = "https://api.apollo.io/v1/mixed_people/search";
+const APOLLO_PEOPLE_URL = "https://api.apollo.io/v1/mixed_people/api_search";
 const APOLLO_ENRICH_URL = "https://api.apollo.io/v1/people/bulk_match";
 const DEFAULT_TITLES = [
   "Independent Financial Advisor",

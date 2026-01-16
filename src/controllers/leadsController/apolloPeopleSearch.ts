@@ -38,7 +38,7 @@ export const apolloPeopleSearch = async (
     }
 
     const response = await axios.post(
-      "https://api.apollo.io/v1/mixed_people/search",
+      "https://api.apollo.io/v1/mixed_people/api_search",
       { ...effectiveParams },
       {
         headers: {

@@ -3,7 +3,7 @@ import { apolloEnrichedPeople } from "../leadsController/apolloEnrichedPeople";
 import axios from "axios";
 import sendResponse from "../../utils/http/sendResponse";
 
-const APOLLO_PEOPLE_URL = "https://api.apollo.io/v1/mixed_people/search";
+const APOLLO_PEOPLE_URL = "https://api.apollo.io/v1/mixed_people/api_search";
 const buildApolloHeaders = () => ({
   "Cache-Control": "no-cache",
   "Content-Type": "application/json",
