@@ -43,7 +43,7 @@ export class AIService {
       };
     } catch (parseError) {
       logger.error({ parseError, content }, 'Failed to parse AI response content as JSON');
-      throw new Error('AI service did not return valid JSON');
+      throw new Error('Failed to parse AI response as JSON');
     }
   }
 }
