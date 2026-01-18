@@ -48,5 +48,5 @@ export const aiOrganizationSearchQuery = async (customerPref: any) => {
     }
   );
 
-  return response.data
+  return response.data;
 };
