@@ -55,7 +55,7 @@ export const generateCSVLeads = async (req: Request, res: Response) => {
         per_page: effectiveCount,
         page: 1,
       },
-    )
+    );
     const peopleData = response.data.model_ids;
     const people = peopleData.slice(0, effectiveCount);
     const enrichedData = await apolloEnrichedPeople(people);
