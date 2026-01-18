@@ -11,7 +11,6 @@ export interface EnrichPeopleQuery {
 
 export const enrichPeople = async (searchParams: EnrichPeopleQuery): Promise<any> => {
   try {
-
     const response = await apolloService.request(
       "people/bulk_match",
       searchParams
