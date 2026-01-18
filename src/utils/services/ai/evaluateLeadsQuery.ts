@@ -1,7 +1,7 @@
 import { v4 } from "uuid";
 import { Leads } from "../../../models/Leads";
 import logger from "../../../logger";
-import {aiService} from "../../http/services/aiService";
+import { aiService } from "../../http/services/aiService";
 
 export const evaluateLeadsWithAI = async (
   customerPref: any,
