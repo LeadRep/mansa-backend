@@ -1,4 +1,3 @@
-import axios from "axios";
 import logger from "../../../logger";
 import {apolloService} from "../../http/services/apolloService";
 
