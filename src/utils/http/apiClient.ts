@@ -97,17 +97,8 @@ class ApiClient {
     }
 
     // If we reach here, all retries have been exhausted
-    // lastApiError should always be set, but we provide a fallback just in case
-    if (lastApiError) {
-      throw lastApiError;
-    }
-    
-    // Defensive fallback: transform lastError to ApiError format
-    throw {
-      status: undefined,
-      message: lastError?.message || 'API request failed after all retries',
-      originalError: lastError,
-    } as ApiError;
+    // lastApiError will always be set since we've caught at least one error
+    throw lastApiError!;
   }
 
   private shouldRetry(statusCode: number | undefined, attempt: number, maxRetries: number): boolean {
