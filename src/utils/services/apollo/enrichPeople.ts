@@ -9,7 +9,7 @@ export interface EnrichPeopleQuery {
   webhook_url?: string;
 }
 
-export const enrichPeople = async (searchParams: EnrichPeopleQuery, attempt = 1): Promise<any> => {
+export const enrichPeople = async (searchParams: EnrichPeopleQuery): Promise<any> => {
   try {
 
     const response = await apolloService.request(
