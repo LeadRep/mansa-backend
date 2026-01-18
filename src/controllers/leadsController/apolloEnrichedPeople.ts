@@ -34,7 +34,7 @@ export const apolloEnrichedPeople = async (ids: string[]) => {
         logger.error(
           {
             status: batchError?.status,
-            message: batchError?.message ?? (batchError as Error)?.message,
+            message: batchError?.message,
             batchIds,
           },
           "Failed to enrich batch of people"
