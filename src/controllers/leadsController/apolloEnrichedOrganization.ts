@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import logger from "../../logger";
-import {apolloService} from "../../utils/http/services/apolloService";
+import { apolloService } from "../../utils/http/services/apolloService";
 
 dotenv.config();
 
