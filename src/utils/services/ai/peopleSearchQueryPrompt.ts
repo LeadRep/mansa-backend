@@ -1,5 +1,5 @@
 import logger from "../../../logger";
-import {aiService} from "../../http/services/aiService";
+import { aiService } from "../../http/services/aiService";
 
 export const peopleSearchQueryPrompt = async (customerPref: any) => {
   const messages = [
