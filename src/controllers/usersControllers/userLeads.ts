@@ -16,7 +16,10 @@ export const userLeads = async (req: Request, res: Response) => {
       sendResponse(res, 400, "User not found", []);
       return;
     }
-    const userLeads = await Leads.findAll({ where: { owner_id: userId } });
+    const userLeads = await Leads.findAll({
+      where: { owner_id: userId },
+      order: [["createdAt", "DESC"]],
+    });
     console.log("Total leads for user:", userLeads.length);
     const hasSubscription = Boolean(user.subscriptionName);
     const generationStatus = customer?.leadsGenerationStatus;
