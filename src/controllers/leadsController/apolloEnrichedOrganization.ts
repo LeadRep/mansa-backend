@@ -1,22 +1,12 @@
-import axios, { AxiosRequestConfig } from "axios";
 import dotenv from "dotenv";
 import logger from "../../logger";
+import {apolloService} from "../../utils/http/services/apolloService";
 
 dotenv.config();
-
-const APOLLO_ORG_ENRICH_URL =
-  "https://api.apollo.io/v1/organizations/bulk_enrich";
 
 interface ApolloOrganizationResponse {
   matches?: Array<Record<string, any>>;
 }
-
-const buildApolloHeaders = (): AxiosRequestConfig["headers"] => ({
-  "Cache-Control": "no-cache",
-  "Content-Type": "application/json",
-  accept: "application/json",
-  "x-api-key": process.env.APOLLO_API_KEY!,
-});
 
 const sanitizeDomain = (raw: string): string | null => {
   if (!raw) {
@@ -65,15 +55,14 @@ export const apolloEnrichedOrganization = async (
     for (let index = 0; index < filteredDomains.length; index += 10) {
       const batch = filteredDomains.slice(index, index + 10);
 
-      const response = await axios.post<ApolloOrganizationResponse>(
-        APOLLO_ORG_ENRICH_URL,
+      const response = await apolloService.request<ApolloOrganizationResponse>(
+        "organizations/bulk_enrich",
         {},
         {
-          headers: buildApolloHeaders(),
           params: {
             "domains[]": batch,
           },
-          paramsSerializer: (params) => {
+          paramsSerializer: (params: any) => {
             const searchParams = new URLSearchParams();
             const values = params["domains[]"];
             if (Array.isArray(values)) {

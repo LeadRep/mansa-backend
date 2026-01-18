@@ -1,11 +1,9 @@
 import { CustomerPref } from "../models/CustomerPref";
-import axios from "axios";
+import { aiService } from "../utils/http/services/aiService";
+import { apolloService } from "../utils/http/services/apolloService";
 import { Leads } from "../models/Leads";
 import { v4 } from "uuid";
 import logger from "../logger";
-
-const apiKey = process.env.OPENAI_API_KEY;
-const endpoint = process.env.OPENAI_ENDPOINT;
 
 const getCustomerPrefByUserId = async (userId: string) => {
   const pref = await CustomerPref.findOne({ where: { userId } });
@@ -34,73 +32,40 @@ const getSearchParametersFromAzureAI = async (customerPref: any) => {
     },
   ];
 
-  const response = await axios.post(
-    endpoint!,
-    {
-      messages,
-      temperature: 0.7,
-      max_tokens: 500,
-      model: "gpt-4",
-    },
-    {
-      headers: {
-        "api-key": apiKey!,
-        "Content-Type": "application/json",
-      },
-    }
-  );
+  const response = await aiService.request({
+    messages,
+    temperature: 0.7,
+    max_tokens: 500,
+    model: "gpt-4",
+  });
 
-  let content = response.data.choices[0].message.content.trim();
-
-  // Optional cleanup if OpenAI still wraps output in code blocks
-  if (content.startsWith("```")) {
-    content = content
-      .replace(/^```(?:json)?/, "")
-      .replace(/```$/, "")
-      .trim();
-  }
-
-  try {
-    const parsed = JSON.parse(content);
-    const result = {
-      ...parsed,
-      include_similar_titles: true,
-      contact_email_status: ["verified", "likely to engage"],
-      per_page: 10,
-    };
-    return result;
-  } catch (err) {
-    logger.error(err, `Failed to parse JSON from Azure AI. Content: ${content}`);
-    throw new Error("Azure AI did not return valid JSON");
-  }
+  const result = {
+    ...response.data,
+    include_similar_titles: true,
+    contact_email_status: ["verified", "likely to engage"],
+    per_page: 10,
+  };
+  return result;
 };
 
 const searchLeadsOnApollo = async (searchParams: any) => {
   try {
-    const response = await axios.post(
-      "https://api.apollo.io/v1/mixed_people/api_search",
+    const response = await apolloService.request(
+      "mixed_people/api_search",
       {
         q_organization_domains: [],
         ...searchParams,
         page: 1,
         per_page: 10,
-      },
-      {
-        headers: {
-          "Cache-Control": "no-cache",
-          "Content-Type": "application/json",
-          accept: "application/json",
-          "x-api-key": process.env.APOLLO_API_KEY!,
-        },
       }
     );
-
     return response.data;
   } catch (error: any) {
     logger.error(error, "Error searching leads on Apollo:");
     throw new Error("Failed to search leads on Apollo");
   }
 };
+
 const getTwentyLeads = async (searchParams: any) => {
   const page1 = await searchLeadsOnApollo({
     ...searchParams,
@@ -165,61 +130,15 @@ const evaluateLeadsWithAI = async (customerPref: any, leads: any[]) => {
     ];
 
     try {
-      const response = await axios.post(
-        endpoint!,
-        {
-          messages,
-          temperature: 0.7,
-          max_tokens: 2000,
-          model: "gpt-4",
-        },
-        {
-          headers: {
-            "api-key": apiKey!,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await aiService.request({
+        messages,
+        temperature: 0.7,
+        max_tokens: 2000,
+        model: "gpt-4",
+      });
 
-      let content = response.data.choices[0].message.content.trim();
-
-      // More robust cleaning of JSON response
-      content = content
-        .replace(/^```(?:json)?\s*/i, "") // Remove starting markdown code block
-        .replace(/\s*```$/i, "") // Remove ending markdown code block
-        .trim();
-
-      // Try to parse the JSON with error recovery
-      try {
-        const parsedLead = JSON.parse(content);
-        results.push(parsedLead);
-      } catch (innerErr: any) {
-        logger.error(
-          innerErr,
-          `Failed to parse JSON for lead: ${lead.email}. Raw content: ${content}`,
-        );
-
-        // Attempt to fix common JSON issues
-        try {
-          // Fix unquoted property names
-          const fixedContent = content.replace(
-            /([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g,
-            '$1"$2"$3'
-          );
-          const parsedLead = JSON.parse(fixedContent);
-          results.push(parsedLead);
-        } catch (fixErr: any) {
-          logger.error(fixErr, "Failed to fix JSON:");
-          // If we can't fix it, push the original lead with error info
-          results.push({
-            ...lead,
-            category: "unknown",
-            reason: "Could not evaluate lead due to JSON parse error",
-            score: 0,
-            parseError: innerErr.message,
-          });
-        }
-      }
+      const parsedLead = response.data;
+      results.push(parsedLead);
     } catch (err: any) {
       logger.error(err, `Failed to evaluate lead: ${lead.email}`);
       results.push({

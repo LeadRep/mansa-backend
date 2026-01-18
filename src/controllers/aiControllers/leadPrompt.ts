@@ -1,15 +1,12 @@
 import { Request, Response } from "express";
 import sendResponse from "../../utils/http/sendResponse";
-import axios from "axios";
 import dotenv from "dotenv";
 import { Leads, LeadStatus } from "../../models/Leads";
 import { JwtPayload } from "jsonwebtoken";
 import logger from "../../logger";
+import {aiService} from "../../utils/http/services/aiService";
 
 dotenv.config();
-
-const apiKey = process.env.OPENAI_API_KEY;
-const endpoint = process.env.OPENAI_ENDPOINT;
 
 export const leadsPrompt = async (request: JwtPayload, response: Response) => {
   const { keyword } = request.body;
@@ -40,29 +37,12 @@ Return only a JSON array.`,
       },
     ];
 
-    const headers = {
-      "Content-Type": "application/json",
-      "api-key": apiKey,
-    };
 
-    const aiResponse = await axios.post(
-      `${endpoint}`,
+
+    const aiResponse = await aiService.request(
       { messages, max_tokens: 2000 },
-      { headers }
     );
-
-    let aiContent = aiResponse.data?.choices?.[0]?.message?.content?.trim();
-    logger.info({aiContent: aiContent}, "Ai content:");
-
-    // Strip accidental formatting
-    if (aiContent.startsWith("```")) {
-      aiContent = aiContent
-        .replace(/^```(?:json)?/, "")
-        .replace(/```$/, "")
-        .trim();
-    }
-
-    const ids = JSON.parse(aiContent);
+    const ids = aiResponse.data;
     logger.info({ids: ids}, "Ai response:");
 
     // Fetch leads from DB

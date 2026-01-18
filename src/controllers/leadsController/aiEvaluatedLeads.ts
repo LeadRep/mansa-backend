@@ -1,6 +1,7 @@
 import axios from "axios";
 import { CustomerPref } from "../../models/CustomerPref";
 import logger from "../../logger";
+import {aiService} from "../../utils/http/services/aiService";
 
 const apiKey = process.env.OPENAI_API_KEY;
 const endpoint = process.env.OPENAI_ENDPOINT;
@@ -31,25 +32,16 @@ export const aiEvaluatedLeads = async (customers: any, people: any[]) => {
     ];
     const headers = { "Content-Type": "application/json", "api-key": apiKey };
 
-    const response = await axios.post(
-      `${endpoint}`,
+    const response = await aiService.request(
       {
         messages,
         max_tokens: 2000,
         temperature: 0.3,
         response_format: { type: "json_object" },
-      },
-      { headers }
+      }
     );
 
-    let aiContent = response.data?.choices?.[0]?.message?.content?.trim();
-    if (aiContent.startsWith("```")) {
-      aiContent = aiContent
-        .replace(/^```(?:json)?/, "")
-        .replace(/```$/, "")
-        .trim();
-    }
-    return JSON.parse(aiContent);
+    return response.data;
   } catch (error: any) {
     logger.error(error, "Error evaluating leads with ai:");
     throw new Error(error.message);
