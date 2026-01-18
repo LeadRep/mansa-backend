@@ -1,4 +1,3 @@
-import axios from "axios";
 import { CustomerPref } from "../../models/CustomerPref";
 import logger from "../../logger";
 import {aiService} from "../../utils/http/services/aiService";
