@@ -56,6 +56,7 @@ export const peopleSearchQueryPrompt = async (customerPref: any) => {
     return result;
   } catch (err) {
     logger.error(err, `Failed to peopleSearchQueryPrompt`);
-    throw new Error("Azure AI did not return valid JSON");
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(`Azure AI did not return valid JSON: ${detail}`);
   }
 };
