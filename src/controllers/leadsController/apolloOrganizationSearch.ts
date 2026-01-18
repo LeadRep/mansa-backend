@@ -1,5 +1,5 @@
 import logger from "../../logger";
-import {apolloService} from "../../utils/http/services/apolloService";
+import { apolloService } from "../../utils/http/services/apolloService";
 
 
 interface organizationSearchQuery {
