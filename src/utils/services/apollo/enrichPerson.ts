@@ -1,5 +1,5 @@
-import axios from "axios";
 import logger from "../../../logger";
+import {apolloService} from "../../http/services/apolloService";
 
 export interface EnrichPersonQuery {
   first_name?: string;
@@ -18,17 +18,9 @@ export interface EnrichPersonQuery {
 
 export const enrichPerson = async (searchParams: EnrichPersonQuery) => {
   try {
-    const response = await axios.post(
-      "https://api.apollo.io/v1/people/match",
-      searchParams,
-      {
-        headers: {
-          "Cache-Control": "no-cache",
-          "Content-Type": "application/json",
-          accept: "application/json",
-          "x-api-key": process.env.APOLLO_API_KEY!,
-        },
-      }
+    const response = await apolloService.request(
+      "people/match",
+      searchParams
     );
     return response.data;
   } catch (err: any) {

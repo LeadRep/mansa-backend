@@ -1,9 +1,9 @@
-import axios from "axios";
 import { Request, Response } from "express";
 import { Op } from "sequelize";
 import logger from "../../logger";
 import { GeneralLeads } from "../../models/GeneralLeads";
 import sendResponse from "../../utils/http/sendResponse";
+import {aiService} from "../../utils/http/services/aiService";
 
 const SEGMENT_OPTIONS: string[] = [
   "Commercial Banking",
@@ -76,9 +76,6 @@ const SEGMENT_OPTIONS: string[] = [
   "Foundations",
 ];
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_ENDPOINT = process.env.OPENAI_ENDPOINT;
-
 const formatLeadSummary = (lead: any) => {
   const org = lead.organization ?? {};
   const sections: string[] = [];
@@ -107,9 +104,6 @@ const formatLeadSummary = (lead: any) => {
 };
 
 const callSegmentsModel = async (lead: any) => {
-  if (!OPENAI_API_KEY || !OPENAI_ENDPOINT) {
-    throw new Error("OpenAI credentials are not configured");
-  }
 
   const systemPrompt =
     "You are a B2B classification assistant for financial services. Review the lead information and map them to the best matching segments from the provided list. Return concise JSON only.";
@@ -131,8 +125,7 @@ Instructions:
 - If uncertain, still choose the closest match.
 `;
 
-  const response = await axios.post(
-    OPENAI_ENDPOINT,
+  const response = await aiService.request(
     {
       model: "gpt-4",
       temperature: 0.2,
@@ -143,23 +136,11 @@ Instructions:
       ],
     },
     {
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": OPENAI_API_KEY,
-      },
       timeout: 60000,
     }
   );
 
-  let content: string =
-    response?.data?.choices?.[0]?.message?.content?.trim() ?? "";
-
-  content = content
-    .replace(/^```(json)?\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
-
-  return JSON.parse(content);
+  return response.data;
 };
 
 const sanitizeArray = (value: unknown): string[] => {

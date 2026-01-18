@@ -1,5 +1,5 @@
-import axios from "axios";
 import logger from "../../logger";
+import { apolloService } from "../../utils/http/services/apolloService";
 
 
 interface organizationSearchQuery {
@@ -19,21 +19,13 @@ export const apolloOrganizationSearch = async (
   page?: number
 ) => {
   try {
-    const response = await axios.post(
-      "https://api.apollo.io/v1/mixed_companies/search",
+    const response = await apolloService.request(
+      "mixed_companies/search",
       {
         q_organization_domains: [],
         ...searchParams,
         page:page? page : 1,
         per_page: 100,
-      },
-      {
-        headers: {
-          "Cache-Control": "no-cache",
-          "Content-Type": "application/json",
-          accept: "application/json",
-          "x-api-key": process.env.APOLLO_API_KEY!,
-        },
       }
     );
     return response.data;

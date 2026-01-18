@@ -1,14 +1,11 @@
-import axios from "axios";
 import {
   AIResponse,
   scrapeWebsiteContent,
 } from "../../../controllers/aiControllers/customerPreference";
 import dotenv from "dotenv";
 import logger from "../../../logger";
+import {aiService} from "../../http/services/aiService";
 dotenv.config();
-
-const apiKey = process.env.OPENAI_API_KEY;
-const endpoint = process.env.OPENAI_ENDPOINT;
 
 export async function updateCRMInsights(
   companyName: string,
@@ -81,22 +78,12 @@ export async function updateCRMInsights(
   ];
 
   try {
-    const headers = { "Content-Type": "application/json", "api-key": apiKey };
+    const response = await aiService.request({
+      messages,
+      max_tokens: 2000
+    });
 
-    const response = await axios.post(
-      `${endpoint}`,
-      { messages, max_tokens: 2000 },
-      { headers }
-    );
-
-    let aiContent = response.data?.choices?.[0]?.message?.content?.trim();
-    if (aiContent.startsWith("```")) {
-      aiContent = aiContent
-        .replace(/^```(?:json)?/, "")
-        .replace(/```$/, "")
-        .trim();
-    }
-    return JSON.parse(aiContent) as AIResponse;
+    return response.data as AIResponse;
   } catch (error: any) {
     logger.error(error, "Error fetching AI response:");
     return null;
