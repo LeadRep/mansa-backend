@@ -29,7 +29,6 @@ export const aiEvaluatedLeads = async (customers: any, people: any[]) => {
         `,
       },
     ];
-    const headers = { "Content-Type": "application/json", "api-key": apiKey };
 
     const response = await aiService.request(
       {
