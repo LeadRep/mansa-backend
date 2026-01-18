@@ -7,8 +7,9 @@ export class ApolloService {
   private apiKey = process.env.APOLLO_API_KEY!;
 
   async request<T = any>(endpoint: string, data?: any, config: RequestConfig = {}): Promise<ApiResponse<T>> {
+    const normalizedEndpoint = endpoint.replace(/^\/+/, '');
     return apiClient.post<T>(
-      `${this.baseUrl}/${endpoint}`,
+      `${this.baseUrl}/${normalizedEndpoint}`,
       data,
       {
       ...config,
