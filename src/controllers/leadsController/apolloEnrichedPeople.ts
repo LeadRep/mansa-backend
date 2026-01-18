@@ -28,7 +28,7 @@ export const apolloEnrichedPeople = async (ids: string[]) => {
         const response = await apolloService.request(
           "people/bulk_match",
           payload
-        )
+        );
         enrichedData.push(...(response.data.matches ?? []));
       } catch (batchError: any) {
         logger.error(
