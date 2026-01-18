@@ -38,6 +38,7 @@ class ApiClient {
     const { retries = 3, retryDelay = 1000, logErrors = true, ...axiosConfig } = finalConfig;
 
     let lastError: any;
+    let lastApiError: ApiError | undefined;
 
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
@@ -57,7 +58,7 @@ class ApiClient {
       } catch (error: any) {
         lastError = error;
 
-        const apiError: ApiError = {
+        lastApiError = {
           status: error?.response?.status,
           message: error?.response?.data?.error ??
             error?.response?.data?.message ??
@@ -74,8 +75,8 @@ class ApiClient {
               url,
               attempt: attempt + 1,
               maxAttempts: retries + 1,
-              status: apiError.status,
-              message: apiError.message
+              status: lastApiError.status,
+              message: lastApiError.message
             },
             `API request failed (attempt ${attempt + 1}/${retries + 1})`
           );
@@ -87,7 +88,7 @@ class ApiClient {
         const shouldRetry = this.shouldRetry(statusCode, attempt, retries);
 
         if (!shouldRetry) {
-          throw apiError;
+          throw lastApiError;
         }
 
         // Wait before retrying with exponential backoff
@@ -95,7 +96,9 @@ class ApiClient {
       }
     }
 
-    throw lastError;
+    // If we reach here, all retries have been exhausted
+    // lastApiError will always be set since we've caught at least one error
+    throw lastApiError!;
   }
 
   private shouldRetry(statusCode: number | undefined, attempt: number, maxRetries: number): boolean {
