@@ -32,7 +32,11 @@ export const apolloEnrichedPeople = async (ids: string[]) => {
         enrichedData.push(...(response.data.matches ?? []));
       } catch (batchError: any) {
         logger.error(
-          { status: batchError.status, message: batchError.message, batchIds },
+          {
+            status: batchError?.status,
+            message: batchError?.message ?? (batchError as Error)?.message,
+            batchIds,
+          },
           "Failed to enrich batch of people"
         );
       }
