@@ -37,6 +37,13 @@ class ApiClient {
     const finalConfig = { ...this.defaultConfig, ...config };
     const { retries = 3, retryDelay = 1000, logErrors = true, ...axiosConfig } = finalConfig;
 
+    // Log request initiation
+    logger.info({
+      method,
+      url: this.sanitizeUrl(url),
+      maxRetries: retries
+    }, 'API request started');
+
     let lastApiError: ApiError | undefined;
 
     for (let attempt = 0; attempt <= retries; attempt++) {
@@ -47,6 +54,14 @@ class ApiClient {
           ...axiosConfig,
         });
 
+        // Log successful response
+        logger.info({
+          method,
+          url: this.sanitizeUrl(url),
+          status: response.status,
+          attempts: attempt + 1
+        }, 'API request completed successfully');
+
         return {
           data: response.data,
           status: response.status,
@@ -55,7 +70,6 @@ class ApiClient {
         };
 
       } catch (error: any) {
-
         lastApiError = {
           status: error?.response?.status,
           message: error?.response?.data?.error ??
@@ -65,25 +79,25 @@ class ApiClient {
           originalError: error,
         };
 
-        // Log error with context
-        if (logErrors) {
-          logger.error(
-            {
-              method,
-              url,
-              attempt: attempt + 1,
-              maxAttempts: retries + 1,
-              status: lastApiError.status,
-              message: lastApiError.message
-            },
-            `API request failed (attempt ${attempt + 1}/${retries + 1})`
-          );
-        }
-
         const statusCode = error?.response?.status;
-
-        // Determine if we should retry
         const shouldRetry = this.shouldRetry(statusCode, attempt, retries);
+
+        // Log error with attempt context
+        if (logErrors) {
+          const logContext = {
+            method,
+            url: this.sanitizeUrl(url),
+            status: statusCode,
+            message: lastApiError.message,
+            attempts: attempt + 1
+          };
+
+          if (shouldRetry) {
+            logger.warn(logContext, 'API request failed, will retry');
+          } else {
+            logger.error(logContext, 'API request failed permanently');
+          }
+        }
 
         if (!shouldRetry) {
           throw lastApiError;
@@ -94,43 +108,92 @@ class ApiClient {
       }
     }
 
-    // If we reach here, all retries have been exhausted
-    // lastApiError will always be set since we've caught at least one error
     throw lastApiError!;
   }
 
   private shouldRetry(statusCode: number | undefined, attempt: number, maxRetries: number): boolean {
-    // If this is the last attempt, don't retry
     if (attempt >= maxRetries) {
       return false;
     }
 
-    // No status code means network error - retry
     if (!statusCode) {
       return true;
     }
 
-    // Retry on server errors (5XX)
     if (statusCode >= 500 && statusCode < 600) {
       return true;
     }
 
-    // Retry on rate limiting (429)
     if (statusCode === 429) {
       logger.info(`Rate limited. Waiting ...`);
       return true;
     }
 
-    // Don't retry on client errors (4XX) except 429
     if (statusCode >= 400 && statusCode < 500) {
       return false;
     }
 
-    // Retry on other unexpected status codes
     return true;
   }
 
+  private sanitizeUrl(rawUrl: string): string {
+    // Attempt to use the URL API for robust parsing and sanitization
+    try {
+      const url = new URL(rawUrl);
 
+      // Broader set of sensitive parameter names
+      const sensitiveParamPattern =
+        /^(?:api[_-]?key|apikey|access[_-]?token|token|auth(?:orization)?|password|secret|key)$/i;
+
+      // Sanitize query parameters
+      url.searchParams.forEach((value, key) => {
+        if (sensitiveParamPattern.test(key)) {
+          url.searchParams.set(key, '[REDACTED]');
+        }
+      });
+
+      // Sanitize hash fragment if it contains query-like parameters
+      if (url.hash && url.hash.length > 1) {
+        const hashWithoutHashChar = url.hash.substring(1);
+        const hashParams = new URLSearchParams(hashWithoutHashChar);
+        let modifiedHash = false;
+
+        hashParams.forEach((value, key) => {
+          if (sensitiveParamPattern.test(key)) {
+            hashParams.set(key, '[REDACTED]');
+            modifiedHash = true;
+          }
+        });
+
+        if (modifiedHash) {
+          url.hash = '#' + hashParams.toString();
+        }
+      }
+
+      // Conservatively sanitize path segments that look like opaque tokens
+      const sanitizedPathSegments = url.pathname.split('/').map((segment) => {
+        if (!segment) {
+          return segment;
+        }
+
+        // Heuristic: long, unstructured segments are likely to be tokens/keys
+        const looksLikeToken =
+          segment.length >= 16 && /^[A-Za-z0-9\-_]+$/.test(segment);
+
+        return looksLikeToken ? '[REDACTED]' : segment;
+      });
+
+      url.pathname = sanitizedPathSegments.join('/');
+
+      return url.toString();
+    } catch {
+      // Fallback: best-effort regex-based sanitization for non-absolute URLs
+      return rawUrl.replace(
+        /([?&#](?:api[_-]?key|apikey|access[_-]?token|token|auth(?:orization)?|password|secret|key)=)[^&#]*/gi,
+        '$1[REDACTED]'
+      );
+    }
+  }
 
   // Convenience methods
   async get<T = any>(url: string, config: ApiClientConfig = {}): Promise<ApiResponse<T>> {
