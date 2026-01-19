@@ -1,4 +1,3 @@
-import axios from "axios";
 import { Request, Response } from "express";
 import puppeteer from "puppeteer";
 import dotenv from "dotenv";

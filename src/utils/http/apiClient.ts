@@ -37,7 +37,6 @@ class ApiClient {
     const finalConfig = { ...this.defaultConfig, ...config };
     const { retries = 3, retryDelay = 1000, logErrors = true, ...axiosConfig } = finalConfig;
 
-    let lastError: any;
     let lastApiError: ApiError | undefined;
 
     for (let attempt = 0; attempt <= retries; attempt++) {
@@ -56,7 +55,6 @@ class ApiClient {
         };
 
       } catch (error: any) {
-        lastError = error;
 
         lastApiError = {
           status: error?.response?.status,
