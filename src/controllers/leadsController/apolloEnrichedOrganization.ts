@@ -62,7 +62,7 @@ export const apolloEnrichedOrganization = async (
           params: {
             "domains[]": batch,
           },
-          paramsSerializer: (params: { ["domains[]"]: string[] }) => {
+          paramsSerializer: (params: Record<string, any>) => {
             const searchParams = new URLSearchParams();
             const values = params["domains[]"];
             if (Array.isArray(values)) {
