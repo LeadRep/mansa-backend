@@ -130,8 +130,63 @@ class ApiClient {
     return true;
   }
 
-  private sanitizeUrl(url: string): string {
-    return url.replace(/([?&](?:api_key|apikey|token|password|secret)=)[^&]*/gi, '$1[REDACTED]');
+  private sanitizeUrl(rawUrl: string): string {
+    // Attempt to use the URL API for robust parsing and sanitization
+    try {
+      const url = new URL(rawUrl);
+
+      // Broader set of sensitive parameter names
+      const sensitiveParamPattern =
+        /^(?:api[_-]?key|apikey|access[_-]?token|token|auth(?:orization)?|password|secret|key)$/i;
+
+      // Sanitize query parameters
+      url.searchParams.forEach((value, key) => {
+        if (sensitiveParamPattern.test(key)) {
+          url.searchParams.set(key, '[REDACTED]');
+        }
+      });
+
+      // Sanitize hash fragment if it contains query-like parameters
+      if (url.hash && url.hash.length > 1) {
+        const hashWithoutHashChar = url.hash.substring(1);
+        const hashParams = new URLSearchParams(hashWithoutHashChar);
+        let modifiedHash = false;
+
+        hashParams.forEach((value, key) => {
+          if (sensitiveParamPattern.test(key)) {
+            hashParams.set(key, '[REDACTED]');
+            modifiedHash = true;
+          }
+        });
+
+        if (modifiedHash) {
+          url.hash = '#' + hashParams.toString();
+        }
+      }
+
+      // Conservatively sanitize path segments that look like opaque tokens
+      const sanitizedPathSegments = url.pathname.split('/').map((segment) => {
+        if (!segment) {
+          return segment;
+        }
+
+        // Heuristic: long, unstructured segments are likely to be tokens/keys
+        const looksLikeToken =
+          segment.length >= 16 && /^[A-Za-z0-9\-_]+$/.test(segment);
+
+        return looksLikeToken ? '[REDACTED]' : segment;
+      });
+
+      url.pathname = sanitizedPathSegments.join('/');
+
+      return url.toString();
+    } catch {
+      // Fallback: best-effort regex-based sanitization for non-absolute URLs
+      return rawUrl.replace(
+        /([?&#](?:api[_-]?key|apikey|access[_-]?token|token|auth(?:orization)?|password|secret|key)=)[^&#]*/gi,
+        '$1[REDACTED]'
+      );
+    }
   }
 
   // Convenience methods
