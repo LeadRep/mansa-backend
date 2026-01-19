@@ -83,14 +83,20 @@ class ApiClient {
         const shouldRetry = this.shouldRetry(statusCode, attempt, retries);
 
         // Log error with attempt context
-        if (logErrors && !shouldRetry) {
-          logger.error({
+        if (logErrors) {
+          const logContext = {
             method,
             url: this.sanitizeUrl(url),
             status: statusCode,
             message: lastApiError.message,
             attempts: attempt + 1
-          }, 'API request failed permanently');
+          };
+
+          if (shouldRetry) {
+            logger.warn(logContext, 'API request failed, will retry');
+          } else {
+            logger.error(logContext, 'API request failed permanently');
+          }
         }
 
         if (!shouldRetry) {
