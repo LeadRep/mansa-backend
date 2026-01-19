@@ -23,7 +23,7 @@ export class AIService {
    *
    * @typeParam T - Expected shape of the parsed response data returned by the OpenAI API.
    * @param data - Request payload to send in the POST body (e.g., messages, model, parameters).
-   * @param config - Optional additional request configuration (e.g. headers,
+   * @param config - Optional additional request configuration (e.g., headers,
    *                 query parameters, or timeouts) merged into the API client call.
    * @returns A promise that resolves to the API client's `ApiResponse<T>` wrapper
    *          containing the parsed AI response data.
@@ -58,7 +58,6 @@ export class AIService {
    */
   private parseAIResponse<T>(response: ApiResponse): ApiResponse<T> {
     let content = response.data?.choices?.[0]?.message?.content?.trim();
-    //logger.info({aiContent: content}, "Ai content:");
     if (!content) {
       return response as ApiResponse<T>;
     }
