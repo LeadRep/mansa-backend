@@ -1,5 +1,5 @@
-import axios from "axios";
 import logger from "../../logger";
+import { apolloService } from "../../utils/http/services/apolloService";
 
 type ApolloSearchParams = Record<string, any> | null | undefined;
 
@@ -37,17 +37,9 @@ export const apolloPeopleSearch = async (
       delete effectiveParams.person_seniorities;
     }
 
-    const response = await axios.post(
-      "https://api.apollo.io/v1/mixed_people/api_search",
-      { ...effectiveParams },
-      {
-        headers: {
-          "Cache-Control": "no-cache",
-          "Content-Type": "application/json",
-          accept: "application/json",
-          "x-api-key": process.env.APOLLO_API_KEY!,
-        },
-      }
+    const response = await apolloService.request(
+      "mixed_people/api_search",
+      { ...effectiveParams }
     );
     return response.data;
   } catch (error: any) {

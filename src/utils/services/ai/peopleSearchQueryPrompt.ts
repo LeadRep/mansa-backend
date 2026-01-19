@@ -1,8 +1,5 @@
-import axios from "axios";
 import logger from "../../../logger";
-
-const apiKey = process.env.OPENAI_API_KEY;
-const endpoint = process.env.OPENAI_ENDPOINT;
+import { aiService } from "../../http/services/aiService";
 
 export const peopleSearchQueryPrompt = async (customerPref: any) => {
   const messages = [
@@ -38,34 +35,18 @@ export const peopleSearchQueryPrompt = async (customerPref: any) => {
     },
   ];
 
-  const response = await axios.post(
-    endpoint!,
+  const response = await aiService.request(
     {
       messages,
       temperature: 0.7,
       max_tokens: 500,
       model: "gpt-4",
-    },
-    {
-      headers: {
-        "api-key": apiKey!,
-        "Content-Type": "application/json",
-      },
     }
   );
 
-  let content = response.data.choices[0].message.content.trim();
-
-  // Optional cleanup if OpenAI still wraps output in code blocks
-  if (content.startsWith("```")) {
-    content = content
-      .replace(/^```(?:json)?/, "")
-      .replace(/```$/, "")
-      .trim();
-  }
 
   try {
-    const parsed = JSON.parse(content);
+    const parsed = response.data;
     const result = {
       ...parsed,
       include_similar_titles: true,
@@ -74,7 +55,8 @@ export const peopleSearchQueryPrompt = async (customerPref: any) => {
     };
     return result;
   } catch (err) {
-    logger.error(err, `Failed to parse JSON from Azure AI. Content: ${content}`);
-    throw new Error("Azure AI did not return valid JSON");
+    logger.error(err, `Failed to peopleSearchQueryPrompt`);
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(`Azure AI did not return valid JSON: ${detail}`);
   }
 };

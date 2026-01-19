@@ -1,10 +1,7 @@
-import axios from "axios";
 import { v4 } from "uuid";
 import { Leads } from "../../../models/Leads";
 import logger from "../../../logger";
-
-const apiKey = process.env.OPENAI_API_KEY;
-const endpoint = process.env.OPENAI_ENDPOINT;
+import { aiService } from "../../http/services/aiService";
 
 export const evaluateLeadsWithAI = async (
   customerPref: any,
@@ -64,33 +61,17 @@ export const evaluateLeadsWithAI = async (
       ];
 
       try {
-        const response = await axios.post(
-          endpoint!,
+        const response = await aiService.request(
           {
             messages,
             temperature: 0.7,
             max_tokens: 2000,
             model: "gpt-4",
-          },
-          {
-            headers: {
-              "api-key": apiKey!,
-              "Content-Type": "application/json",
-            },
           }
         );
 
-        let content: string =
-          response?.data?.choices?.[0]?.message?.content?.trim() ?? "";
-
-        // Remove Markdown wrappers
-        content = content
-          .replace(/^```(json)?\s*/i, "")
-          .replace(/\s*```$/i, "")
-          .trim();
-
         try {
-          const parsedLead = JSON.parse(content);
+          const parsedLead = response.data;
           results.push(parsedLead);
 
           // Save to database
@@ -128,11 +109,11 @@ export const evaluateLeadsWithAI = async (
           logger.error( parseErr,
             `JSON parse failed for lead: ${lead.email ?? "unknown"}`
           );
-          logger.info(`Raw content:\n${content}`);
+          logger.info(`Raw content:\n${JSON.stringify(response.data)}`);
 
           // Try to fix common JSON issues
           try {
-            const fixedContent = content.replace(
+            const fixedContent = response.data.replace(
               /([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g,
               '$1"$2"$3'
             );

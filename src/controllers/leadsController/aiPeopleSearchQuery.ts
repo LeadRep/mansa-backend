@@ -1,8 +1,6 @@
-import axios from "axios";
+import { aiService } from "../../utils/http/services/aiService";
 import logger from "../../logger";
 
-const apiKey = process.env.OPENAI_API_KEY;
-const endpoint = process.env.OPENAI_ENDPOINT;
 export const aiPeopleSearchQuery = async (customers: any) => {
   try {
     const data = {
@@ -43,27 +41,15 @@ export const aiPeopleSearchQuery = async (customers: any) => {
         `,
       },
     ];
-    const headers = { "Content-Type": "application/json", "api-key": apiKey };
 
-    const response = await axios.post(
-      `${endpoint}`,
-      {
-        messages,
-        max_tokens: 2000,
-        temperature: 0.3,
-        response_format: { type: "json_object" },
-      },
-      { headers }
-    );
+    const response = await aiService.request({
+      messages,
+      max_tokens: 2000,
+      temperature: 0.3,
+      response_format: { type: "json_object" },
+    });
 
-    let aiContent = response.data?.choices?.[0]?.message?.content?.trim();
-    if (aiContent.startsWith("```")) {
-      aiContent = aiContent
-        .replace(/^```(?:json)?/, "")
-        .replace(/```$/, "")
-        .trim();
-    }
-    const result = JSON.parse(aiContent);
+    const result = response.data;
 
     const keysToClean = [
       "person_titles",
@@ -93,15 +79,6 @@ export const aiPeopleSearchQuery = async (customers: any) => {
     return result;
   } catch (error: any) {
     logger.error(error, "Error generating leads:");
-
-    if (axios.isAxiosError(error)) {
-      throw new Error(
-        `OpenAI API error: ${error.response?.status} - ${
-          error.response?.data?.error?.message || error.message
-        }`
-      );
-    }
-
     throw error instanceof Error
       ? error
       : new Error("Unknown error occurred during lead generation");

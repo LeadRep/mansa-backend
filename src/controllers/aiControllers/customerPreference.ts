@@ -1,8 +1,8 @@
-import axios from "axios";
 import { Request, Response } from "express";
 import puppeteer from "puppeteer";
 import dotenv from "dotenv";
 import logger from "../../logger";
+import {aiService} from "../../utils/http/services/aiService";
 dotenv.config();
 
 // Define the expected structure of customer data
@@ -217,22 +217,14 @@ export async function getCRMInsights(
   
 
   try {
-    const headers = { "Content-Type": "application/json", "api-key": apiKey };
 
-    const response = await axios.post(
-      `${endpoint}`,
-      { messages, max_tokens: 2000 },
-      { headers }
-    );
+    const response = await aiService.request({
+      messages,
+      max_tokens: 2000
+    });
 
-    let aiContent = response.data?.choices?.[0]?.message?.content?.trim();
-    if (aiContent.startsWith("```")) {
-      aiContent = aiContent
-        .replace(/^```(?:json)?/, "")
-        .replace(/```$/, "")
-        .trim();
-    }
-    return JSON.parse(aiContent) as AIResponse;
+    return response.data as AIResponse;
+
   } catch (error: any) {
     logger.error(error, "Error fetching AI response:");
     return null;
