@@ -12,6 +12,9 @@ import { getUserDeals } from "../controllers/usersControllers/deals/getDeal";
 import { getContactsByDealAndStage } from "../controllers/usersControllers/deals/getStageContacts";
 import { moveContactToStage } from "../controllers/usersControllers/deals/moveContactStage";
 import { addLeadToDeal } from "../controllers/usersControllers/addLeadToDeal";
+import { deleteDealContact } from "../controllers/usersControllers/deals/deleteDealContact";
+import { updateDealStages } from "../controllers/usersControllers/deals/updateStages";
+import { deleteStage } from "../controllers/usersControllers/deals/deleteStage";
 import { forgotPassword } from "../controllers/usersControllers/forgotPassword";
 import { resetPassword } from "../controllers/usersControllers/resetPassword";
 import { shareLeads } from "../controllers/usersControllers/shareLeads";
@@ -37,5 +40,12 @@ usersRoutes.get(
   getContactsByDealAndStage
 );
 usersRoutes.post("/move-contact/:contactId", userAuth, moveContactToStage);
+usersRoutes.delete(
+  "/deal-contacts/:contactId",
+  userAuth,
+  deleteDealContact
+);
+usersRoutes.put("/deal/:dealId/stages", userAuth, updateDealStages);
+usersRoutes.delete("/deal/:dealId/stages/:stageId", userAuth, deleteStage);
 
 export default usersRoutes;

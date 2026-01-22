@@ -151,7 +151,7 @@ export const createAdmin = async (req: Request, res: Response) => {
             territories: [],
         });
 
-        sendResponse(res, 201, "Admin created successfully", {
+        sendResponse(res, 200, "Admin created successfully", {
             id: user.id,
             email: user.email,
             role: user.role
