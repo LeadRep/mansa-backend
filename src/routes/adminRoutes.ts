@@ -17,8 +17,39 @@ import {
   getGeo,
   getActiveUsersByOrg,
 } from "../controllers/adminControllers/analytics";
+import path from "path";
+import fs from "fs";
+import multer, { FileFilterCallback } from "multer";
+import { Request } from "express";
+import {
+  createBlogPost,
+  deleteBlogPost,
+  listBlogPostsAdmin,
+  updateBlogPost,
+  uploadBlogImage,
+  getBlogPostAdmin,
+} from "../controllers/blogControllers/adminBlogs";
 
 const adminRoutes = express.Router();
+const uploadTempDir = path.join(__dirname, "../../uploads/tmp");
+if (!fs.existsSync(uploadTempDir)) {
+  fs.mkdirSync(uploadTempDir, { recursive: true });
+}
+
+const upload = multer({
+  dest: uploadTempDir,
+  fileFilter: (
+    _req: Request,
+    file: Express.Multer.File,
+    cb: FileFilterCallback
+  ) => {
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("Only image uploads are allowed"));
+    }
+    return cb(null, true);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 // Public Admin Routes (for initial setup)
 adminRoutes.post("/create", createAdmin);
@@ -45,5 +76,13 @@ adminRoutes.get("/analytics/users", getUserMetrics);
 adminRoutes.get("/analytics/subscribed", getSubscribedUsers);
 adminRoutes.get("/analytics/geo", getGeo);
 adminRoutes.get("/analytics/active", getActiveUsersByOrg);
+
+// Blog Routes
+adminRoutes.get("/blogs", listBlogPostsAdmin);
+adminRoutes.get("/blogs/:id", getBlogPostAdmin);
+adminRoutes.post("/blogs", createBlogPost);
+adminRoutes.put("/blogs/:id", updateBlogPost);
+adminRoutes.delete("/blogs/:id", deleteBlogPost);
+adminRoutes.post("/blogs/uploads", upload.single("image"), uploadBlogImage);
 
 export default adminRoutes;

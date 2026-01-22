@@ -49,6 +49,9 @@ app.use(
 );
 app.use(pinoHttpMiddleware);
 app.use(cookieParser());
+const uploadsRoot = path.resolve(process.cwd(), "uploads");
+app.use("/uploads", express.static(uploadsRoot));
+app.use("/v1/uploads", express.static(uploadsRoot));
 app.get("/", (request: Request, response: Response) => {
   response.redirect("/v1");
 });

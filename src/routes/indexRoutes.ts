@@ -12,6 +12,7 @@ import { generateLeads } from "../controllers/scripts/generateLeads";
 import { classifyGeneralLeadSegments } from "../controllers/scripts/classifyGeneralLeadSegments";
 import { generateCSVLeads } from "../controllers/scripts/generateCSVLeads";
 import sharedRoutes from "./sharedRoutes";
+import blogRoutes from "./blogRoutes";
 
 const indexRoutes = express.Router();
 indexRoutes.get("/", index);
@@ -23,6 +24,7 @@ indexRoutes.use("/scraper", scraperRoutes);
 indexRoutes.use("/organizations", organizationsRoutes);
 indexRoutes.use("/admin", adminRoutes);
 indexRoutes.use("/shared", sharedRoutes);
+indexRoutes.use("/blogs", blogRoutes);
 indexRoutes.get("/delete-companies", deleteCompanies);
 indexRoutes.get("/generate-leads/:page/:endPage", generateLeads);
 indexRoutes.get("/classify-general-leads/:limit", classifyGeneralLeadSegments);
