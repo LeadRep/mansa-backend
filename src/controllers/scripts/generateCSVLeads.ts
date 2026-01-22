@@ -1,15 +1,7 @@
 import { Request, Response } from "express";
 import { apolloEnrichedPeople } from "../leadsController/apolloEnrichedPeople";
-import axios from "axios";
 import sendResponse from "../../utils/http/sendResponse";
-
-const APOLLO_PEOPLE_URL = "https://api.apollo.io/v1/mixed_people/search";
-const buildApolloHeaders = () => ({
-  "Cache-Control": "no-cache",
-  "Content-Type": "application/json",
-  accept: "application/json",
-  "x-api-key": process.env.APOLLO_API_KEY!,
-});
+import {apolloService} from "../../utils/http/services/apolloService";
 
 const parseInputArray = (value: any): string[] => {
   if (Array.isArray(value)) {
@@ -52,8 +44,8 @@ export const generateCSVLeads = async (req: Request, res: Response) => {
     const numberOfLeads = parseNumber(payload?.numberOfLeads, 10);
     const effectiveCount = Math.max(1, Math.min(numberOfLeads, 25));
 
-    const response = await axios.post(
-      APOLLO_PEOPLE_URL,
+    const response = await apolloService.request(
+      "mixed_people/api_search",
       {
         person_titles: titles,
         organization_locations: locations,
@@ -63,7 +55,6 @@ export const generateCSVLeads = async (req: Request, res: Response) => {
         per_page: effectiveCount,
         page: 1,
       },
-      { headers: buildApolloHeaders() }
     );
     const peopleData = response.data.model_ids;
     const people = peopleData.slice(0, effectiveCount);
