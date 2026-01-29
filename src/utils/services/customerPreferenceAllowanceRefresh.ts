@@ -7,7 +7,6 @@ import {subscriptionNameToRefreshLeads} from "./subscriptionNameToRefreshLeads";
 
 dotenv.config();
 
-// TODO to be optimized with a joint table
 export const customerPreferenceAllowanceRefresh = async () => {
   logger.info("Running customerPreferenceAllowanceRefresh...");
   try {
@@ -17,6 +16,13 @@ export const customerPreferenceAllowanceRefresh = async () => {
           [Op.lte]: new Date(),
         },
       },
+      include: [
+        {
+          model: Users,
+          as: "user",
+          attributes: ["id", "subscriptionName"],
+        },
+      ],
     });
 
     if (!duePrefs.length) {
@@ -26,12 +32,12 @@ export const customerPreferenceAllowanceRefresh = async () => {
 
     for (const pref of duePrefs) {
       try {
+        const user = pref.user;
         const userId = pref.userId;
 
-        let allowance: number;
-        if (userId) {
-          const user = await Users.findByPk(userId);
-          const subscriptionName = user?.subscriptionName;
+        let allowance: number = 5; // Default allowance
+        if (user) {
+          const subscriptionName = user.subscriptionName;
           if (subscriptionName && subscriptionNameToRefreshLeads[subscriptionName]) {
             allowance = subscriptionNameToRefreshLeads[subscriptionName];
           } else {
@@ -41,7 +47,7 @@ export const customerPreferenceAllowanceRefresh = async () => {
             );
           }
         } else {
-          logger.warn({ prefId: pref.id }, "CustomerPref missing userId, using default allowance");
+          logger.warn({ prefId: pref.id }, "CustomerPref missing user, using default allowance");
         }
 
         const nextRefresh = new Date();

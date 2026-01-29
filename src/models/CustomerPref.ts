@@ -1,5 +1,6 @@
 import { DataTypes, Model } from "sequelize";
 import { database } from "../configs/database/database";
+import Users from "./Users";
 
 export interface ICP {
   industry: string;
@@ -127,3 +128,8 @@ CustomerPref.init(
     modelName: "CustomerPref",
   }
 );
+
+CustomerPref.belongsTo(Users, {
+  foreignKey: "userId",
+  as: "user",
+});
