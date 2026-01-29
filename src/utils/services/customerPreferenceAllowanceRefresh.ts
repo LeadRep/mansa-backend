@@ -28,7 +28,7 @@ export const customerPreferenceAllowanceRefresh = async () => {
       try {
         const userId = pref.userId;
 
-        let allowance = 100; // default fallback
+        let allowance: number;
         if (userId) {
           const user = await Users.findByPk(userId);
           const subscriptionName = user?.subscriptionName;
