@@ -38,7 +38,7 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       currentRefreshAllowance < 1
     ) {
       let msg = "You have used up your number of refresh for this month. Please upgrade your subscription to continue generating leads.";
-      if (customer.nextRefreshDate &&
+      if (customer.nextRefresh &&
         new Date(customer.nextRefresh) > new Date()) {
         const formattedDate = new Date(customer.nextRefresh).toLocaleString(
           "en-US",
