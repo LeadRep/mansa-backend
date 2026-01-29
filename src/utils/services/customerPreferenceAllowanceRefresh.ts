@@ -35,7 +35,7 @@ export const customerPreferenceAllowanceRefresh = async () => {
         const user = pref.user;
         const userId = pref.userId;
 
-        let allowance: number = 5; // Default allowance
+        let allowance: number = 100; // Default allowance
         if (user) {
           const subscriptionName = user.subscriptionName;
           if (subscriptionName && subscriptionNameToRefreshLeads[subscriptionName]) {
