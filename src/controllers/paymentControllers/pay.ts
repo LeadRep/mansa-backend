@@ -9,6 +9,8 @@ import sendResponse from "../../utils/http/sendResponse";
 import NewUsersSequence from "../../models/NewUsersSequence";
 import logger from "../../logger";
 import { step2LeadGen } from "../leadsController/step2LeadGen";
+import {CustomerPref} from "../../models/CustomerPref";
+import {subscriptionNameToRefreshLeads} from "../../utils/services/subscriptionNameToRefreshLeads";
 
 dotenv.config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -192,6 +194,18 @@ export const successPayment = async (
           },
         }
       );
+      await CustomerPref.update(
+        {
+          refreshLeads: subscriptionNameToRefreshLeads[planType] ?? 100,
+          nextRefresh: moment(startDate).add(1, "month").startOf("hour").toDate(),
+        },
+        {
+          where: {
+            userId: userId,
+          },
+        }
+
+      )
       const userInSequence = await NewUsersSequence.findOne({
         where: { user_id: userId },
       });

@@ -19,6 +19,7 @@ import { healthCheck } from "./controllers/healthCheck";
 import { newUserSequence } from "./utils/services/newUserSequence";
 import pinoLogger from "./logger";
 import { initSocket } from "./utils/socket";
+import {customerPreferenceAllowanceRefresh} from "./utils/services/customerPreferenceAllowanceRefresh";
 dotenv.config();
 
 const app = express();
@@ -84,6 +85,19 @@ cron.schedule(
     timezone: "America/New_York", // Set your timezone
   }
 );
+
+//schedule customerPreferenceAllowanceRefresh every hour with a 1 minute delay
+cron.schedule('1 * * * *', async () => {
+  pinoLogger.info('Running customer preference allowance refresh...');
+  try {
+    await customerPreferenceAllowanceRefresh();
+    pinoLogger.info('Customer preference allowance refresh completed successfully');
+  } catch (error) {
+    pinoLogger.error(error, 'Error in customer preference allowance refresh:');
+  }
+}, {
+  timezone: 'America/New_York'
+});
 server.listen(port, () => {
     pinoLogger.info(`App running at port ${port}`);
 });

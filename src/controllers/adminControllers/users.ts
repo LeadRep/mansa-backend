@@ -149,6 +149,7 @@ export const createAdmin = async (req: Request, res: Response) => {
             ICP: {} as any,
             BP: {} as any,
             territories: [],
+            refreshLeads: 10
         });
 
         sendResponse(res, 200, "Admin created successfully", {
