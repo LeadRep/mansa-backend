@@ -53,7 +53,7 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
             timeZoneName: "short",
           }
         );
-        msg = `You have used up your number of refresh for this month. The next refresh will be available on ${formattedDate} or you can upgrade your subscription to continue generating leads.`
+        msg = `You have used up your number of refresh for this month. The next refresh will be available on ${formattedDate} or you can upgrade your subscription to continue generating leads.`;
       }
       sendResponse(
         response,
