@@ -217,7 +217,6 @@ export const successPayment = async (
             userId: userId,
           },
         }
-
       );
       const userInSequence = await NewUsersSequence.findOne({
         where: { user_id: userId },
