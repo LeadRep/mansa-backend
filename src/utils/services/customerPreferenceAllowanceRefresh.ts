@@ -39,11 +39,9 @@ export const customerPreferenceAllowanceRefresh = async () => {
               { userId, subscriptionName },
               "Unknown or missing subscriptionName, using default allowance"
             );
-            continue;
           }
         } else {
           logger.warn({ prefId: pref.id }, "CustomerPref missing userId, using default allowance");
-          continue;
         }
 
         const nextRefresh = new Date();
