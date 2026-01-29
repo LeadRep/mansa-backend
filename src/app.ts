@@ -86,8 +86,8 @@ cron.schedule(
   }
 );
 
-//schedule customerPreferenceAllowanceRefresh every hour with a 1 minute delay
-cron.schedule('1 * * * *', async () => {
+//schedule customerPreferenceAllowanceRefresh every day with a 1 minute delay
+cron.schedule('1 0 * * *', async () => {
   pinoLogger.info('Running customer preference allowance refresh...');
   try {
     await customerPreferenceAllowanceRefresh();

@@ -98,8 +98,7 @@ CustomerPref.init(
     },
     refreshLeads: {
       type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 5,
+      allowNull: false
     },
     nextRefresh: {
       type: DataTypes.DATE,

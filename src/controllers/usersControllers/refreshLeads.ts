@@ -33,38 +33,32 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
     }
 
     const currentRefreshAllowance = customer.refreshLeads ?? 0;
-    if (!skipLimit && currentRefreshAllowance < 1) {
-      sendResponse(
-        response,
-        400,
-        "You have used up your number of refresh for today"
-      );
-      return;
-    }
-
     if (
-      !skipLimit &&
-      currentRefreshAllowance > 1 &&
-      customer.nextRefresh &&
-      new Date(customer.nextRefresh) > new Date()
+      //!skipLimit &&
+      currentRefreshAllowance < 1
     ) {
-      const formattedDate = new Date(customer.nextRefresh).toLocaleString(
-        "en-US",
-        {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-          timeZoneName: "short",
-        }
-      );
+      let msg = "You have used up your number of refresh for this month. Please upgrade your subscription to continue generating leads.";
+      if (customer.nextRefreshDate &&
+        new Date(customer.nextRefresh) > new Date()) {
+        const formattedDate = new Date(customer.nextRefresh).toLocaleString(
+          "en-US",
+          {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+            timeZoneName: "short",
+          }
+        );
+        msg = `You have used up your number of refresh for this month. The next refresh will be available on ${formattedDate} or you can upgrade your subscription to continue generating leads.`
+      }
       sendResponse(
         response,
         400,
-        `Your next refresh is available at ${formattedDate}`
+        msg
       );
       return;
     }
@@ -72,25 +66,15 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
     const targetLeadCount = hasSubscription ? 20 : 10;
 
     let updatedRefreshAllowance = currentRefreshAllowance;
-    let nextRefresh: Date | undefined = customer.nextRefresh || undefined;
 
-    if (!skipLimit) {
-      if (currentRefreshAllowance > 1) {
-        updatedRefreshAllowance = currentRefreshAllowance - 1;
-        nextRefresh = new Date(Date.now() + 3600000); // 1 hour later
-      } else {
-        // Reset allowance for the next day at 00:01
-        updatedRefreshAllowance = 5;
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 1, 0, 0);
-        nextRefresh = tomorrow;
+    //if (!skipLimit) {
+      if (currentRefreshAllowance > 0) {
+        updatedRefreshAllowance = currentRefreshAllowance - targetLeadCount;
       }
-    }
+    //}
 
     await customer.update({
       refreshLeads: updatedRefreshAllowance,
-      nextRefresh: nextRefresh ?? undefined,
       leadsGenerationStatus: LeadsGenerationStatus.NOT_STARTED,
     });
 

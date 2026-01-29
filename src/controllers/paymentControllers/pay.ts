@@ -194,10 +194,23 @@ export const successPayment = async (
           },
         }
       );
+      const DEFAULT_REFRESH_LEADS = 100;
+      const planKey = typeof planType === "string" && planType.length > 0 ? planType : undefined;
+      const mappedRefresh = planKey ? subscriptionNameToRefreshLeads[planKey as keyof typeof subscriptionNameToRefreshLeads] : undefined;
+      let refreshLeads: number;
+      if (typeof mappedRefresh === "number" && !Number.isNaN(mappedRefresh)) {
+        refreshLeads = mappedRefresh;
+      } else {
+        logger.warn(
+          { userId, planType, mappedRefresh },
+          "Missing or invalid refreshLeads mapping for plan; using default"
+        );
+        refreshLeads = DEFAULT_REFRESH_LEADS;
+      }
       await CustomerPref.update(
         {
-          refreshLeads: subscriptionNameToRefreshLeads[planType] ?? 100,
-          nextRefresh: moment(startDate).add(1, "month").startOf("hour").toDate(),
+          refreshLeads: refreshLeads,
+          nextRefresh: moment(startDate).add(1, "month").startOf("day").toDate(),
         },
         {
           where: {

@@ -7,6 +7,7 @@ import {subscriptionNameToRefreshLeads} from "./subscriptionNameToRefreshLeads";
 
 dotenv.config();
 
+// TODO to be optimized with a joint table
 export const customerPreferenceAllowanceRefresh = async () => {
   logger.info("Running customerPreferenceAllowanceRefresh...");
   try {
@@ -47,7 +48,7 @@ export const customerPreferenceAllowanceRefresh = async () => {
 
         const nextRefresh = new Date();
         nextRefresh.setMonth(nextRefresh.getMonth() + 1);
-        nextRefresh.setMinutes(0, 0, 0);
+        nextRefresh.setHours(0, 0, 0, 0);
 
         await pref.update({
           refreshLeads: allowance,
