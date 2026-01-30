@@ -92,6 +92,7 @@ export const addLeadToDeal = async (
       category: lead.category,
       reason: lead.reason,
       score: lead.score,
+      deal_value: typeof lead.deal_value === "number" ? lead.deal_value : 0,
     });
     if (lead.id) {
       await Leads.destroy({

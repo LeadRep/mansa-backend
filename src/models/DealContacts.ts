@@ -28,6 +28,7 @@ export interface DealContactAttributes {
   category: string;
   reason: string;
   score: number;
+  deal_value: number;
 }
 
 export class DealContact extends Model<DealContactAttributes> {
@@ -163,6 +164,11 @@ DealContact.init(
       type: DataTypes.INTEGER,
       allowNull: true,
       defaultValue: null,
+    },
+    deal_value: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
     },
   },
   {
