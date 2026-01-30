@@ -42,6 +42,7 @@ const getCompanySizeRange = (size?: number) => {
 export const normalizeLead = (lead: PlainLead) => {
     const organization = coerceJSON(lead.organization, "organization");
     const aumJson = coerceJSON(lead.aum, "aum");
+    const individualSegmentsJSON = coerceJSON(lead.individual_segments, "segments");
     const organizationName =
         organization?.name ??
         organization?.organization_name ??
@@ -98,5 +99,6 @@ export const normalizeLead = (lead: PlainLead) => {
         updatedAt: lead.updatedAt ?? null,
         createdAt: lead.createdAt ?? null,
         consumed: Boolean(!lead.revealed_for_current_team),
+        individualSegments: individualSegmentsJSON
     };
 };

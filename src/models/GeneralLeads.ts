@@ -36,6 +36,7 @@ export interface GeneralLeadsAttributes {
     category: string | null;
     reason: string | null;
     score: number | null;
+    priority: number | null;
     intent_strength: string | null;
     show_intent: boolean | null;
     email_domain_catchall: boolean | null;
@@ -46,6 +47,7 @@ export interface GeneralLeadsAttributes {
     industries: string[] | null;
     segments: string[] | null;
     aum: JSON | null;
+    individual_segments: JSON | null;
 }
 
 export type GeneralLeadsCreationAttributes = Optional<
@@ -230,6 +232,11 @@ GeneralLeads.init(
             allowNull: true,
             defaultValue: null,
         },
+        priority: {
+          type: DataTypes.INTEGER,
+          allowNull: true,
+          defaultValue: null,
+        },
         intent_strength: {
             type: DataTypes.STRING,
             allowNull: true,
@@ -280,6 +287,11 @@ GeneralLeads.init(
             allowNull: true,
             defaultValue: false,
         },
+        individual_segments: {
+          type: DataTypes.JSON,
+          allowNull: true,
+          defaultValue: null,
+        }
     },
     {
         sequelize: database,
