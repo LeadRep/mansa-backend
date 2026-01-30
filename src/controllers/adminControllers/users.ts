@@ -149,6 +149,8 @@ export const createAdmin = async (req: Request, res: Response) => {
             ICP: {} as any,
             BP: {} as any,
             territories: [],
+            // Admins are provisioned with a higher initial refresh allowance than regular users
+            refreshLeads: 1000
         });
 
         sendResponse(res, 200, "Admin created successfully", {
