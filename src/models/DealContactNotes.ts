@@ -2,7 +2,7 @@ import { DataTypes, Model } from "sequelize";
 import { database } from "../configs/database/database";
 
 export interface DealContactNoteAttributes {
-  id: string;
+  id?: string;
   deal_contact_id: string;
   owner_id: string;
   comment: string | null;
