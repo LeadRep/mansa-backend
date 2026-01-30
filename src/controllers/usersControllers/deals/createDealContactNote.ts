@@ -33,7 +33,7 @@ export const createDealContactNote = async (
     if (files && files.length > 0) {
       for (const file of files) {
         const fileUrl = `/uploads/deals/${file.filename}`;
-        const fileName = file.originalname || path.basename(file.filename);
+        const fileName = file.originalname || file.filename;
         const note = await DealContactNote.create({
           deal_contact_id: contactId,
           owner_id: userId,

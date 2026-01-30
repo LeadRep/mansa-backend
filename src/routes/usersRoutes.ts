@@ -20,6 +20,7 @@ import { deleteDealContact } from "../controllers/usersControllers/deals/deleteD
 import { updateDealContact } from "../controllers/usersControllers/deals/updateDealContact";
 import { getDealContactNotes } from "../controllers/usersControllers/deals/getDealContactNotes";
 import { createDealContactNote } from "../controllers/usersControllers/deals/createDealContactNote";
+import { uploadDealContactPhoto } from "../controllers/usersControllers/deals/uploadDealContactPhoto";
 import { updateDealStages } from "../controllers/usersControllers/deals/updateStages";
 import { deleteStage } from "../controllers/usersControllers/deals/deleteStage";
 import { forgotPassword } from "../controllers/usersControllers/forgotPassword";
@@ -43,6 +44,25 @@ const dealNotesUpload = multer({
     },
   }),
   limits: { files: 5 },
+});
+
+const dealPhotoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      cb(null, dealNotesUploadDir);
+    },
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname || "");
+      cb(null, `${crypto.randomUUID()}${ext}`);
+    },
+  }),
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("Only image uploads are allowed"));
+    }
+    return cb(null, true);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 usersRoutes.post("/register", registerUserWithOrganization);
 usersRoutes.post("/login", loginUser);
@@ -80,6 +100,12 @@ usersRoutes.post(
   userAuth,
   dealNotesUpload.array("files", 5),
   createDealContactNote
+);
+usersRoutes.post(
+  "/deal-contacts/uploads",
+  userAuth,
+  dealPhotoUpload.single("image"),
+  uploadDealContactPhoto
 );
 usersRoutes.put("/deal/:dealId/stages", userAuth, updateDealStages);
 usersRoutes.delete("/deal/:dealId/stages/:stageId", userAuth, deleteStage);

@@ -37,6 +37,7 @@ export const updateDealContact = async (
       phone,
       organization,
       deal_value,
+      photo_url,
     } = request.body;
 
     const updateData: Record<string, any> = {};
@@ -68,6 +69,9 @@ export const updateDealContact = async (
     }
     if (organization) {
       updateData.organization = organization;
+    }
+    if (typeof photo_url === "string") {
+      updateData.photo_url = photo_url.trim() || null;
     }
     if (typeof deal_value === "number" && Number.isFinite(deal_value)) {
       updateData.deal_value = deal_value;
