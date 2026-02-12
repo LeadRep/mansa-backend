@@ -209,6 +209,9 @@ export const successPayment = async (
       }
       await CustomerPref.update(
         {
+          subscriptionStartDate: startDate,
+          subscriptionEndDate: endDate,
+          subscriptionName: planType,
           refreshLeads: refreshLeads,
           nextRefresh: moment(startDate).add(1, "month").startOf("day").toDate(),
         },
