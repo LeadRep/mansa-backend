@@ -3,3 +3,4 @@ dist/
 .env
 uploads/
 secrets/
+package-lock.json
