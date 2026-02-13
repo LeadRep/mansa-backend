@@ -28,7 +28,7 @@ import { resetPassword } from "../controllers/usersControllers/resetPassword";
 import { shareLeads } from "../controllers/usersControllers/shareLeads";
 
 const usersRoutes = express.Router();
-const dealNotesUploadDir = path.join(__dirname, "../../uploads/deals");
+const dealNotesUploadDir = path.join(__dirname, "../../uploads/tmp");
 if (!fs.existsSync(dealNotesUploadDir)) {
   fs.mkdirSync(dealNotesUploadDir, { recursive: true });
 }
@@ -43,7 +43,7 @@ const dealNotesUpload = multer({
       cb(null, `${crypto.randomUUID()}${ext}`);
     },
   }),
-  limits: { files: 5 },
+  limits: { files: 5, fileSize: 10 * 1024 * 1024 },
 });
 
 const dealPhotoUpload = multer({

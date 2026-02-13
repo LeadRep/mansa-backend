@@ -4,6 +4,8 @@ import { DealContact } from "../../../models/DealContacts";
 import { DealContactNote } from "../../../models/DealContactNotes";
 import sendResponse from "../../../utils/http/sendResponse";
 import logger from "../../../logger";
+import { uploadFileToGcs } from "../../../utils/storage/gcs";
+import fs from "fs";
 
 export const createDealContactNote = async (
   request: JwtPayload,
@@ -32,8 +34,13 @@ export const createDealContactNote = async (
 
     if (files && files.length > 0) {
       for (const file of files) {
-        const fileUrl = `/uploads/deals/${file.filename}`;
         const fileName = file.originalname || file.filename;
+        const fileUrl = await uploadFileToGcs({
+          localPath: file.path,
+          destination: `deals/notes/${file.filename}`,
+          contentType: file.mimetype,
+        });
+        fs.unlinkSync(file.path);
         const note = await DealContactNote.create({
           deal_contact_id: contactId,
           owner_id: userId,

@@ -2,25 +2,21 @@
 
 import pino from 'pino';
 
-// Get the environment from an environment variable, defaulting to 'development'
+// Get the environment from an environment variable, defaulting to 'local'
 const env = process.env.APP_ENV || 'local';
 
-let transport;
-
-if (env === 'poduction' || env === 'test') {
-    transport = undefined;
-} else {
-    transport = undefined;
-    // uncomment the following lines to use pino-pretty for local development
-    // transport = {
-    //     target: 'pino-pretty',
-    //     options: {
-    //         colorize: true,
-    //         translateTime: 'SYS:standard',
-    //         ignore: 'pid,hostname',
-    //     },
-    // };
-}
+// Always emit JSON logs unless explicitly requested via PINO_PRETTY=true
+const usePretty = String(process.env.PINO_PRETTY || '').toLowerCase() === 'true';
+const transport = usePretty
+    ? {
+          target: 'pino-pretty',
+          options: {
+              colorize: true,
+              translateTime: 'SYS:standard',
+              ignore: 'pid,hostname',
+          },
+      }
+    : undefined;
 
 const logLevel = process.env.PINO_LOG_LEVEL || (env === 'local' ? 'debug' : 'info');
 

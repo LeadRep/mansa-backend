@@ -1,8 +1,10 @@
 import { Request, Response } from "express";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { BlogPosts } from "../../models/BlogPosts";
 import { buildExcerpt, slugifyTitle } from "./utils";
+import { uploadFileToGcs } from "../../utils/storage/gcs";
 
 const getExtension = (file: Express.Multer.File) => {
   const ext = path.extname(file.originalname || "").toLowerCase();
@@ -222,15 +224,14 @@ export const uploadBlogImage = async (
       });
     }
 
-    const uploadDir = path.join(__dirname, "../../../uploads/blogs");
-    ensureUploadDir(uploadDir);
-
     const extension = getExtension(request.file);
-    const filename = `${request.file.filename}${extension}`;
-    const filePath = path.join(uploadDir, filename);
-    fs.renameSync(request.file.path, filePath);
-
-    const publicPath = `/uploads/blogs/${filename}`;
+    const filename = `${crypto.randomUUID()}${extension}`;
+    const publicPath = await uploadFileToGcs({
+      localPath: request.file.path,
+      destination: `blogs/${filename}`,
+      contentType: request.file.mimetype,
+    });
+    fs.unlinkSync(request.file.path);
 
     return response.json({
       status: "success",

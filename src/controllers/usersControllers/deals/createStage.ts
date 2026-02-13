@@ -4,6 +4,7 @@ import sendResponse from "../../../utils/http/sendResponse";
 import { v4 } from "uuid";
 import Deals from "../../../models/Deals";
 import logger from "../../../logger";
+import { applyStageProbabilities } from "../../../utils/deals/stageProbabilities";
 
 export const createStage = async (request: JwtPayload, response: Response) => {
   try {
@@ -24,9 +25,10 @@ export const createStage = async (request: JwtPayload, response: Response) => {
     };
     const stages = deal?.stages;
     stages.push(newStage);
-    await deal?.update({ stages: stages });
+    const updatedStages = applyStageProbabilities(stages || []);
+    await deal?.update({ stages: updatedStages });
 
-    sendResponse(response, 200, "Stage created successfully", newStage);
+    sendResponse(response, 200, "Stage created successfully", updatedStages);
   } catch (error: any) {
     logger.error(error, "Error creating stage:");
     sendResponse(response, 500, "Internal Server Error", null, error.message);
