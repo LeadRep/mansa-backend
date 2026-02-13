@@ -2,6 +2,8 @@ import { Response } from "express";
 import { JwtPayload } from "jsonwebtoken";
 import sendResponse from "../../../utils/http/sendResponse";
 import logger from "../../../logger";
+import { uploadFileToGcs } from "../../../utils/storage/gcs";
+import fs from "fs";
 
 export const uploadDealContactPhoto = async (
   request: JwtPayload,
@@ -14,7 +16,12 @@ export const uploadDealContactPhoto = async (
       return;
     }
 
-    const url = `/uploads/deals/${file.filename}`;
+    const url = await uploadFileToGcs({
+      localPath: file.path,
+      destination: `deals/photos/${file.filename}`,
+      contentType: file.mimetype,
+    });
+    fs.unlinkSync(file.path);
     sendResponse(response, 200, "Upload successful", { url });
   } catch (error: any) {
     logger.error(error, "Error uploading deal contact photo:");

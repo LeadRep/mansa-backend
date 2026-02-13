@@ -4,6 +4,7 @@ import sendResponse from "../../../utils/http/sendResponse";
 import Deals from "../../../models/Deals";
 import { DealContact } from "../../../models/DealContacts";
 import logger from "../../../logger";
+import { applyStageProbabilities } from "../../../utils/deals/stageProbabilities";
 
 export const deleteStage = async (
   request: JwtPayload,
@@ -39,10 +40,11 @@ export const deleteStage = async (
       },
     });
 
-    await deal.update({ stages: remainingStages });
+    const updatedStages = applyStageProbabilities(remainingStages);
+    await deal.update({ stages: updatedStages });
 
     sendResponse(response, 200, "Stage deleted successfully", {
-      stages: remainingStages,
+      stages: updatedStages,
       deletedCount,
     });
   } catch (error: any) {
