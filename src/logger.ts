@@ -1,5 +1,3 @@
-// src/logger.ts
-
 import pino from 'pino';
 
 // Get the environment from an environment variable, defaulting to 'local'
