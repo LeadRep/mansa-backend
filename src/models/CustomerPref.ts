@@ -56,11 +56,6 @@ export interface CustomerPrefAttributes {
   aiQueryParams?: JSON | null;
   totalPages?: number;
   currentPage?: number;
-  subscriptionName?: string | null;
-  subscriptionStartDate?: Date;
-  subscriptionEndDate?: Date;
-  basicModules?: boolean;
-  imModule?: boolean;
   demoMode?: boolean;
 }
 
@@ -127,42 +122,6 @@ CustomerPref.init(
       type: DataTypes.INTEGER,
       allowNull: true,
       defaultValue: 0,
-    },
-    subscriptionName: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      defaultValue: null,
-      field: "subscription_name", // Maps to snake_case in DB
-    },
-    subscriptionStartDate: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      defaultValue: null,
-      field: "subscription_start_date", // Maps to snake_case in DB
-      validate: {
-        isDate: true,
-      },
-    },
-    subscriptionEndDate: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      defaultValue: null,
-      field: "subscription_end_date", // Maps to snake_case in DB
-      validate: {
-        isDate: true,
-      },
-    },
-    basicModules: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: true,
-      field: "basic_modules", // Maps to snake_case in DB
-    },
-    imModule: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-      field: "im_module", // Maps to snake_case in DB
     },
     demoMode: {
       type: DataTypes.BOOLEAN,
