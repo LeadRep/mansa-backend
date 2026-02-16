@@ -11,9 +11,9 @@ export interface OrganizationsAttributes {
     plan: string;
     subscriptionStartDate?: Date;
     subscriptionEndDate?: Date;
-    basicModules?: boolean;
-    imModule?: boolean;
-    demoAccount?: boolean;
+    basicModules: boolean;
+    imModule: boolean;
+    demoAccount: boolean;
 }
 
 export class Organizations extends Model<OrganizationsAttributes> {
