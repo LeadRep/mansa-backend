@@ -11,6 +11,7 @@ import logger from "../../logger";
 import { step2LeadGen } from "../leadsController/step2LeadGen";
 import {CustomerPref} from "../../models/CustomerPref";
 import {subscriptionNameToRefreshLeads} from "../../utils/services/subscriptionNameToRefreshLeads";
+import Organizations from "../../models/Organizations";
 
 dotenv.config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -182,7 +183,7 @@ export const successPayment = async (
         },
         { where: { session_id: sessionID } }
       );
-      await Users.update(
+      const [affectedCount, updatedRows]= (await Users.update(
         {
           subscriptionStartDate: startDate,
           subscriptionEndDate: endDate,
@@ -192,8 +193,9 @@ export const successPayment = async (
           where: {
             id: userId,
           },
+          returning: true,
         }
-      );
+      ))  as [number, Users[]];
       const DEFAULT_REFRESH_LEADS = 100;
       const planKey = typeof planType === "string" && planType.length > 0 ? planType : undefined;
       const mappedRefresh = planKey ? subscriptionNameToRefreshLeads[planKey as keyof typeof subscriptionNameToRefreshLeads] : undefined;
@@ -218,6 +220,20 @@ export const successPayment = async (
           },
         }
       );
+      const updatedUser = updatedRows && updatedRows[0] ? updatedRows[0].get({ plain: true }) : null;
+
+      Organizations.update(
+        {
+          plan: planType,
+          subscriptionStartDate: startDate,
+          subscriptionEndDate: endDate,
+        },
+        {
+          where: {
+            organization_id: updatedUser?.organization_id,
+          },
+        }
+      )
       const userInSequence = await NewUsersSequence.findOne({
         where: { user_id: userId },
       });

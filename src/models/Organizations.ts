@@ -11,6 +11,9 @@ export interface OrganizationsAttributes {
     plan: string;
     subscriptionStartDate?: Date;
     subscriptionEndDate?: Date;
+    basicModules?: boolean;
+    imModule?: boolean;
+    demoAccount?: boolean;
 }
 
 export class Organizations extends Model<OrganizationsAttributes> {
@@ -61,6 +64,7 @@ Organizations.init(
             validate: {
                 isDate: true,
             },
+          field: "subscription_start_date",
         },
         subscriptionEndDate: {
             type: DataTypes.DATE,
@@ -69,7 +73,26 @@ Organizations.init(
             validate: {
                 isDate: true,
             },
+            field: "subscription_end_date",
         },
+        basicModules: {
+          type: DataTypes.BOOLEAN,
+          allowNull: false,
+          defaultValue: true,
+          field: "basic_modules", // Maps to snake_case in DB
+        },
+        imModule: {
+          type: DataTypes.BOOLEAN,
+          allowNull: false,
+          defaultValue: false,
+          field: "im_module", // Maps to snake_case in DB
+        },
+        demoAccount: {
+          type: DataTypes.BOOLEAN,
+          allowNull: false,
+          defaultValue: false,
+          field: "demo_account", // Maps to snake_case in DB
+        }
     },
     {
         sequelize: database,
