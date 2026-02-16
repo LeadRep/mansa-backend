@@ -222,7 +222,7 @@ export const successPayment = async (
       );
       const updatedUser = updatedRows && updatedRows[0] ? updatedRows[0].get({ plain: true }) : null;
 
-      Organizations.update(
+      await Organizations.update(
         {
           plan: planType,
           subscriptionStartDate: startDate,

@@ -64,7 +64,6 @@ Organizations.init(
             validate: {
                 isDate: true,
             },
-          field: "subscription_start_date",
         },
         subscriptionEndDate: {
             type: DataTypes.DATE,
@@ -73,7 +72,6 @@ Organizations.init(
             validate: {
                 isDate: true,
             },
-            field: "subscription_end_date",
         },
         basicModules: {
           type: DataTypes.BOOLEAN,
