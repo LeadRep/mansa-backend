@@ -53,7 +53,7 @@ module.exports = {
       await queryInterface.sequelize.query(`
           UPDATE "Organizations" AS o
           SET
-              plan = COALESCE(u."subscriptionName", 'Free'),
+              plan = COALESCE(u."subscriptionName", 'free'),
               "subscriptionStartDate" = u."subscriptionStartDate",
               "subscriptionEndDate" = u."subscriptionEndDate"
               FROM "Users" AS u
