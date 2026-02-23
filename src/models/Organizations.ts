@@ -14,6 +14,7 @@ export interface OrganizationsAttributes {
     basicModules?: boolean;
     imModule?: boolean;
     demoAccount?: boolean;
+    nextRefresh?: Date;
 }
 
 export class Organizations extends Model<OrganizationsAttributes> {
@@ -72,6 +73,15 @@ Organizations.init(
             validate: {
                 isDate: true,
             },
+        },
+        nextRefresh: {
+          type: DataTypes.DATE,
+          allowNull: true,
+          defaultValue: null,
+          validate: {
+            isDate: true,
+          },
+          field: "next_refresh",
         },
         basicModules: {
           type: DataTypes.BOOLEAN,
