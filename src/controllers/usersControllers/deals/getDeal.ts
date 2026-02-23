@@ -3,6 +3,7 @@ import { JwtPayload } from "jsonwebtoken";
 import Deals from "../../../models/Deals";
 import sendResponse from "../../../utils/http/sendResponse";
 import logger from "../../../logger";
+import { applyStageProbabilities } from "../../../utils/deals/stageProbabilities";
 
 
 // Get all deals with their contacts for a user
@@ -14,7 +15,14 @@ export const getUserDeals = async (request: JwtPayload, response: Response) => {
       where: { userId },
     });
     if (deals) {
-      deals.stages = deals.stages; // Ensure stages are directly used as is
+      const originalStages = deals.stages || [];
+      const normalizedStages = applyStageProbabilities(originalStages);
+      deals.stages = normalizedStages;
+      if (
+        JSON.stringify(originalStages) !== JSON.stringify(normalizedStages)
+      ) {
+        await deals.update({ stages: normalizedStages });
+      }
     }
     sendResponse(response, 200, "Deals fetched successfully", deals);
     return;

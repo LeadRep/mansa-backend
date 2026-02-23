@@ -9,6 +9,9 @@ import sendResponse from "../../utils/http/sendResponse";
 import NewUsersSequence from "../../models/NewUsersSequence";
 import logger from "../../logger";
 import { step2LeadGen } from "../leadsController/step2LeadGen";
+import {CustomerPref} from "../../models/CustomerPref";
+import {subscriptionNameToRefreshLeads} from "../../utils/services/subscriptionNameToRefreshLeads";
+import Organizations from "../../models/Organizations";
 
 dotenv.config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -180,7 +183,7 @@ export const successPayment = async (
         },
         { where: { session_id: sessionID } }
       );
-      await Users.update(
+      const [affectedCount, updatedRows]= (await Users.update(
         {
           subscriptionStartDate: startDate,
           subscriptionEndDate: endDate,
@@ -190,8 +193,47 @@ export const successPayment = async (
           where: {
             id: userId,
           },
+          returning: true,
+        }
+      ))  as [number, Users[]];
+      const DEFAULT_REFRESH_LEADS = 100;
+      const planKey = typeof planType === "string" && planType.length > 0 ? planType : undefined;
+      const mappedRefresh = planKey ? subscriptionNameToRefreshLeads[planKey as keyof typeof subscriptionNameToRefreshLeads] : undefined;
+      let refreshLeads: number;
+      if (typeof mappedRefresh === "number" && !Number.isNaN(mappedRefresh)) {
+        refreshLeads = mappedRefresh;
+      } else {
+        logger.warn(
+          { userId, planType, mappedRefresh },
+          "Missing or invalid refreshLeads mapping for plan; using default"
+        );
+        refreshLeads = DEFAULT_REFRESH_LEADS;
+      }
+      await CustomerPref.update(
+        {
+          refreshLeads: refreshLeads,
+          nextRefresh: moment(startDate).add(1, "month").startOf("day").toDate(),
+        },
+        {
+          where: {
+            userId: userId,
+          },
         }
       );
+      const updatedUser = updatedRows && updatedRows[0] ? updatedRows[0].get({ plain: true }) : null;
+
+      await Organizations.update(
+        {
+          plan: planType,
+          subscriptionStartDate: startDate,
+          subscriptionEndDate: endDate,
+        },
+        {
+          where: {
+            organization_id: updatedUser?.organization_id,
+          },
+        }
+      )
       const userInSequence = await NewUsersSequence.findOne({
         where: { user_id: userId },
       });

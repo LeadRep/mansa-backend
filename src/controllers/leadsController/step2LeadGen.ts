@@ -1,4 +1,3 @@
-import { Op } from "sequelize";
 import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
 import { Leads, LeadStatus } from "../../models/Leads";
 import { aiPeopleSearchQuery } from "./aiPeopleSearchQuery";
@@ -52,6 +51,7 @@ export const step2LeadGen = async (
 
       const pageToFetch = currentPage;
       const searchParams = aiQueryParams;
+
       const apolloResponse = await apolloPeopleSearch(
         searchParams,
         pageToFetch

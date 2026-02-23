@@ -29,6 +29,7 @@ export interface UsersAttributes {
   subscriptionName?: string | null;
   subscriptionStartDate?: Date;
   subscriptionEndDate?: Date;
+  lastSeen?: Date | null;
   isVerified: boolean;
   isBlocked: Date | null;
 }
@@ -150,6 +151,15 @@ Users.init(
         isDate: true,
       },
     },
+    lastSeen: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+      field: "last_seen",
+      validate: {
+        isDate: true,
+      },
+    },
     isVerified: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
@@ -171,6 +181,9 @@ Users.init(
   }
 );
 
-Users.belongsTo(Organizations, { foreignKey: "organization_id", as: "organization" });
+Users.belongsTo(Organizations, {
+  foreignKey: "organization_id",
+  as: "organization",
+});
 
 export default Users;

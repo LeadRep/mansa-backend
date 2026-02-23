@@ -16,6 +16,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google-cloud/storage": "^7.19.0",
     "argon2": "^0.41.1",
     "axios": "^1.8.4",
     "bcryptjs": "^3.0.2",
@@ -30,9 +31,11 @@
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
+    "multer": "^1.4.5-lts.1",
     "node-cron": "^4.2.1",
     "nodemailer": "^6.10.1",
     "nodemon": "^3.1.9",
+    "pdf-parse": "^2.4.5",
     "pg": "^8.14.1",
     "pino": "^9.9.0",
     "pino-http": "^10.5.0",
@@ -41,7 +44,8 @@
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.1",
     "stripe": "^18.1.1",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "@google/genai": "^0.7.0"
   },
   "devDependencies": {
     "@types/argon2": "^0.14.1",
@@ -50,6 +54,7 @@
     "@types/express": "^5.0.1",
     "@types/json2csv": "^5.0.7",
     "@types/jsonwebtoken": "^9.0.9",
+    "@types/multer": "^1.4.12",
     "@types/node": "^22.13.11",
     "@types/node-cron": "^3.0.11",
     "@types/node-fetch": "^2.6.13",

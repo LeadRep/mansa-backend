@@ -1,5 +1,6 @@
 import { DataTypes, Model } from "sequelize";
 import { database } from "../configs/database/database";
+import Users from "./Users";
 
 export interface ICP {
   industry: string;
@@ -55,6 +56,7 @@ export interface CustomerPrefAttributes {
   aiQueryParams?: JSON | null;
   totalPages?: number;
   currentPage?: number;
+  demoMode?: boolean;
 }
 
 export class CustomerPref extends Model<CustomerPrefAttributes> {
@@ -121,9 +123,20 @@ CustomerPref.init(
       allowNull: true,
       defaultValue: 0,
     },
+    demoMode: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: "demo_mode", // Maps to snake_case in DB
+    }
   },
   {
     sequelize: database,
     modelName: "CustomerPref",
   }
 );
+
+CustomerPref.belongsTo(Users, {
+  foreignKey: "userId",
+  as: "user",
+});

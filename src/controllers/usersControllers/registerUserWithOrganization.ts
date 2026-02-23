@@ -103,6 +103,7 @@ export const registerUserWithOrganization = async (req: Request, res: Response) 
       ICP: icp,
       BP: bp,
       territories: user.territories || [],
+      refreshLeads: 10
     });
 
     // Generate token and refreshToken if OAuth user

@@ -1,5 +1,5 @@
-import axios from "axios";
 import logger from "../../../logger";
+import {apolloService} from "../../http/services/apolloService";
 
 interface PeopleSearchQuery {
   person_titles: string[];
@@ -14,8 +14,8 @@ interface PeopleSearchQuery {
 
 export const peopleSearch = async (query: PeopleSearchQuery, page?: number) => {
   try {
-    const response = await axios.post(
-      "https://api.apollo.io/v1/mixed_people/search",
+    const response = await apolloService.request(
+      "people/api_search",
       {
         ...query,
         include_similar_titles: true,
@@ -23,14 +23,6 @@ export const peopleSearch = async (query: PeopleSearchQuery, page?: number) => {
         page: page ? page : 1,
         per_page: 100,
       },
-      {
-        headers: {
-          "Cache-Control": "no-cache",
-          "Content-Type": "application/json",
-          accept: "application/json",
-          "x-api-key": process.env.APOLLO_API_KEY!,
-        },
-      }
     );
 
     return response.data;

@@ -5,6 +5,7 @@ interface Stage {
   id: string;
   name: string;
   color: string;
+  probability?: number;
 }
 
 export interface DealsAttributes {

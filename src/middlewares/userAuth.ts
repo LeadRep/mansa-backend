@@ -41,6 +41,16 @@ export const userAuth = async (
     }
 
     request.user = decode;
+    // update lastSeen timestamp for activity tracking
+    try {
+      await Users.update(
+        { lastSeen: new Date() },
+        { where: { id: decode.id } }
+      );
+    } catch (err) {
+      // non-fatal: log and continue
+      // logger may not be available here; silently continue
+    }
     next();
   } catch (error: any) {
     response.status(401).json({
@@ -48,6 +58,6 @@ export const userAuth = async (
       message: "Invalid or expired token",
       errorMessage: error.message,
     });
-    return
+    return;
   }
 };

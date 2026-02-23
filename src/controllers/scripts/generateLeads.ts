@@ -1,14 +1,12 @@
 import { Request, Response } from "express";
-import axios from "axios";
 import sendResponse from "../../utils/http/sendResponse";
 import logger from "../../logger";
 import Companies from "../../models/Companies";
 import { v4 } from "uuid";
 import { apolloEnrichedPeople } from "../leadsController/apolloEnrichedPeople";
 import { GeneralLeads } from "../../models/GeneralLeads";
+import {apolloService} from "../../utils/http/services/apolloService";
 
-const APOLLO_PEOPLE_URL = "https://api.apollo.io/v1/mixed_people/search";
-const APOLLO_ENRICH_URL = "https://api.apollo.io/v1/people/bulk_match";
 const DEFAULT_TITLES = [
   "Independent Financial Advisor",
   "Financial Advisor",
@@ -27,13 +25,6 @@ const DEFAULT_TITLES = [
   "Analyst",
 ];
 const DEFAULT_LOCATIONS = ["Finland", "Denmark", "Sweden", "Norway"];
-
-const buildApolloHeaders = () => ({
-  "Cache-Control": "no-cache",
-  "Content-Type": "application/json",
-  accept: "application/json",
-  "x-api-key": process.env.APOLLO_API_KEY!,
-});
 
 export const generateLeads = async (request: Request, response: Response) => {
   const startPageParam = request.params.page;
@@ -73,8 +64,8 @@ export const generateLeads = async (request: Request, response: Response) => {
   }
   try {
     const fetchPage = async (pageNumber: number) => {
-      return axios.post(
-        APOLLO_PEOPLE_URL,
+      return apolloService.request(
+        "mixed_people/api_search",
         {
           person_titles: DEFAULT_TITLES,
           organization_locations: DEFAULT_LOCATIONS,
@@ -82,34 +73,13 @@ export const generateLeads = async (request: Request, response: Response) => {
           contact_email_status: ["verified", "likely to engage"],
           per_page: 100,
           page: pageNumber,
-        },
-        { headers: buildApolloHeaders() }
+        }
       );
     };
 
     const processPageData = async (data: any) => {
       const peopleIds: Array<string | null | undefined> = data?.model_ids ?? [];
       const peopleData: Array<any> = data?.people ?? [];
-
-      for (const person of peopleData) {
-        const organizationId = person?.organization?.id;
-        if (!organizationId) {
-          continue;
-        }
-        const company = await Companies.findOne({
-          where: { external_id: organizationId },
-        });
-        if (!company) {
-          const organizationPayload = person.organization ?? {};
-          const { id, ...companyInfo } = organizationPayload;
-          await Companies.create({
-            id: v4(),
-            ...companyInfo,
-            external_id: organizationId,
-          });
-          newCompany++;
-        }
-      }
 
       const validPeopleIds = peopleIds.filter(
         (candidate): candidate is string =>
@@ -121,7 +91,26 @@ export const generateLeads = async (request: Request, response: Response) => {
       }
 
       const enrichedData = await apolloEnrichedPeople(validPeopleIds);
+
       for (const person of enrichedData) {
+        // Ensure company using enriched organization payload (more complete)
+        const organizationId = person?.organization?.id;
+        if (organizationId) {
+          const company = await Companies.findOne({
+            where: { external_id: organizationId },
+          });
+          if (!company) {
+            const organizationPayload = person.organization ?? {};
+            const { id, ...companyInfo } = organizationPayload;
+            await Companies.create({
+              id: v4(),
+              ...companyInfo,
+              external_id: organizationId,
+            });
+            newCompany++;
+          }
+        }
+
         const personId = person?.id ?? person?.person_id;
         if (!personId) {
           continue;
@@ -137,7 +126,7 @@ export const generateLeads = async (request: Request, response: Response) => {
             external_id: personId,
           });
           newLead++;
-        }
+        }       
       }
     };
 

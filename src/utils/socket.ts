@@ -2,6 +2,7 @@ import { Server as SocketIOServer } from "socket.io";
 import type { Server as HTTPServer } from "http";
 import logger from "../logger";
 import { verifyToken } from "./services/token";
+import Users from "../models/Users";
 
 let io: SocketIOServer | null = null;
 
@@ -46,6 +47,12 @@ export const initSocket = (server: HTTPServer, allowedOrigins: string[]) => {
     if (userId) {
       socket.join(`leads:${userId}`);
       logger.info(`Socket connected for user ${userId}`);
+      // update lastSeen for real-time activity
+      try {
+        Users.update({ lastSeen: new Date() }, { where: { id: userId } });
+      } catch (err) {
+        logger.error(err, "Failed to update lastSeen on socket connect");
+      }
     }
 
     socket.on("disconnect", () => {

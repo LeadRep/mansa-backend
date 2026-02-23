@@ -1,6 +1,6 @@
-import axios from "axios";
 import dotenv from "dotenv";
 import logger from "../../logger";
+import {apolloService} from "../../utils/http/services/apolloService";
 dotenv.config();
 
 export const apolloEnrichedPeople = async (ids: string[]) => {
@@ -25,27 +25,18 @@ export const apolloEnrichedPeople = async (ids: string[]) => {
       }
 
       try {
-        const response = await axios.post(
-          "https://api.apollo.io/v1/people/bulk_match",
-          payload,
-          {
-            headers: {
-              "Cache-Control": "no-cache",
-              "Content-Type": "application/json",
-              "x-api-key": process.env.APOLLO_API_KEY!,
-            },
-          }
+        const response = await apolloService.request(
+          "people/bulk_match",
+          payload
         );
         enrichedData.push(...(response.data.matches ?? []));
       } catch (batchError: any) {
-        const status = batchError?.response?.status;
-        const message =
-          batchError?.response?.data?.error ??
-          batchError?.response?.data?.message ??
-          batchError?.message ??
-          "Apollo enrichment batch failed";
         logger.error(
-          { status, message, batchIds },
+          {
+            status: batchError?.status,
+            message: batchError?.message,
+            batchIds,
+          },
           "Failed to enrich batch of people"
         );
       }
