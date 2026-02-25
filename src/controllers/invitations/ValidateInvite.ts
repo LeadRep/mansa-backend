@@ -6,8 +6,7 @@ import logger from "../../logger";
 export const ValidateInvite = async (request: Request, response: Response) => {
     try {
         let token = request.query.token;
-console.log("RVRV token");
-        console.log(token);
+        logger.debug({ hasToken: !!token }, "ValidateInvite received token query parameter");
 
         if (Array.isArray(token)) {
             token = token[0];
