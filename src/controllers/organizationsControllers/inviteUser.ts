@@ -54,14 +54,14 @@ export const inviteUser = async (request: Request, response: Response) => {
             return sendResponse(response, 400, "Organization not found");
         }
 
-        // Check if caller is owner
+        // Check if caller is owner or admin
         const membership = await Users.findOne({
             where: { id: userId, organization_id, orgRole: ["owner", "admin"] }
         });
         console.log(userId, organization_id, membership, organization.name, email, "membership");
         console.log(membership);
         if (!membership) {
-            return sendResponse(response, 403, "Only organization owners can invite users");
+            return sendResponse(response, 403, "Only organization owners or admins can invite users");
         }
 
         // Check if user already exists
