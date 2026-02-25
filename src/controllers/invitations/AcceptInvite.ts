@@ -101,8 +101,11 @@ export const AcceptInvite = async (request: Request, response: Response) => {
         // Mark invitation as accepted
         await invitation.update({ status: "accepted" });
 
+        step2LeadGen(user.id, 10).catch((err: any) => {
+            logger.error(err, "step2LeadGen error after accepting invite");
+        });
+
         return sendResponse(response, 200, "Invitation accepted. Account created.", { user });
-        step2LeadGen(user.id, 10);
     } catch (error: any) {
         logger.error(error, "Accept Invite Error:");
         return sendResponse(response, 500, "Internal Server Error");
