@@ -17,6 +17,9 @@ export const AcceptInvite = async (request: Request, response: Response) => {
             return sendResponse(response, 400, "Token and password are required");
         }
 
+        if (typeof password !== "string" || password.length < 8) {
+            return sendResponse(response, 400, "Password must be at least 8 characters long");
+        }
         // Find the invitation
         const invitation = await Invitations.findOne({
             where: { token, status: "pending" }
