@@ -1,6 +1,6 @@
-import { DataTypes, Model, Optional } from "sequelize";
+import { DataTypes, Model } from "sequelize";
 import Organizations from "./Organizations";
-import Users from "./Users"; // adjust path to your sequelize instance
+import Users from "./Users";
 import { database } from "../configs/database/database";
 
 interface InvitationAttributes {
