@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Invitations from "../../models/Invitations";
 import sendResponse from "../../utils/http/sendResponse";
 import logger from "../../logger";
+import Organizations from "../../models/Organizations";
 
 export const ValidateInvite = async (request: Request, response: Response) => {
     try {
@@ -17,7 +18,14 @@ export const ValidateInvite = async (request: Request, response: Response) => {
 
         // Find the invitation
         const invitation = await Invitations.findOne({
-            where: { token: token, status: "pending" }
+            where: { token: token, status: "pending" },
+            include: [
+              {
+                model: Organizations,
+                as: "organization",
+                attributes: ['name', 'organization_id'] // Specify which fields you want
+              }
+            ]
         });
 
         if (!invitation) {

@@ -14,7 +14,7 @@ import { classifyGeneralLeadSegments } from "../controllers/scripts/classifyGene
 import { generateCSVLeads } from "../controllers/scripts/generateCSVLeads";
 import sharedRoutes from "./sharedRoutes";
 import blogRoutes from "./blogRoutes";
-import invitationsRoutes from "./InvitationsRoutes";
+import invitationsRoutes from "./invitationsRoutes";
 
 const indexRoutes = express.Router();
 indexRoutes.get("/", index);

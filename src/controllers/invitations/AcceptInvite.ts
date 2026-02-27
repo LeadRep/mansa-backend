@@ -8,6 +8,7 @@ import {hashPassword} from "../../utils/services/password";
 import {CustomerPref} from "../../models/CustomerPref";
 import {createDeal} from "../usersControllers/deals/createDeal";
 import {step2LeadGen} from "../leadsController/step2LeadGen";
+import Organizations from "../../models/Organizations";
 
 
 export const AcceptInvite = async (request: Request, response: Response) => {
@@ -16,13 +17,23 @@ export const AcceptInvite = async (request: Request, response: Response) => {
         if (!token || !password) {
             return sendResponse(response, 400, "Token and password are required");
         }
+      if (!firstName || !lastName) {
+        return sendResponse(response, 400, "firstName and lastName are required");
+      }
 
-        if (typeof password !== "string" || password.length < 8) {
-            return sendResponse(response, 400, "Password must be at least 8 characters long");
+        if (typeof password !== "string" || password.length < 4) {
+            return sendResponse(response, 400, "Password must be at least 4 characters long");
         }
         // Find the invitation
         const invitation = await Invitations.findOne({
-            where: { token, status: "pending" }
+            where: { token, status: "pending" },
+            include: [
+              {
+                model: Organizations,
+                as: "organization",
+                attributes: ['name', 'organization_id'] // Specify which fields you want
+              }
+            ]
         });
 
         if (!invitation) {
@@ -39,12 +50,19 @@ export const AcceptInvite = async (request: Request, response: Response) => {
         }
 
         const inviter = await Users.findOne({
-            where: { id: invitation.inviter_id, organization_id: invitation.organization_id }
+            where: { id: invitation.inviter_id }
         });
 
         if (!inviter) {
             return sendResponse(response, 409, "Your inviter is not part of the organization anymore");
         }
+        if (inviter.role !== "admin" &&
+          (inviter.orgRole != "admin" && inviter.orgRole != "owner") &&
+          inviter.organization_id !== invitation.organization_id) {
+          return sendResponse(response, 403, "The invitation is not valid anymore. Please contact your organization admin.");
+        }
+
+
 
         // Create the user
         const commonFields = {
@@ -52,11 +70,11 @@ export const AcceptInvite = async (request: Request, response: Response) => {
             userName: request.body.userName || null,
             phone: request.body.phone,
             picture: request.body.picture || null,
-            companyName: inviter.companyName,
-            website: inviter.website || null,
-            address: inviter.address || null,
-            country: inviter.country || null,
-            city: inviter.city || null,
+            companyName: invitation.organization?.name,
+            website: invitation.organization?.website || null,
+            address: invitation.organization?.address || null,
+            country: invitation.organization?.country || null,
+            city: invitation.organization?.city || null,
             role: userRole.USER,
             orgRole: invitation.role || "member",
             isBlocked: null,
@@ -68,15 +86,16 @@ export const AcceptInvite = async (request: Request, response: Response) => {
             userName: request.body.userName || null,
             phone: request.body.phone,
             picture: request.body.picture || null,
-            companyName: inviter.companyName,
-            website: inviter.website || null,
-            address: inviter.address || null,
-            country: inviter.country || null,
-            city: inviter.city || null,
+            companyName: invitation.organization?.name,
+            website: invitation.organization?.website || null,
+            address: invitation.organization?.address || null,
+            country: invitation.organization?.country || null,
+            city: invitation.organization?.city || null,
             role: userRole.USER,
             orgRole: invitation.role || "member",
             isBlocked: null,
-            organization_id: invitation.organization_id,            email: invitation.email.toLowerCase(),
+            organization_id: invitation.organization_id,
+            email: invitation.email.toLowerCase(),
             firstName: firstName || invitation.firstName,
             lastName: lastName || invitation.lastName,
             password: hashedPassword,
@@ -84,11 +103,12 @@ export const AcceptInvite = async (request: Request, response: Response) => {
         });
 
         const adminCustomerPref = await CustomerPref.findOne({
-            where: { userId: invitation.inviter_id }
+          where: { userId: invitation.inviter_id }
         })
         if (!adminCustomerPref) {
-            return sendResponse(response, 400, "Admin customer pref not found");
+          return sendResponse(response, 400, "Admin customer pref not found");
         }
+
         await CustomerPref.create({
             id: v4(),
             userId: user.id,

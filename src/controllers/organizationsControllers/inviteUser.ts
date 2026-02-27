@@ -10,7 +10,7 @@ import nodemailer from "nodemailer";
 import Organizations from "../../models/Organizations";
 
 export async function sendInviteEmail(orgName: string, to: string, inviteLink: string) {
-    console.log("Sending invite email to:", to, "with link:", inviteLink);
+  logger.info(`Sending invite email to: ${to} with link: ${inviteLink}`);
     // const transporter = nodemailer.createTransport({
     //     service: "gmail", // or your email provider
     //     auth: {
@@ -40,7 +40,7 @@ export const inviteUser = async (request: Request, response: Response) => {
         const userId = request.user?.id;
         const { organization_id } = request.params;
         const { email, firstName, lastName, role } = request.body;
-        console.log("requestBody: ", request.body)
+        logger.info("requestBody: ", request.body)
 
         if (!organization_id || !email) {
             return sendResponse(response, 400, "Organization ID and email are required");
@@ -58,8 +58,8 @@ export const inviteUser = async (request: Request, response: Response) => {
         const membership = await Users.findOne({
             where: { id: userId, organization_id, orgRole: ["owner", "admin"] }
         });
-        console.log(userId, organization_id, membership, organization.name, email, "membership");
-        console.log(membership);
+        logger.debug(userId, organization_id, membership, organization.name, email, "membership");
+        logger.debug(membership);
         if (!membership) {
             return sendResponse(response, 403, "Only organization owners or admins can invite users");
         }
@@ -91,7 +91,7 @@ export const inviteUser = async (request: Request, response: Response) => {
             await Invitations.create({
                 invitation_id: v4(),
                 organization_id: organization_id,
-                email: email,
+                email: email.trim().toLowerCase(),
                 firstName: firstName,
                 lastName: lastName,
                 role: role,

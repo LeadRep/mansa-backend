@@ -13,6 +13,7 @@ interface InvitationAttributes {
     inviter_id: string;
     token: string;
     status: "pending" | "accepted" | "declined";
+    expiryAt?: Date | null;
 }
 
 export class Invitations extends Model<InvitationAttributes> {
@@ -55,7 +56,6 @@ Invitations.init(
         inviter_id: {
             type: DataTypes.UUID,
             allowNull: false,
-            primaryKey: true, // part of composite PK (team_id, user_id)
             references: {
                 model: Users,
                 key: "id",
@@ -71,6 +71,10 @@ Invitations.init(
             allowNull: false,
             defaultValue: "pending",
         },
+        expiryAt: {
+          type: DataTypes.DATE,
+          allowNull: true,
+        },
     },
     {
         sequelize: database,
@@ -85,5 +89,10 @@ Invitations.init(
         ]
     }
 );
+
+Invitations.belongsTo(Organizations, {
+  foreignKey: "organization_id",
+  as: "organization",
+});
 
 export default Invitations;
