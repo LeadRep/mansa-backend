@@ -1,11 +1,11 @@
 import express from "express";
-import {AcceptInvite} from "../controllers/invitations/AcceptInvite";
-import {ValidateInvite} from "../controllers/invitations/ValidateInvite";
+import {AcceptInvite as acceptInvite} from "../controllers/invitations/AcceptInvite";
+import {ValidateInvite as validateInvite} from "../controllers/invitations/ValidateInvite";
 
 const invitationsRoutes = express.Router();
 
-invitationsRoutes.post("/accept", AcceptInvite);
-invitationsRoutes.get("/validate", ValidateInvite);
+invitationsRoutes.post("/accept", acceptInvite);
+invitationsRoutes.get("/validate", validateInvite);
 
 
 export default invitationsRoutes;
