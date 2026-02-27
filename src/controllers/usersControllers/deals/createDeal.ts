@@ -1,8 +1,9 @@
 import { v4 } from "uuid";
+import { Transaction } from "sequelize";
 import Deals from "../../../models/Deals";
 import { applyStageProbabilities } from "../../../utils/deals/stageProbabilities";
 
-export const createDeal = async (userId: string) => {
+export const createDeal = async (userId: string, transaction?: Transaction) => {
     try {
       const deal = await Deals.create({
         id: v4(),
@@ -16,7 +17,7 @@ export const createDeal = async (userId: string) => {
           { id: v4(), name: "Closed Won", color: "#F5FF33" },
           { id: v4(), name: "Closed Lost", color: "#FF33A8" },
         ]),
-      });
+      }, { transaction });
       return true;
     } catch (error) {
       return false;
