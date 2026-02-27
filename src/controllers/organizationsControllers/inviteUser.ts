@@ -40,7 +40,14 @@ export const inviteUser = async (request: Request, response: Response) => {
         const userId = request.user?.id;
         const { organization_id } = request.params;
         const { email, firstName, lastName, role } = request.body;
-        logger.info("requestBody: ", request.body)
+        logger.info(
+            {
+                organization_id,
+                email: email?.trim().toLowerCase(),
+                role,
+            },
+            "inviteUser request received"
+        );
 
         if (!organization_id || !email) {
             return sendResponse(response, 400, "Organization ID and email are required");
