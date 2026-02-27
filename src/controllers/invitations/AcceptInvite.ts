@@ -126,7 +126,10 @@ export const AcceptInvite = async (request: Request, response: Response) => {
             logger.error(err, "step2LeadGen error after accepting invite");
         });
 
-        return sendResponse(response, 200, "Invitation accepted. Account created.", { user });
+        const rawUser = typeof (user as any).toJSON === "function" ? (user as any).toJSON() : user;
+        const { password: _password, ...sanitizedUser } = rawUser;
+
+        return sendResponse(response, 200, "Invitation accepted. Account created.", { user: sanitizedUser });
     } catch (error: any) {
         logger.error(error, "Accept Invite Error:");
         return sendResponse(response, 500, "Internal Server Error");
