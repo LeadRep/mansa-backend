@@ -40,10 +40,11 @@ export const inviteUser = async (request: Request, response: Response) => {
         const userId = request.user?.id;
         const { organization_id } = request.params;
         const { email, firstName, lastName, role } = request.body;
+        const normalizeEmail = email?.trim().toLowerCase();
         logger.info(
             {
                 organization_id,
-                email: email?.trim().toLowerCase(),
+                email: normalizeEmail,
                 role,
             },
             "inviteUser request received"
@@ -73,7 +74,7 @@ export const inviteUser = async (request: Request, response: Response) => {
 
         // Check if user already exists
         const existing = await Users.findOne({
-            where: { email: email, organization_id }
+            where: { email: normalizeEmail, organization_id }
         });
         if (existing) {
             return sendResponse(response, 409, "User is already a member");
@@ -82,7 +83,7 @@ export const inviteUser = async (request: Request, response: Response) => {
         const token = crypto.randomBytes(32).toString("hex");
         const existingInvite = await Invitations.findOne({
             where: {
-                email,
+                email: normalizeEmail,
                 organization_id,
                 status: "pending"
             }
@@ -98,7 +99,7 @@ export const inviteUser = async (request: Request, response: Response) => {
             await Invitations.create({
                 invitation_id: v4(),
                 organization_id: organization_id,
-                email: email.trim().toLowerCase(),
+                email: normalizeEmail,
                 firstName: firstName,
                 lastName: lastName,
                 role: role,
@@ -109,7 +110,7 @@ export const inviteUser = async (request: Request, response: Response) => {
         }
 
         const inviteLink = `${process.env.APP_DOMAIN}/accept-invite?token=${token}`;
-        //await sendInviteEmail(organization.name, email, inviteLink);
+        await sendInviteEmail(organization.name, normalizeEmail, inviteLink);
         return sendResponse(response, 200, "Invitation sent successfully");
     } catch (error: any) {
         logger.error(error, "Invite User Error:");

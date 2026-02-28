@@ -32,7 +32,21 @@ export const ValidateInvite = async (request: Request, response: Response) => {
             return sendResponse(response, 404, "Invalid or expired invitation");
         }
 
-        return sendResponse(response, 200, "Invitation valid.", { invitation });
+        const plain = invitation.get({ plain: true }) as {
+          firstName?: string;
+          lastName?: string;
+          role?: string;
+          organization?: { name?: string } | null;
+        };
+
+        const invitationPayload = {
+          firstName: plain.firstName ?? null,
+          lastName: plain.lastName ?? null,
+          role: plain.role ?? null,
+          organization: { name: plain.organization?.name ?? null },
+        };
+
+        return sendResponse(response, 200, "Invitation valid.", { invitationPayload });
     } catch (error: any) {
         logger.error(error, "validate Invite Error:");
         return sendResponse(response, 500, "Internal Server Error");
