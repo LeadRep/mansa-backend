@@ -9,30 +9,43 @@ import crypto from "crypto"; // Add this import
 import Organizations from "../../models/Organizations";
 import { sendEmail } from "../../configs/email/emailConfig";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
 export async function sendInviteEmail(orgName: string, to: string, inviteLink: string) {
   logger.info(`Sending invite email to: ${to} with link: ${inviteLink}`);
 
   const supportEmail = process.env.SUPPORT_EMAIL || "info@leadrep.ai";
   const expiresHours = "24";
 
+  const safeOrgName = escapeHtml(orgName);
+  const safeInviteLink = escapeHtml(encodeURI(inviteLink));
+  const safeSupportEmail = escapeHtml(supportEmail);
+
   const html = `
     <p>Hello,</p>
-    <p>You have been invited to join <strong>${orgName}</strong>'s workspace by one of our team members.</p>
+    <p>You have been invited to join <strong>${safeOrgName}</strong>'s workspace by one of our team members.</p>
     <p>To accept the invitation and get started, click the button below:</p>
     <p style="text-align:center;">
-      <a href="${inviteLink}" style="display:inline-block;padding:12px 20px;background:#1a73e8;color:#ffffff;text-decoration:none;border-radius:6px;">
+      <a href="${safeInviteLink}" style="display:inline-block;padding:12px 20px;background:#1a73e8;color:#ffffff;text-decoration:none;border-radius:6px;">
         Accept Invitation
       </a>
     </p>
     <p>If the button above does not work, copy and paste this link into your browser:</p>
-    <p><a href="${inviteLink}">${inviteLink}</a></p>
+    <p><a href="${safeInviteLink}">${safeInviteLink}</a></p>
     <p style="color:#666;font-size:13px;">
-      This link expires in ${expiresHours} hours and can only be used once. If you did not expect this invitation, ignore this email or contact <a href="mailto:${supportEmail}">${supportEmail}</a>.
+      This link expires in ${expiresHours} hours and can only be used once. If you did not expect this invitation, ignore this email or contact <a href="mailto:${safeSupportEmail}">${safeSupportEmail}</a>.
     </p>
     <br>
-    <p>Best regards,<br>${orgName} Team</p>
+    <p>Best regards,<br>${safeOrgName} Team</p>
     <hr style="border:none;border-top:1px solid #eee;margin-top:16px;">
-    <p style="color:#999;font-size:12px;">You are receiving this email because an invitation was sent to ${orgName} workspace. If you believe this is an error, contact <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>
+    <p style="color:#999;font-size:12px;">You are receiving this email because an invitation was sent to ${safeOrgName} workspace. If you believe this is an error, contact <a href="mailto:${safeSupportEmail}">${safeSupportEmail}</a>.</p>
   `;
 
   const text = [
