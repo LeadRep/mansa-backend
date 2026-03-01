@@ -9,6 +9,7 @@ import {CustomerPref} from "../../models/CustomerPref";
 import {createDeal} from "../usersControllers/deals/createDeal";
 import {step2LeadGen} from "../leadsController/step2LeadGen";
 import Organizations from "../../models/Organizations";
+import {subscriptionNameToRefreshLeads} from "../../utils/services/subscriptionNameToRefreshLeads";
 
 
 export const AcceptInvite = async (request: Request, response: Response) => {
@@ -115,7 +116,9 @@ export const AcceptInvite = async (request: Request, response: Response) => {
             userId: user.id,
             ICP: adminCustomerPref.ICP,
             BP: adminCustomerPref.BP,
-            territories: adminCustomerPref.territories
+            territories: adminCustomerPref.territories,
+            refreshLeads: subscriptionNameToRefreshLeads[
+              invitation.organization?.plan || "free"] || 100
         });
         await createDeal(user.id);
 
