@@ -7,7 +7,7 @@ import { v4 } from "uuid";
 import crypto from "crypto"; // Add this import
 
 import Organizations from "../../models/Organizations";
-import {sendEmail} from "../../configs/email/emailConfig";
+import { sendEmail } from "../../configs/email/emailConfig";
 
 export async function sendInviteEmail(orgName: string, to: string, inviteLink: string) {
   logger.info(`Sending invite email to: ${to} with link: ${inviteLink}`);
