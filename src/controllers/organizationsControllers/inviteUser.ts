@@ -51,12 +51,12 @@ export async function sendInviteEmail(orgName: string, to: string, inviteLink: s
     `${orgName} Team`
   ].join('\n');
 
-    await sendEmail(
-        to,
-        "You're invited to join the organization",
-        text,
-        html
-    )
+  await sendEmail(
+    to,
+    "You're invited to join the organization",
+    text,
+    html
+  );
 }
 
 export const inviteUser = async (request: Request, response: Response) => {
