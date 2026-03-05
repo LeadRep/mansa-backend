@@ -5,6 +5,8 @@ export type PlainLead = GeneralLeadsAttributes & {
     organization?: any;
     createdAt?: Date;
     updatedAt?: Date;
+    exportedForOrganization: boolean;
+
 };
 
 const coerceJSON = (value: unknown, name: string): Record<string, any> | null => {
@@ -98,7 +100,7 @@ export const normalizeLead = (lead: PlainLead) => {
         organization,
         updatedAt: lead.updatedAt ?? null,
         createdAt: lead.createdAt ?? null,
-        consumed: Boolean(!lead.revealed_for_current_team),
+        consumed: lead.exportedForOrganization,
         individualSegments: individualSegmentsJSON
     };
 };
