@@ -8,6 +8,7 @@ import {Op} from "sequelize";
 import {v4 as uuidv4} from "uuid";
 import {Parser} from "json2csv";
 import {normalizeLead, PlainLead} from "./utils";
+import {recordLeadExport} from "../../services/exportService";
 
 
 export const exportLeads = async (request: Request, response: Response) => {
@@ -19,6 +20,7 @@ export const exportLeads = async (request: Request, response: Response) => {
             sendResponse(response, 401, "User not found");
             return;
         }
+        logger.info(`exportLeads for user ${userId} at organization ${user.organization_id}}`);
         const { ids } = request.body;
 
         // 1. Check and decrement quota atomically
@@ -30,13 +32,8 @@ export const exportLeads = async (request: Request, response: Response) => {
         // 2. Generate CSV and upload (or serve)
         const { csv, exportId } = await generateExportCsv(ids);
 
-        // 4. Update asynchronously revealed_for_current_team to false all leads in ids
-        GeneralLeads.update(
-            {revealed_for_current_team: false},
-            {where: {id: {[Op.in]: ids}}}
-        ).catch(error => {
-            logger.error(error, "Error updating revealed_for_current_team status:");
-        });
+        // 4. Update asynchronously viewed record
+        recordLeadExport(ids, userId, user.organization_id, 'csv')
         
 
         // 3. Return download URL and updated quota

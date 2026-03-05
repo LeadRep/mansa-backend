@@ -7,6 +7,7 @@ import {
 } from "../../models/GeneralLeads";
 import logger from "../../logger";
 import {normalizeLead, PlainLead} from "./utils";
+import Users from "../../models/Users";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 50;
@@ -56,7 +57,8 @@ const buildFilters = (
     countries: string[],
     segments: string[],
     tags: string[],
-    lock: string | null
+    lock: string | null,
+    organizationId: string
 ): WhereOptions<GeneralLeadsAttributes> => {
     const andConditions: any[] = [];
 
@@ -101,18 +103,25 @@ const buildFilters = (
         });
     }
 
-    // lock can be "locked", unlocked" or null
-    if (lock) {
-        if (lock === "locked") {
-            andConditions.push({
-                revealed_for_current_team: false,
-            });
-        } else if (lock === "unlocked") {
-            andConditions.push({
-                revealed_for_current_team: true,
-            });
-        }
+  // lock can be "locked", "unlocked" or null
+  if (lock) {
+    // If we have an organization context, check LeadExports for organization-scoped exports.
+    // Use a literal EXISTS subquery for fast indexed lookups.
+    const escOrg = (GeneralLeads.sequelize as any).escape(organizationId);
+    const existsSql = `EXISTS (
+                SELECT 1 FROM "LeadExports" le
+                WHERE le.lead_id = "GeneralLeads".id
+                  AND le.exported_for_organization_id = ${escOrg}
+            )`;
+
+    if (lock === "locked") {
+      // not exported for the organization
+      andConditions.push((GeneralLeads.sequelize as any).literal(`NOT ${existsSql}`));
+    } else if (lock === "unlocked") {
+      // exported for the organization
+      andConditions.push((GeneralLeads.sequelize as any).literal(existsSql));
     }
+  }
 
     if (tags.length) {
         const tagConditions: any[] = [];
@@ -164,14 +173,21 @@ const buildFilters = (
 
 export const getAciLeads = async (req: Request, res: Response) => {
     try {
-        const pageParam =
-            typeof req.query.page === "string"
-                ? Number.parseInt(req.query.page, 10)
-                : NaN;
-        const limitParam =
-            typeof req.query.limit === "string"
-                ? Number.parseInt(req.query.limit, 10)
-                : NaN;
+      const userId = req.user?.id;
+      const user = await Users.findOne({ where: { id: userId } });
+      if(!user) {
+        sendResponse(res, 401, "User not found");
+        return;
+      }
+
+      const pageParam =
+        typeof req.query.page === "string"
+          ? Number.parseInt(req.query.page, 10)
+          : NaN;
+      const limitParam =
+        typeof req.query.limit === "string"
+          ? Number.parseInt(req.query.limit, 10)
+          : NaN;
 
         const page =
             Number.isNaN(pageParam) || pageParam < 1 ? DEFAULT_PAGE : pageParam;
@@ -189,13 +205,28 @@ export const getAciLeads = async (req: Request, res: Response) => {
         const tags = parseListParam(req.query.tags);
 
 
-        const where = buildFilters(search, titles, countries, segments, tags, lock);
+    const where = buildFilters(search, titles, countries, segments, tags, lock, user.organization_id);
 
         const {rows, count} = await GeneralLeads.findAndCountAll({
             where,
             limit,
             offset,
             order: [["priority", "DESC"], ["createdAt", "DESC"]],
+          attributes: {
+            include: [
+              [
+                (GeneralLeads.sequelize as any).literal(`
+                            EXISTS (
+                                SELECT 1 FROM "LeadExports" le
+                                WHERE le.lead_id = "GeneralLeads".id
+                                  AND le.exported_for_organization_id = ${(GeneralLeads.sequelize as any).escape(user.organization_id)}
+                            )
+                        `),
+                'exportedForOrganization'
+              ]
+            ]
+          }
+
         });
 
         const leads = rows.map((lead) =>
