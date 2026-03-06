@@ -62,7 +62,7 @@ export async function checkAndDecrementQuota(organizationId: string, count: numb
     return { ok: true, remaining: quota.remaining };
 }
 
-// Generates a CSV file for the given lead IDs and returns a download URL and export ID
+// Generates a CSV file for the given lead IDs and returns it along with the provided export ID
 export async function generateExportCsv(leadIds: number[], exportId: string) {
     const rows = await GeneralLeads.findAll({ where: { id: { [Op.in]: leadIds } } });
     const leads = rows.map((lead) =>
