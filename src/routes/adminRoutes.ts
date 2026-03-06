@@ -85,6 +85,6 @@ adminRoutes.post("/blogs", createBlogPost);
 adminRoutes.put("/blogs/:id", updateBlogPost);
 adminRoutes.delete("/blogs/:id", deleteBlogPost);
 adminRoutes.post("/blogs/uploads", upload.single("image"), uploadBlogImage);
-adminRoutes.post('/invite-user', adminInviteUser);
+adminRoutes.post("/invite-user", adminInviteUser);
 
 export default adminRoutes;
