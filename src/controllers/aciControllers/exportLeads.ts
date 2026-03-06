@@ -34,7 +34,6 @@ export const exportLeads = async (request: Request, response: Response) => {
         const { csv, exportId } = await generateExportCsv(ids, jobId);
 
         // 4. Update asynchronously viewed record
-
         recordLeadExport(ids, userId, user.organization_id, 'csv', jobId)
         
 
