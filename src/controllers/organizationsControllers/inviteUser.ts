@@ -22,7 +22,7 @@ export async function sendInviteEmail(orgName: string, to: string, inviteLink: s
   logger.info(`Sending invite email to: ${to} with link: ${inviteLink}`);
 
   const supportEmail = process.env.SUPPORT_EMAIL || "info@leadrep.ai";
-  const expiresHours = "24";
+  const expiresDays = "14";
 
   const safeOrgName = escapeHtml(orgName);
   const safeInviteLink = escapeHtml(encodeURI(inviteLink));
@@ -30,7 +30,7 @@ export async function sendInviteEmail(orgName: string, to: string, inviteLink: s
 
   const html = `
     <p>Hello,</p>
-    <p>You have been invited to join <strong>${safeOrgName}</strong>'s workspace by one of our team members.</p>
+    <p>You have been invited to join <strong>${safeOrgName}</strong>'s workspace.</p>
     <p>To accept the invitation and get started, click the button below:</p>
     <p style="text-align:center;">
       <a href="${safeInviteLink}" style="display:inline-block;padding:12px 20px;background:#1a73e8;color:#ffffff;text-decoration:none;border-radius:6px;">
@@ -40,7 +40,7 @@ export async function sendInviteEmail(orgName: string, to: string, inviteLink: s
     <p>If the button above does not work, copy and paste this link into your browser:</p>
     <p><a href="${safeInviteLink}">${safeInviteLink}</a></p>
     <p style="color:#666;font-size:13px;">
-      This link expires in ${expiresHours} hours and can only be used once. If you did not expect this invitation, ignore this email or contact <a href="mailto:${safeSupportEmail}">${safeSupportEmail}</a>.
+      This link expires in ${expiresDays} days and can only be used once. If you did not expect this invitation, ignore this email or contact <a href="mailto:${safeSupportEmail}">${safeSupportEmail}</a>.
     </p>
     <br>
     <p>Best regards,<br>${safeOrgName} Team</p>
@@ -51,13 +51,13 @@ export async function sendInviteEmail(orgName: string, to: string, inviteLink: s
   const text = [
     `Hello,`,
     ``,
-    `You have been invited to join ${orgName}'s workspace by one of our team members.`,
+    `You have been invited to join ${orgName}'s workspace.`,
     ``,
     `Accept invitation: ${inviteLink}`,
     ``,
     `If the link above does not work, copy and paste it into your browser.`,
     ``,
-    `Note: This link expires in ${expiresHours} hours and can only be used once.`,
+    `Note: This link expires in ${expiresDays} days and can only be used once.`,
     `If you did not expect this invitation, ignore this email or contact ${supportEmail}.`,
     ``,
     `Best regards,`,
