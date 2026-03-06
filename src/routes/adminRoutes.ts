@@ -8,7 +8,7 @@ import {
   createAdmin,
 } from "../controllers/adminControllers/users";
 import { getGeneralLeads } from "../controllers/adminControllers/leads";
-import { adminInviteUser } from "../controllers/adminControllers/AdminInviteUser";
+import { adminInviteUser } from "../controllers/adminControllers/adminInviteUser";
 import { getCompanies } from "../controllers/adminControllers/companies";
 import {
   getMrr,

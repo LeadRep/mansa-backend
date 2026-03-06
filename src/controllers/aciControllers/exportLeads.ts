@@ -34,7 +34,7 @@ export const exportLeads = async (request: Request, response: Response) => {
         const { csv, exportId } = await generateExportCsv(ids, jobId);
 
         // 4. Update asynchronously viewed record
-        recordLeadExport(ids, userId, user.organization_id, 'csv', jobId).catch((err) => {
+        recordLeadExport(ids, userId, user.organization_id, jobId, 'csv').catch((err) => {
             logger.error(err, "Failed to record lead export");
         });
 
@@ -64,7 +64,7 @@ export async function checkAndDecrementQuota(organizationId: string, count: numb
 }
 
 // Generates a CSV file for the given lead IDs and returns it along with the provided export ID
-export async function generateExportCsv(leadIds: number[], exportId: string) {
+export async function generateExportCsv(leadIds: string[], exportId: string) {
     const rows = await GeneralLeads.findAll({ where: { id: { [Op.in]: leadIds } } });
     const leads = rows.map((lead) =>
         normalizeLead(lead.get({ plain: true }) as PlainLead)
