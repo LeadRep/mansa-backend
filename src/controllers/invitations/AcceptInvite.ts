@@ -60,7 +60,8 @@ export const AcceptInvite = async (request: Request, response: Response) => {
         const isGlobalAdmin = inviter.role === "admin";
         const isOrgAdminOrOwner = inviter.orgRole === "admin" || inviter.orgRole === "owner";
         const sameOrganization = inviter.organization_id === invitation.organization_id;
-        if (!sameOrganization || (!isGlobalAdmin && !isOrgAdminOrOwner)) {
+        if (!isGlobalAdmin && (!sameOrganization || !isOrgAdminOrOwner)) {
+          logger.error(`Invitation is not valid anymore. Please contact your organization admin. ${sameOrganization}/${isGlobalAdmin}/${isOrgAdminOrOwner}`);
           return sendResponse(response, 403, "The invitation is not valid anymore. Please contact your organization admin.");
         }
 
