@@ -30,10 +30,12 @@ export const exportLeads = async (request: Request, response: Response) => {
         }
 
         // 2. Generate CSV and upload (or serve)
-        const { csv, exportId } = await generateExportCsv(ids);
+        const jobId = uuidv4();
+        const { csv, exportId } = await generateExportCsv(ids, jobId);
 
         // 4. Update asynchronously viewed record
-        recordLeadExport(ids, userId, user.organization_id, 'csv')
+
+        recordLeadExport(ids, userId, user.organization_id, 'csv', jobId)
         
 
         // 3. Return download URL and updated quota
@@ -62,15 +64,16 @@ export async function checkAndDecrementQuota(organizationId: string, count: numb
 }
 
 // Generates a CSV file for the given lead IDs and returns a download URL and export ID
-export async function generateExportCsv(leadIds: number[]) {
+export async function generateExportCsv(leadIds: number[], exportId: string) {
     const rows = await GeneralLeads.findAll({ where: { id: { [Op.in]: leadIds } } });
     const leads = rows.map((lead) =>
         normalizeLead(lead.get({ plain: true }) as PlainLead)
     );
-    const exportId = uuidv4();
+
     const fields = [
         {"label": "ID", "value": "id"},
-        {"label": "Name", "value": "name"},
+        {"label": "firstName", "value": "firstName"},
+        {"label": "lastName", "value": "lastName"},
         {"label": "Title", "value": "title"},
         {"label": "Company", "value": "company"},
         {"label": "Country", "value": "country"},

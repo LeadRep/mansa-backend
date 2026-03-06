@@ -83,6 +83,8 @@ export const normalizeLead = (lead: PlainLead) => {
         id: lead.id,
         externalId: lead.external_id,
         name: lead.full_name ?? lead.name ?? organizationName ?? null,
+        firstName: lead.first_name ?? null,
+        lastName: lead.last_name ?? null,
         title: lead.title ?? null,
         company: organizationName,
         country: organizationCountry,
