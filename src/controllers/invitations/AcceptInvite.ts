@@ -9,6 +9,7 @@ import {CustomerPref} from "../../models/CustomerPref";
 import {createDeal} from "../usersControllers/deals/createDeal";
 import {step2LeadGen} from "../leadsController/step2LeadGen";
 import Organizations from "../../models/Organizations";
+import { database } from "../../configs/database/database";
 
 
 export const AcceptInvite = async (request: Request, response: Response) => {
@@ -63,64 +64,54 @@ export const AcceptInvite = async (request: Request, response: Response) => {
           return sendResponse(response, 403, "The invitation is not valid anymore. Please contact your organization admin.");
         }
 
-
-
-        // Create the user
-        const commonFields = {
-            id: v4(),
-            userName: request.body.userName || null,
-            phone: request.body.phone,
-            picture: request.body.picture || null,
-            companyName: invitation.organization?.name,
-            website: invitation.organization?.website || null,
-            address: invitation.organization?.address || null,
-            country: invitation.organization?.country || null,
-            city: invitation.organization?.city || null,
-            role: userRole.USER,
-            orgRole: invitation.role || "member",
-            isBlocked: null,
-            organization_id: invitation.organization_id,
-        };
-        const hashedPassword = await hashPassword(password);
-        const user = await Users.create({
-            id: v4(),
-            userName: request.body.userName || null,
-            phone: request.body.phone,
-            picture: request.body.picture || null,
-            companyName: invitation.organization?.name,
-            website: invitation.organization?.website || null,
-            address: invitation.organization?.address || null,
-            country: invitation.organization?.country || null,
-            city: invitation.organization?.city || null,
-            role: userRole.USER,
-            orgRole: invitation.role || "member",
-            isBlocked: null,
-            organization_id: invitation.organization_id,
-            email: invitation.email.toLowerCase(),
-            firstName: firstName || invitation.firstName,
-            lastName: lastName || invitation.lastName,
-            password: hashedPassword,
-            isVerified: true
-        });
-
+        // Validate preconditions before any writes
         const adminCustomerPref = await CustomerPref.findOne({
           where: { userId: invitation.inviter_id }
-        })
+        });
         if (!adminCustomerPref) {
           return sendResponse(response, 400, "Admin customer pref not found");
         }
 
-        await CustomerPref.create({
-            id: v4(),
-            userId: user.id,
-            ICP: adminCustomerPref.ICP,
-            BP: adminCustomerPref.BP,
-            territories: adminCustomerPref.territories
-        });
-        await createDeal(user.id);
+        const hashedPassword = await hashPassword(password);
 
-        // Mark invitation as accepted
-        await invitation.update({ status: "accepted" });
+        // Wrap all writes in a transaction so the system stays consistent
+        const user = await database.transaction(async (t) => {
+            const newUser = await Users.create({
+                id: v4(),
+                userName: request.body.userName || null,
+                phone: request.body.phone,
+                picture: request.body.picture || null,
+                companyName: invitation.organization?.name,
+                website: invitation.organization?.website || null,
+                address: invitation.organization?.address || null,
+                country: invitation.organization?.country || null,
+                city: invitation.organization?.city || null,
+                role: userRole.USER,
+                orgRole: invitation.role || "member",
+                isBlocked: null,
+                organization_id: invitation.organization_id,
+                email: invitation.email.toLowerCase(),
+                firstName: firstName || invitation.firstName,
+                lastName: lastName || invitation.lastName,
+                password: hashedPassword,
+                isVerified: true
+            }, { transaction: t });
+
+            await CustomerPref.create({
+                id: v4(),
+                userId: newUser.id,
+                ICP: adminCustomerPref.ICP,
+                BP: adminCustomerPref.BP,
+                territories: adminCustomerPref.territories
+            }, { transaction: t });
+
+            await createDeal(newUser.id, t);
+
+            // Mark invitation as accepted
+            await invitation.update({ status: "accepted" }, { transaction: t });
+
+            return newUser;
+        });
 
         step2LeadGen(user.id, 10).catch((err: any) => {
             logger.error(err, "step2LeadGen error after accepting invite");
