@@ -46,7 +46,7 @@ const DEFAULT_TITLES = [
   "Senior Investment Analyst",
   "Research Analyst",
   "Equity Research Analyst",
-  "Quantitative Analyst",
+  "Quantitative Analyst"
 ];
 const DEFAULT_LOCATIONS = ["Finland", "Denmark"];
 
@@ -54,16 +54,9 @@ export const generateLeads = async (request: Request, response: Response) => {
   const startPageParam = request.params.page;
   const endPageParam = request.params.endPage;
 
-  const startPage = Number.parseInt(startPageParam ?? "", 10);
+  const startPage = Number.parseInt(startPageParam);
 
-  let endPageValue: string | undefined;
-  if (typeof endPageParam === "string") {
-    endPageValue = endPageParam;
-  } else if (Array.isArray(endPageParam) && typeof endPageParam[0] === "string") {
-    endPageValue = endPageParam[0];
-  }
-
-  const endPage = Number.parseInt(endPageValue ?? "", 10);
+  const endPage = Number.parseInt(endPageParam);
 
   if (Number.isNaN(startPage) || Number.isNaN(endPage)) {
     sendResponse(
@@ -103,6 +96,10 @@ export const generateLeads = async (request: Request, response: Response) => {
 
     const processPageData = async (data: any) => {
       const peopleIds: Array<string | null | undefined> = data?.model_ids ?? [];
+      for (const person of data.people) {
+        peopleIds.push(person.id);
+      }
+
       const peopleData: Array<any> = data?.people ?? [];
 
       const validPeopleIds = peopleIds.filter(
@@ -178,7 +175,7 @@ export const generateLeads = async (request: Request, response: Response) => {
       return;
     }
 
-    const totalPages =firstResponse?.data?.total_entries? (firstResponse?.data?.total_entries/100): 0
+    const totalPages =firstResponse?.data?.total_entries? Math.ceil(firstResponse?.data?.total_entries/100): 0
 
     if (!totalPages || totalPages < 1) {
       sendResponse(response, 200, "No pages available from Apollo", {

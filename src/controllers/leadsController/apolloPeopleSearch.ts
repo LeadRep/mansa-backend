@@ -1,5 +1,6 @@
 import logger from "../../logger";
 import { apolloService } from "../../utils/http/services/apolloService";
+import { persistApolloResults } from "../leadGenV2/persistApolloResults";
 
 type ApolloSearchParams = Record<string, any> | null | undefined;
 
@@ -41,6 +42,20 @@ export const apolloPeopleSearch = async (
       "mixed_people/api_search",
       { ...effectiveParams }
     );
+
+    const people = Array.isArray(response?.data?.people) ? response.data.people : [];
+    if (people.length) {
+      try {
+        // Persist the full page result so all returned Apollo leads are cached.
+        await persistApolloResults(people);
+      } catch (persistError: any) {
+        logger.error(
+          { message: persistError?.message, page: effectiveParams.page },
+          "Failed to persist Apollo page results to GeneralLeads"
+        );
+      }
+    }
+
     return response.data;
   } catch (error: any) {
     logger.error(error, "Error searching people:");

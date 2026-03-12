@@ -9,7 +9,7 @@ import {
 } from "../../utils/services/ai/updateCustomerPrefPrompt";
 import { AIResponse } from "../aiControllers/customerPreference";
 import logger from "../../logger";
-import { step2LeadGen } from "../leadsController/step2LeadGen";
+import { runLeadGeneration } from "../leadsController/leadGenSelector";
 
 export const updateCustomerPref = async (
   request: JwtPayload,
@@ -122,7 +122,9 @@ export const updateCustomerPref = async (
       return;
     }
 
-    const hasSubscription = Boolean(user?.subscriptionName);
+    const hasSubscription = Boolean(
+      user?.subscriptionName || customer?.subscriptionName
+    );
     const targetLeadCount = hasSubscription ? 20 : 10;
 
     await customer.update({
@@ -134,21 +136,22 @@ export const updateCustomerPref = async (
       totalPages: 0,
     });
 
-    // Remove all existing leads so the next generation starts fresh.
-    await Leads.destroy({
-      where: { owner_id: userId },
-    });
+    // Archive existing leads before starting a new generation cycle.
+    await Leads.update(
+      { status: LeadStatus.VIEWED },
+      { where: { owner_id: userId } }
+    );
 
     sendResponse(response, 200, "Customer preferences updated successfully");
 
-    try {
-      await step2LeadGen(userId, targetLeadCount, true);
-    } catch (generationError: any) {
-      logger.error(
-        generationError,
-        "Error triggering lead generation after customer pref update"
-      );
-    }
+    runLeadGeneration(userId, targetLeadCount, true).catch(
+      (generationError: any) => {
+        logger.error(
+          generationError,
+          "Error triggering lead generation after customer pref update"
+        );
+      }
+    );
     return;
   } catch (error: any) {
     logger.error(error, "Error updating customer preferences:");

@@ -28,6 +28,10 @@ import { deleteStage } from "../controllers/usersControllers/deals/deleteStage";
 import { forgotPassword } from "../controllers/usersControllers/forgotPassword";
 import { resetPassword } from "../controllers/usersControllers/resetPassword";
 import { shareLeads } from "../controllers/usersControllers/shareLeads";
+import {
+  getOrGenerateLeadIntroMail,
+  sendLeadIntroMailWithGmail,
+} from "../controllers/usersControllers/leadIntroMail";
 
 const usersRoutes = express.Router();
 const dealNotesUploadDir = path.join(__dirname, "../../uploads/tmp");
@@ -75,6 +79,12 @@ usersRoutes.post("/forgot-password", forgotPassword);
 usersRoutes.post("/reset-password", resetPassword);
 usersRoutes.get("/leads", userAuth, userLeads);
 usersRoutes.post("/leads/share", userAuth, shareLeads);
+usersRoutes.post("/leads/:leadId/intro-mail", userAuth, getOrGenerateLeadIntroMail);
+usersRoutes.post(
+  "/leads/:leadId/intro-mail/send",
+  userAuth,
+  sendLeadIntroMailWithGmail
+);
 usersRoutes.post("/add-lead-to-deal", userAuth, addLeadToDeal);
 usersRoutes.post("/pay", userAuth, payment);
 usersRoutes.post("/verify-payment", userAuth, successPayment);

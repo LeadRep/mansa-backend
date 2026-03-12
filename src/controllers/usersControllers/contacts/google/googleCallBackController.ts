@@ -7,7 +7,13 @@ import {Request, Response} from "express";
 import UserContactsStaging from "../../../../models/UserContactsStaging";
 import {Op} from "sequelize";
 import {google} from "googleapis";
-import { SCOPE2, oauth2Client, CONTACT_FRONTEND_SUCCESS_URL, CONTACT_FRONTEND_FAILURE_URL } from "./googleConfig";
+import {
+    SCOPE2,
+    SCOPE3,
+    oauth2Client,
+    CONTACT_FRONTEND_SUCCESS_URL,
+    CONTACT_FRONTEND_FAILURE_URL
+} from "./googleConfig";
 
 
 async function createAccountRecordFromIdToken(userId: string, idToken: string) {
@@ -87,12 +93,12 @@ export const googleCallback = async (
     }
     try {
         const scopeArray = (scope as string).split(' ');
-        if (!scopeArray.includes(SCOPE2[0])) {
-            // we assume it is SCOPE1
-            logger.debug('Received SCOPE1 consent');
-            await handleScope1Callback(code as string, userId, response);
+        if (scopeArray.includes(SCOPE3[0])) {
+            logger.debug('Received SCOPE3 consent');
+            await handleScope3Callback(code as string, userId, response);
             return;
-        } else {
+        }
+        if (scopeArray.includes(SCOPE2[0])) {
             // this is the read email scope, we handle it differently
             logger.debug('Received SCOPE2 consent');
             handleScope2Callback(code as string, userId, response).catch(
@@ -100,6 +106,11 @@ export const googleCallback = async (
                     logger.error(error, `Error in handleScope2Callback: ${error?.stack || error?.message || error}.`);
                 }
             );
+            return;
+        } else {
+            // we assume it is SCOPE1
+            logger.debug('Received SCOPE1 consent');
+            await handleScope1Callback(code as string, userId, response);
             return;
         }
 
@@ -312,4 +323,40 @@ async function storeFetchedContacts(userId: string, userAccountId: string , cont
         logger.error(error, `Error storing contacts for user ID ${userId} / accountId ${userAccountId}: ${error?.stack || error?.message || error}.`);
         throw error;
     }
+}
+
+async function handleScope3Callback(code: string, userId: string, response: Response) {
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    let account = await UserLinkedAccounts.findOne(
+        { where: { user_id: userId, provider: LinkedAccountProvider.GOOGLE } }
+    );
+
+    if (!account && tokens.id_token) {
+        const accountId = await createAccountRecordFromIdToken(userId, tokens.id_token);
+        account = await UserLinkedAccounts.findOne({ where: { user_account_id: accountId } });
+    }
+
+    if (!account) {
+        logger.error('No linked account found for user when handling SCOPE3 callback.');
+        response.redirect(CONTACT_FRONTEND_FAILURE_URL + '&reason=no_linked_account');
+        return;
+    }
+
+    if (tokens.refresh_token) {
+        storeRefreshToken(account.user_account_id, tokens.refresh_token, TokenScope.SCOPE3).catch((error) => {
+            logger.error(error, `Error storing SCOPE3 refresh token: ${error?.stack || error?.message || error}.`);
+        });
+    } else {
+        logger.warn('No refresh token received for SCOPE3 consent.');
+        const existingRefreshToken = await getExistingRefreshToken(account.user_account_id);
+        if (existingRefreshToken) {
+            storeRefreshToken(account.user_account_id, existingRefreshToken, TokenScope.SCOPE3).catch((error) => {
+                logger.error(error, `Error storing fallback SCOPE3 refresh token: ${error?.stack || error?.message || error}.`);
+            });
+        }
+    }
+
+    response.redirect(CONTACT_FRONTEND_SUCCESS_URL + `?accountId=${encodeURIComponent(account.user_account_id)}`);
 }

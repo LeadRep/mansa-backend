@@ -80,3 +80,13 @@ export const emitLeadUpdate = (
   }
   io.to(`leads:${userId}`).emit("leads:new", payload);
 };
+
+export const emitLeadExpansionPrompt = (
+  userId: string,
+  payload: { missingCount?: number; foundCount?: number; totalLeads?: number }
+) => {
+  if (!io) {
+    return;
+  }
+  io.to(`leads:${userId}`).emit("leads:expand", payload);
+};

@@ -10,8 +10,38 @@ dotenv.config();
 const apiKey = process.env.OPENAI_API_KEY;
 const endpoint = process.env.OPENAI_ENDPOINT;
 
+const normalizeWebsite = (website: unknown): string => {
+  if (typeof website !== "string") {
+    return "";
+  }
+
+  const trimmedWebsite = website.trim().replace(/[),.;!?]+$/, "");
+  if (!trimmedWebsite) {
+    return "";
+  }
+
+  const withProtocol = /^https?:\/\//i.test(trimmedWebsite)
+    ? trimmedWebsite
+    : `https://${trimmedWebsite}`;
+
+  try {
+    const parsed = new URL(withProtocol);
+    if (!["http:", "https:"].includes(parsed.protocol)) {
+      return "";
+    }
+    if (!parsed.hostname.includes(".")) {
+      return "";
+    }
+
+    const pathname = parsed.pathname === "/" ? "" : parsed.pathname;
+    return `${parsed.protocol}//${parsed.hostname}${pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return "";
+  }
+};
+
 export const newSignUp = async (request: Request, response: Response) => {
-  const { keyword } = request.body;
+  const { keyword, website } = request.body;
   try {
     const messages = [
       {
@@ -73,6 +103,9 @@ Return the result in this exact JSON schema:
         role: "",
       };
     }
+    const aiWebsite = normalizeWebsite(extractedData.website);
+    const websiteFromRequest = normalizeWebsite(website);
+    extractedData.website = aiWebsite || websiteFromRequest;
 
     let insights: AIResponse | null = null;
     do {
