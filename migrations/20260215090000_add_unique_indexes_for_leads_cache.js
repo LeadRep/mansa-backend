@@ -14,9 +14,9 @@ module.exports = {
       }
     };
 
-    await ensureIndex('Leads', 'leads_owner_external_unique', ['owner_id', 'external_id']);
-    await ensureIndex('GeneralLeads', 'general_leads_external_unique', ['external_id']);
-    await ensureIndex('Companies', 'companies_external_unique', ['external_id']);
+    // await ensureIndex('Leads', 'leads_owner_external_unique', ['owner_id', 'external_id']);
+    // await ensureIndex('GeneralLeads', 'general_leads_external_unique', ['external_id']);
+    // await ensureIndex('Companies', 'companies_external_unique', ['external_id']);
   },
 
   async down(queryInterface) {
