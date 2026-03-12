@@ -5,6 +5,7 @@ import UserLinkedAccounts from "./UserLinkedAccounts";
 export enum TokenScope {
     SCOPE1 = 1, // contacts openid email
     SCOPE2 = 2,
+    SCOPE3 = 3, // gmail send
 }
 
 export interface UserLinkedAccountsTokenAttributes {

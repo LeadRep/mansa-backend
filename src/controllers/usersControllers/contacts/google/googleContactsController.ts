@@ -1,10 +1,10 @@
 import {JwtPayload} from "jsonwebtoken";
 import {Response} from "express";
 import logger from "../../../../logger";
-import { SCOPE1, SCOPE2, oauth2Client } from "./googleConfig";
+import { SCOPE1, SCOPE2, SCOPE3, oauth2Client } from "./googleConfig";
 
 
-const generateGoogleAuthUrl = (userId: string, scope: string[]) => {
+export const generateGoogleAuthUrl = (userId: string, scope: string[]) => {
     return oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope,
@@ -39,6 +39,20 @@ export const googleConsentReadEmail = async (
         logger.info(`google consent required for user ID: ${userId}`);
         const authorizeUrl = generateGoogleAuthUrl(userId, SCOPE2);
         response.status(200).json({ authorizeUrl});
+    } catch (err) {
+        response.status(500).json({ error: "Failed to generate consent URL" });
+    }
+};
+
+export const googleConsentSendEmail = async (
+    request: JwtPayload,
+    response: Response
+) => {
+    try {
+        const userId = request.user.id;
+        logger.info(`google send consent required for user ID: ${userId}`);
+        const authorizeUrl = generateGoogleAuthUrl(userId, SCOPE3);
+        response.status(200).json({ authorizeUrl });
     } catch (err) {
         response.status(500).json({ error: "Failed to generate consent URL" });
     }

@@ -5,11 +5,15 @@ import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
 import Users from "../../models/Users";
 import { Leads, LeadStatus } from "../../models/Leads";
 import logger from "../../logger";
-import { step2LeadGen } from "../leadsController/step2LeadGen";
+import { runLeadGeneration } from "../leadsController/leadGenSelector";
 
 export const refreshLeads = async (request: JwtPayload, response: Response) => {
   const userId = request.user.id;
   try {
+    response.setHeader("Cache-Control", "no-store");
+    response.setHeader("Pragma", "no-cache");
+    response.setHeader("Expires", "0");
+
     const skipLimit =
       String(process.env.SKIP_LEADS_REFRESH_LIMIT ?? "")
         .trim()
@@ -22,7 +26,9 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
     }
 
     const user = await Users.findByPk(userId);
-    const hasSubscription = Boolean(user?.subscriptionName);
+    const hasSubscription = Boolean(
+      user?.subscriptionName || customer?.subscriptionName
+    );
     if (!skipLimit && !hasSubscription) {
       sendResponse(
         response,
@@ -32,14 +38,13 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       return;
     }
 
+    const targetLeadCount = hasSubscription ? 20 : 10;
     const currentRefreshAllowance = customer.refreshLeads ?? 0;
-    if (
-      //!skipLimit &&
-      currentRefreshAllowance < 1
-    ) {
-      let msg = "You have used up your number of refresh for this month. Please upgrade your subscription to continue generating leads.";
-      if (customer.nextRefresh &&
-        new Date(customer.nextRefresh) > new Date()) {
+
+    if (currentRefreshAllowance < 1) {
+      let msg =
+        "You have used up your number of refresh for this month. Please upgrade your subscription to continue generating leads.";
+      if (customer.nextRefresh && new Date(customer.nextRefresh) > new Date()) {
         const formattedDate = new Date(customer.nextRefresh).toLocaleString(
           "en-US",
           {
@@ -55,68 +60,39 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
         );
         msg = `You have used up your number of refresh for this month. The next refresh will be available on ${formattedDate} or you can upgrade your subscription to continue generating leads.`;
       }
-      sendResponse(
-        response,
-        400,
-        msg
-      );
+      sendResponse(response, 400, msg);
       return;
     }
 
-    const targetLeadCount = hasSubscription ? 20 : 10;
-
-    let updatedRefreshAllowance = currentRefreshAllowance;
-
-    //if (!skipLimit) {
-      if (currentRefreshAllowance > 0) {
-        updatedRefreshAllowance = currentRefreshAllowance - targetLeadCount;
-      }
-    //}
+    const updatedRefreshAllowance =
+      currentRefreshAllowance > 0
+        ? currentRefreshAllowance - targetLeadCount
+        : currentRefreshAllowance;
 
     await customer.update({
       refreshLeads: updatedRefreshAllowance,
       leadsGenerationStatus: LeadsGenerationStatus.NOT_STARTED,
     });
 
-    logger.info("Updating existing leads to viewed");
     await Leads.update(
       { status: LeadStatus.VIEWED },
       {
-        where: { owner_id: userId, status: LeadStatus.NEW },
+        where: { owner_id: userId },
       }
     );
 
-    let generationOutcome: any = null;
-    try {
-      generationOutcome = await step2LeadGen(userId, targetLeadCount);
-    } catch (generationError: any) {
-      logger.error("Lead generation error:", generationError.message);
-    }
+    sendResponse(response, 200, "Currently generating leads, please wait a moment", {
+      leads: [],
+      needsExpansion: false,
+      missingCount: 0,
+    });
 
-    const generatedLeads = Array.isArray(generationOutcome)
-      ? generationOutcome
-      : Array.isArray(generationOutcome?.leads)
-      ? generationOutcome.leads
-      : [];
+    runLeadGeneration(userId, targetLeadCount, true).catch(
+      (generationError: any) => {
+        logger.error("Lead generation error:", generationError.message);
+      }
+    );
 
-    const message =
-      (generationOutcome &&
-      typeof generationOutcome?.message === "string"
-        ? generationOutcome.message
-        : undefined) ||
-      (generatedLeads.length
-        ? "Leads refreshed successfully!"
-        : "No lead found, please update buyer persona");
-
-    const latestLeads =
-      generatedLeads.length > 0
-        ? generatedLeads
-        : await Leads.findAll({
-            where: { owner_id: userId, status: LeadStatus.NEW },
-            limit: targetLeadCount,
-          });
-
-    sendResponse(response, 200, message, latestLeads);
     return;
   } catch (error: any) {
     logger.error(error, "Error in refreshLeads controller:");

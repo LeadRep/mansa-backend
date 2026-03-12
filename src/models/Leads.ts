@@ -33,6 +33,10 @@ export interface LeadsAttributes {
   category: string;
   reason: string;
   score: number;
+  intro_mail?: {
+    subject: string;
+    body: string;
+  } | null;
   status?: string;
   views?: number;
 }
@@ -155,6 +159,11 @@ Leads.init(
     },
     score: {
       type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: null,
+    },
+    intro_mail: {
+      type: DataTypes.JSON,
       allowNull: true,
       defaultValue: null,
     },
@@ -294,6 +303,11 @@ ArchivedSharedLeads.init(
     },
     score: {
       type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: null,
+    },
+    intro_mail: {
+      type: DataTypes.JSON,
       allowNull: true,
       defaultValue: null,
     },

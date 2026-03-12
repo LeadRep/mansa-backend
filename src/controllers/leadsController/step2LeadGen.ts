@@ -5,6 +5,8 @@ import { apolloPeopleSearch } from "./apolloPeopleSearch";
 import { aiEvaluatedLeads } from "./aiEvaluatedLeads";
 import { apolloEnrichedPeople } from "./apolloEnrichedPeople";
 import { emitLeadUpdate } from "../../utils/socket";
+import { normalizeIntroMail } from "./introMail";
+import Users from "../../models/Users";
 
 export const step2LeadGen = async (
   userId: string,
@@ -13,6 +15,14 @@ export const step2LeadGen = async (
 ) => {
   try {
     const userLeads = await Leads.findAll({});
+    const user = await Users.findByPk(userId, {
+      attributes: ["firstName", "lastName", "companyName"],
+    });
+    const senderProfile = {
+      firstName: user?.firstName || null,
+      lastName: user?.lastName || null,
+      companyName: user?.companyName || null,
+    };
     const customerPref = await CustomerPref.findOne({ where: { userId } });
     if (!customerPref) {
       console.error("Customer preferences not found for user:", userId);
@@ -57,7 +67,6 @@ export const step2LeadGen = async (
         pageToFetch
       );
       const { people = [], pagination } = apolloResponse || {};
-    
 
       if (!totalPages && pagination?.total_pages) {
         totalPages = pagination.total_pages;
@@ -114,7 +123,11 @@ export const step2LeadGen = async (
 
     const enrichedLeads = await apolloEnrichedPeople(collectedLeadIds);
 
-    const aiEvaluation = await aiEvaluatedLeads(customerPref, enrichedLeads);
+    const aiEvaluation = await aiEvaluatedLeads(
+      customerPref,
+      enrichedLeads,
+      senderProfile
+    );
 
     const evaluationResults = Array.isArray(aiEvaluation)
       ? aiEvaluation
@@ -153,6 +166,12 @@ export const step2LeadGen = async (
         category: aiScore.category ?? null,
         reason: aiScore.reason ?? null,
         score: aiScore.score ?? null,
+        intro_mail: normalizeIntroMail(
+          aiScore.intro_mail,
+          lead,
+          customerPref,
+          senderProfile
+        ),
         status: LeadStatus.NEW,
         views: 1,
       });

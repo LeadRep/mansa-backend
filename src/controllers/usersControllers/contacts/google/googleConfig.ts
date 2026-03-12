@@ -22,4 +22,10 @@ export const SCOPE1 = [
 export const SCOPE2 = [
     'https://www.googleapis.com/auth/gmail.readonly',
     'openid',
-]
+];
+
+export const SCOPE3 = [
+    'https://www.googleapis.com/auth/gmail.send',
+    'email',
+    'openid',
+];

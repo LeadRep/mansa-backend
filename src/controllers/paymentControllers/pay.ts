@@ -8,7 +8,7 @@ import moment from "moment";
 import sendResponse from "../../utils/http/sendResponse";
 import NewUsersSequence from "../../models/NewUsersSequence";
 import logger from "../../logger";
-import { step2LeadGen } from "../leadsController/step2LeadGen";
+import { runLeadGeneration } from "../leadsController/leadGenSelector";
 import {CustomerPref} from "../../models/CustomerPref";
 import {subscriptionNameToRefreshLeads} from "../../utils/services/subscriptionNameToRefreshLeads";
 
@@ -231,7 +231,7 @@ export const successPayment = async (
       const userResponse = { ...userDetails?.get(), password: undefined };
 
       sendResponse(response, 200, "Payment Successful", { user: userResponse });
-      step2LeadGen(userId, 24);
+      runLeadGeneration(userId, 24);
       return;
     } else {
       response.json({

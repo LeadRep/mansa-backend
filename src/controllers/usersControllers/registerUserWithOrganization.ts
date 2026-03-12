@@ -15,7 +15,7 @@ import { sequence1 } from "../../utils/mails/newUsers/sequence1";
 import { createDeal } from "./deals/createDeal";
 import logger from "../../logger";
 import Organizations from "../../models/Organizations";
-import { step2LeadGen } from "../leadsController/step2LeadGen";
+import { runLeadGeneration } from "../leadsController/leadGenSelector";
 
 export const registerUserWithOrganization = async (req: Request, res: Response) => {
   try {
@@ -139,7 +139,7 @@ export const registerUserWithOrganization = async (req: Request, res: Response) 
         status: SequenceStatus.SENT,
       },
     })
-    step2LeadGen(userId, 10);
+    runLeadGeneration(userId, 10);
     return;
   } catch (error: any) {
     logger.error(error, "User Registration Error:");

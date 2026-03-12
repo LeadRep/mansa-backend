@@ -48,7 +48,7 @@ app.use(
     credentials: true,
   })
 );
-app.use(pinoHttpMiddleware);
+// app.use(pinoHttpMiddleware);
 app.use(cookieParser());
 const uploadsRoot = path.resolve(process.cwd(), "uploads");
 app.use("/uploads", express.static(uploadsRoot));
