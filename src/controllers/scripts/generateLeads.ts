@@ -178,11 +178,7 @@ export const generateLeads = async (request: Request, response: Response) => {
       return;
     }
 
-    const totalPages =
-      firstResponse?.data?.pagination?.total_pages &&
-      Number.isFinite(firstResponse.data.pagination.total_pages)
-        ? Number(firstResponse.data.pagination.total_pages)
-        : null;
+    const totalPages =firstResponse?.data?.total_entries? (firstResponse?.data?.total_entries/100): 0
 
     if (!totalPages || totalPages < 1) {
       sendResponse(response, 200, "No pages available from Apollo", {
