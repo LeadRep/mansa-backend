@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { Op } from "sequelize";
 import logger from "../../logger";
-import { GeneralLeads } from "../../models/GeneralLeads";
+import { ACILeads } from "../../models/ACILeads";
 import sendResponse from "../../utils/http/sendResponse";
 import {aiService} from "../../utils/http/services/aiService";
 
@@ -171,7 +171,7 @@ const sanitizeArray = (value: unknown): string[] => {
   return [];
 };
 
-export const classifyGeneralLeadSegments = async (
+export const classifyACILeadSegments = async (
   req: Request,
   res: Response
 ) => {
@@ -192,7 +192,7 @@ export const classifyGeneralLeadSegments = async (
   const limit = parsedLimit;
 
   try {
-    const leads = await GeneralLeads.findAll({
+    const leads = await ACILeads.findAll({
       where: {
         segments: { [Op.is]: null },
       },

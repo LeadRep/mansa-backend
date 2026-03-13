@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import {GeneralLeads} from "../../models/GeneralLeads";
 import sendResponse from "../../utils/http/sendResponse";
 import { aiClassifyLead } from "../aiControllers/testSegmentation";
 import logger from "../../logger";
 import { Op } from "sequelize";
+import {ACILeads} from "../../models/ACILeads";
 
 // Map JSON operator names to Sequelize Ops
 const OP_MAP: Record<string, symbol> = {
@@ -75,7 +75,7 @@ export const classifyLeads = async (req: Request, res: Response) => {
   try {
     const where = buildWhereFromBody(req.body);
     console.log(`RVRV ${JSON.stringify(where)}`)
-    const leadRecord = await GeneralLeads.findOne({
+    const leadRecord = await ACILeads.findOne({
       where
       // where: {
       //   //id: userId ,

@@ -2,9 +2,9 @@ import {Request, Response} from "express";
 import {Op, WhereOptions} from "sequelize";
 import sendResponse from "../../utils/http/sendResponse";
 import {
-    GeneralLeads,
-    GeneralLeadsAttributes,
-} from "../../models/GeneralLeads";
+    ACILeads,
+    ACILeadsAttributes,
+} from "../../models/ACILeads";
 import logger from "../../logger";
 import {normalizeLead, PlainLead} from "./utils";
 import Users from "../../models/Users";
@@ -59,7 +59,7 @@ const buildFilters = (
     tags: string[],
     lock: string | null,
     organizationId: string
-): WhereOptions<GeneralLeadsAttributes> => {
+): WhereOptions<ACILeadsAttributes> => {
     const andConditions: any[] = [];
 
     if (search) {
@@ -107,19 +107,19 @@ const buildFilters = (
   if (lock) {
     // If we have an organization context, check LeadExports for organization-scoped exports.
     // Use a literal EXISTS subquery for fast indexed lookups.
-    const escOrg = (GeneralLeads.sequelize as any).escape(organizationId);
+    const escOrg = (ACILeads.sequelize as any).escape(organizationId);
     const existsSql = `EXISTS (
                 SELECT 1 FROM "LeadExports" le
-                WHERE le.lead_id = "GeneralLeads".id
+                WHERE le.lead_id = "aci_leads".id
                   AND le.exported_for_organization_id = ${escOrg}
             )`;
 
     if (lock === "locked") {
       // not exported for the organization
-      andConditions.push((GeneralLeads.sequelize as any).literal(`NOT ${existsSql}`));
+      andConditions.push((ACILeads.sequelize as any).literal(`NOT ${existsSql}`));
     } else if (lock === "unlocked") {
       // exported for the organization
-      andConditions.push((GeneralLeads.sequelize as any).literal(existsSql));
+      andConditions.push((ACILeads.sequelize as any).literal(existsSql));
     }
   }
 
@@ -150,13 +150,6 @@ const buildFilters = (
             segments: {[Op.overlap]: segments},
         });
     }
-
-    andConditions.push({
-        [Op.or]: [
-            { hidden: false },
-            { hidden: null },
-        ]
-    });
 
     if (!andConditions.length) {
         return {};
@@ -207,7 +200,7 @@ export const getAciLeads = async (req: Request, res: Response) => {
 
     const where = buildFilters(search, titles, countries, segments, tags, lock, user.organization_id);
 
-        const {rows, count} = await GeneralLeads.findAndCountAll({
+        const {rows, count} = await ACILeads.findAndCountAll({
             where,
             limit,
             offset,
@@ -215,11 +208,11 @@ export const getAciLeads = async (req: Request, res: Response) => {
           attributes: {
             include: [
               [
-                (GeneralLeads.sequelize as any).literal(`
+                (ACILeads.sequelize as any).literal(`
                             EXISTS (
                                 SELECT 1 FROM "LeadExports" le
-                                WHERE le.lead_id = "GeneralLeads".id
-                                  AND le.exported_for_organization_id = ${(GeneralLeads.sequelize as any).escape(user.organization_id)}
+                                WHERE le.lead_id = "aci_leads".id
+                                  AND le.exported_for_organization_id = ${(ACILeads.sequelize as any).escape(user.organization_id)}
                             )
                         `),
                 'exportedForOrganization'

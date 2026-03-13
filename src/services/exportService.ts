@@ -5,7 +5,7 @@ import { LeadExport } from '../models/LeadExport';
 import { database } from '../configs/database/database';
 import MonthlyQuotas from "../models/MonthlyQuotas";
 
-// Use a transaction: create job, bulkCreate lead exports, bulk update GeneralLeads exported flag
+// Use a transaction: create job, bulkCreate lead exports, bulk update ACILeads exported flag
 export async function recordLeadExport(leadIds: string[], userId: string, organization_id: string, jobId: string, format: string) {
   return database.transaction(async (tx) => {
     const job = await ExportJob.create(

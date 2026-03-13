@@ -1,7 +1,7 @@
-import {GeneralLeadsAttributes} from "../../models/GeneralLeads";
+import {ACILeadsAttributes} from "../../models/ACILeads";
 import logger from "../../logger";
 
-export type PlainLead = GeneralLeadsAttributes & {
+export type PlainLead = ACILeadsAttributes & {
     organization?: any;
     createdAt?: Date;
     updatedAt?: Date;

@@ -3,7 +3,7 @@ import logger from "../../logger";
 import Users from "../../models/Users";
 import sendResponse from "../../utils/http/sendResponse";
 import MonthlyQuotas from "../../models/MonthlyQuotas";
-import {GeneralLeads} from "../../models/GeneralLeads";
+import {ACILeads} from "../../models/ACILeads";
 import {Op} from "sequelize";
 import {v4 as uuidv4} from "uuid";
 import {Parser} from "json2csv";
@@ -65,7 +65,7 @@ export async function checkAndDecrementQuota(organizationId: string, count: numb
 
 // Generates a CSV file for the given lead IDs and returns it along with the provided export ID
 export async function generateExportCsv(leadIds: string[], exportId: string) {
-    const rows = await GeneralLeads.findAll({ where: { id: { [Op.in]: leadIds } } });
+    const rows = await ACILeads.findAll({ where: { id: { [Op.in]: leadIds } } });
     const leads = rows.map((lead) =>
         normalizeLead(lead.get({ plain: true }) as PlainLead)
     );
