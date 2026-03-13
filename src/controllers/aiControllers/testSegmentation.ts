@@ -5,15 +5,45 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_GEMINI_API_KEY,
 });
 
+// function buildPrompt(lead: any) {
+//   return `
+// Classify this finance-industry lead into one or more asset classes:
+// - ETF
+// - EQUITIES
+// - FIXED_INCOME
+//
+// Use the CRM DB data below and search on the internet (via Google Search grounding) for evidence
+// that the lead is a finance-industry lead and wether he could be classified into one or more of the asset classes.
+//
+// Return JSON only.
+//
+// CRM DB data:
+// - Name: ${lead.first_name + " " + lead.last_name}
+// - Company: ${lead.organization.name ?? ""}
+// - LinkedIn: ${lead.linkedin_url ?? ""}
+// - Notes: ${lead.notes ?? ""}
+//
+// Rules:
+// - Use the following JSON structure exactly. Do not remove or omit any fields. Output valid JSON only, no text or explanation.
+//   {
+//   "asset_classes": [ETF, FIXED_INCOME],
+//   "confidence": 0.8,
+//   "evidences": ["https://www.alianx.com/lennart+segler+allianz+global+investors", "https://www.google.com/search?q=lennart+segler+allianz+global+investors"],
+//   "notes": "Some notes about the classification"
+//   }
+// - Finding evidence on the public internet is the most important factor in the classification. The classification is for the individual not the company
+// - If you find a record on internet that unequivocally links the lead to one or more asset classes, return those in asset_classes with confidence=1.
+// - provide in the evidence a link to internet that justify your response
+// - If you find evidence that the lead is not a finance-industry lead, return asset_classes=[] and confidence=0.
+// `;
+// }
+
 function buildPrompt(lead: any) {
   return `
-Classify this finance-industry lead into one or more asset classes:
-- ETF
-- EQUITIES
-- FIXED_INCOME
+Determine the asset class or asset allocation focus of this finance-industry lead. return up to 3 most relevant asset classes or asset allocation focus.
 
 Use the CRM DB data below and search on the internet (via Google Search grounding) for evidence 
-that the lead is a finance-industry lead and wether he could be classified into one or more of the asset classes.
+that the lead is a finance-industry lead and whether he could be classified into one or more of the asset classes or asset allocation focus.
 
 Return JSON only.
 
@@ -26,7 +56,7 @@ CRM DB data:
 Rules:
 - Use the following JSON structure exactly. Do not remove or omit any fields. Output valid JSON only, no text or explanation.
   {
-  "asset_classes": [ETF, FIXED_INCOME],
+  "asset_allocation_focus": [ETF, FIXED_INCOME, MANAGER_SELECTION],
   "confidence": 0.8,
   "evidences": ["https://www.alianx.com/lennart+segler+allianz+global+investors", "https://www.google.com/search?q=lennart+segler+allianz+global+investors"],
   "notes": "Some notes about the classification"
@@ -34,7 +64,7 @@ Rules:
 - Finding evidence on the public internet is the most important factor in the classification. The classification is for the individual not the company
 - If you find a record on internet that unequivocally links the lead to one or more asset classes, return those in asset_classes with confidence=1.
 - provide in the evidence a link to internet that justify your response
-- If you find evidence that the lead is not a finance-industry lead, return asset_classes=[] and confidence=0.
+- If you find evidence that the lead is not a finance-industry lead, return asset_allocation_focus=[] and confidence=0.
 `;
 }
 
@@ -42,7 +72,7 @@ export async function aiClassifyLead(lead: any) {
   console.log("--- AI Request ---");
   console.log("Prompt:", buildPrompt(lead));
   const res = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.1-pro-preview",
     contents: buildPrompt(lead),
     config: {
       // Enable web grounding with Google Search
@@ -55,15 +85,15 @@ export async function aiClassifyLead(lead: any) {
       responseSchema: {
         type: Type.OBJECT,
         properties: {
-          asset_classes: {
+          asset_allocation_focus: {
             type: Type.ARRAY,
-            items: { type: Type.STRING, enum: ["ETF", "EQUITIES", "FIXED_INCOME"] }
+            items: { type: Type.STRING }
           },
           confidence: { type: Type.NUMBER, minimum: 0, maximum: 1 },
           evidence: { type: Type.ARRAY, items: { type: Type.STRING } },
           notes: { type: Type.STRING }
         },
-        required: ["asset_classes", "confidence", "evidence"],
+        required: ["asset_allocation_focus", "confidence", "evidence"],
         // additionalProperties: false
       },
 

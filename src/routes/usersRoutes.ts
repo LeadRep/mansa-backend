@@ -72,7 +72,7 @@ const dealPhotoUpload = multer({
 });
 usersRoutes.post("/register", registerUserWithOrganization);
 usersRoutes.post("/login", loginUser);
-usersRoutes.get("/classifyLeads", classifyLeads);
+usersRoutes.post("/classifyLeads", classifyLeads);
 usersRoutes.get("/classifyLeadsBulk", classifyLeadsBulk);
 usersRoutes.post("/autologin", autologin);
 usersRoutes.post("/forgot-password", forgotPassword);
