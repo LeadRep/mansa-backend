@@ -56,6 +56,7 @@ const buildFilters = (
     titles: string[],
     countries: string[],
     segments: string[],
+    allocationFocus: string[],
     tags: string[],
     lock: string | null,
     organizationId: string
@@ -144,6 +145,33 @@ const buildFilters = (
         }
     }
 
+  if (allocationFocus.length) {
+    const allocationFocusConditions: any[] = [];
+
+    for (const rawFocus of allocationFocus) {
+      const focus = String(rawFocus).toLowerCase().trim();
+      if (focus === "etf") {
+        allocationFocusConditions.push({is_lead_etf: true});
+      } else if (focus === "fixed income") {
+        allocationFocusConditions.push({is_lead_fixed_income: true});
+      } else if (focus === "equities") {
+        allocationFocusConditions.push({is_lead_equities: true});
+      } else if (focus === "alternatives") {
+        allocationFocusConditions.push({is_lead_alternatives: true});
+      } else if (focus === "multi-asset") {
+        allocationFocusConditions.push({is_lead_multi_asset: true});
+      } else if (focus === "digital assets") {
+        allocationFocusConditions.push({is_lead_digital_assets: true});
+      }
+    }
+
+    if (allocationFocusConditions.length) {
+      andConditions.push({
+        [Op.or]: allocationFocusConditions,
+      });
+    }
+  }
+
 
     if (segments.length) {
         andConditions.push({
@@ -196,9 +224,10 @@ export const getAciLeads = async (req: Request, res: Response) => {
         const segments = parseListParam(req.query.segments);
         const lock = typeof req.query.lock === "string" ? req.query.lock.trim() : null;
         const tags = parseListParam(req.query.tags);
+        const allocationFocus = parseListParam(req.query.allocationFocus);
 
 
-    const where = buildFilters(search, titles, countries, segments, tags, lock, user.organization_id);
+    const where = buildFilters(search, titles, countries, segments, allocationFocus, tags, lock, user.organization_id);
 
         const {rows, count} = await ACILeads.findAndCountAll({
             where,
