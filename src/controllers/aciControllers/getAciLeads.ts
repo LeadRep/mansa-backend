@@ -11,6 +11,38 @@ import Users from "../../models/Users";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 50;
+
+const TAG_LABEL_TO_COLUMN: Record<string, keyof ACILeadsAttributes> = {
+    "etf": "is_etf",
+    "fixed income": "is_fixed_income",
+    "equities": "is_equities",
+};
+
+const ALLOCATION_FOCUS_LABEL_TO_COLUMN: Record<string, keyof ACILeadsAttributes> = {
+    "etf": "is_lead_etf",
+    "fixed income": "is_lead_fixed_income",
+    "equities": "is_lead_equities",
+    "alternatives": "is_lead_alternatives",
+    "multi-asset": "is_lead_multi_asset",
+    "digital assets": "is_lead_digital_assets",
+};
+
+const buildBooleanFlagConditions = (
+    rawLabels: unknown[],
+    mapping: Record<string, keyof ACILeadsAttributes>
+): any[] => {
+    const conditions: any[] = [];
+
+    for (const raw of rawLabels) {
+        const normalized = String(raw).toLowerCase().trim();
+        const column = mapping[normalized];
+        if (column) {
+            conditions.push({[column]: true});
+        }
+    }
+
+    return conditions;
+};
 const MAX_LIMIT = 200;
 
 
@@ -125,18 +157,7 @@ const buildFilters = (
   }
 
     if (tags.length) {
-        const tagConditions: any[] = [];
-
-        for (const rawTag of tags) {
-            const tag = String(rawTag).toLowerCase().trim();
-            if (tag === "etf") {
-                tagConditions.push({is_etf: true});
-            } else if (tag === "fixed income") {
-                tagConditions.push({is_fixed_income: true});
-            } else if (tag === "equities") {
-                tagConditions.push({is_equities: true});
-            }
-        }
+        const tagConditions = buildBooleanFlagConditions(tags, TAG_LABEL_TO_COLUMN);
 
         if (tagConditions.length) {
             andConditions.push({
@@ -145,32 +166,18 @@ const buildFilters = (
         }
     }
 
-  if (allocationFocus.length) {
-    const allocationFocusConditions: any[] = [];
-
-    for (const rawFocus of allocationFocus) {
-      const focus = String(rawFocus).toLowerCase().trim();
-      if (focus === "etf") {
-        allocationFocusConditions.push({is_lead_etf: true});
-      } else if (focus === "fixed income") {
-        allocationFocusConditions.push({is_lead_fixed_income: true});
-      } else if (focus === "equities") {
-        allocationFocusConditions.push({is_lead_equities: true});
-      } else if (focus === "alternatives") {
-        allocationFocusConditions.push({is_lead_alternatives: true});
-      } else if (focus === "multi-asset") {
-        allocationFocusConditions.push({is_lead_multi_asset: true});
-      } else if (focus === "digital assets") {
-        allocationFocusConditions.push({is_lead_digital_assets: true});
-      }
+    if (allocationFocus.length) {
+        const allocationFocusConditions = buildBooleanFlagConditions(
+            allocationFocus,
+            ALLOCATION_FOCUS_LABEL_TO_COLUMN
+        );
+
+        if (allocationFocusConditions.length) {
+            andConditions.push({
+                [Op.or]: allocationFocusConditions,
+            });
+        }
     }
-
-    if (allocationFocusConditions.length) {
-      andConditions.push({
-        [Op.or]: allocationFocusConditions,
-      });
-    }
-  }
 
 
     if (segments.length) {
