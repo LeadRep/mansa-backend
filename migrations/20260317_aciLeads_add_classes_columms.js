@@ -125,14 +125,12 @@ module.exports = {
 
       // Remove columns if they exist
       const columnsToRemove = [
-        'priority',
         'is_lead_etf',
         'is_lead_equities',
         'is_lead_fixed_income',
         'is_lead_alternatives',
         'is_lead_multi_asset',
-        'is_lead_digital_assets',
-        'individual_segments'
+        'is_lead_digital_assets'
       ];
 
       for (const column of columnsToRemove) {
