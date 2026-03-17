@@ -42,8 +42,16 @@ const applySenderSignature = (
   const isSignatureLine = (line: string) => {
     const lower = line.toLowerCase();
     return (
+      lower === "best," ||
+      lower === "best" ||
       lower === "best regards," ||
       lower === "best regards" ||
+      lower === "regards," ||
+      lower === "regards" ||
+      lower === "kind regards," ||
+      lower === "kind regards" ||
+      lower === "thanks," ||
+      lower === "thanks" ||
       lower === "[first name last name] / [title] / [company]" ||
       lower === "first name last name" ||
       lower === "company" ||
@@ -55,13 +63,22 @@ const applySenderSignature = (
   };
 
   // If a sign-off already exists, remove it and everything after.
-  const lastBestRegardsIndex = normalizedLines
-    .map((line) => line.toLowerCase())
-    .lastIndexOf("best regards,");
-  const lastBestRegardsNoCommaIndex = normalizedLines
-    .map((line) => line.toLowerCase())
-    .lastIndexOf("best regards");
-  const signOffIndex = Math.max(lastBestRegardsIndex, lastBestRegardsNoCommaIndex);
+  const signOffMarkers = new Set([
+    "best,",
+    "best",
+    "best regards,",
+    "best regards",
+    "regards,",
+    "regards",
+    "kind regards,",
+    "kind regards",
+    "thanks,",
+    "thanks",
+  ]);
+  const lowerLines = normalizedLines.map((line) => line.toLowerCase());
+  const signOffIndex = lowerLines.reduce((lastIndex, line, index) => {
+    return signOffMarkers.has(line) ? index : lastIndex;
+  }, -1);
   if (signOffIndex >= 0) {
     normalizedLines.splice(signOffIndex);
   }
