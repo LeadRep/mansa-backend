@@ -44,6 +44,12 @@ export interface ACILeadsAttributes {
     is_etf: boolean | null;
     is_equities: boolean | null;
     is_fixed_income: boolean | null;
+    is_lead_etf: boolean | null;
+    is_lead_equities: boolean | null;
+    is_lead_fixed_income: boolean | null;
+    is_lead_alternatives: boolean | null;
+    is_lead_multi_asset: boolean | null;
+    is_lead_digital_assets: boolean | null;
     industries: string[] | null;
     segments: string[] | null;
     aum: JSON | null;
@@ -286,6 +292,36 @@ ACILeads.init(
             type: DataTypes.BOOLEAN,
             allowNull: true,
             defaultValue: false,
+        },
+        is_lead_etf: {
+          type: DataTypes.BOOLEAN,
+          allowNull: true,
+          defaultValue: false,
+        },
+        is_lead_equities: {
+          type: DataTypes.BOOLEAN,
+          allowNull: true,
+          defaultValue: false,
+        },
+        is_lead_fixed_income: {
+          type: DataTypes.BOOLEAN,
+          allowNull: true,
+          defaultValue: false,
+        },
+        is_lead_alternatives: {
+          type: DataTypes.BOOLEAN,
+          allowNull: true,
+          defaultValue: false,
+        },
+        is_lead_multi_asset: {
+          type: DataTypes.BOOLEAN,
+          allowNull: true,
+          defaultValue: false,
+        },
+        is_lead_digital_assets: {
+          type: DataTypes.BOOLEAN,
+          allowNull: true,
+          defaultValue: false,
         },
         individual_segments: {
           type: DataTypes.JSON,
