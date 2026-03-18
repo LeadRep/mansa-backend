@@ -1,5 +1,5 @@
 import {Request, Response} from "express";
-import {Op, WhereOptions} from "sequelize";
+import {Op, WhereOptions, Sequelize} from "sequelize";
 import sendResponse from "../../utils/http/sendResponse";
 import {
     ACILeads,
@@ -109,14 +109,23 @@ const buildFilters = (
     }
 
     if (titles.length) {
-        andConditions.push({
-            [Op.or]: titles.map((title) => ({
-                title: {[Op.iLike]: `%${title}%`},
-            })),
-        });
+      andConditions.push({
+        [Op.or]: titles.map((title) =>
+          Sequelize.where(
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.col("normalized_title"),
+              Sequelize.col("title")
+            ),
+            {
+              [Op.iLike]: `%${title}%`,
+            }
+          )
+        ),
+      });
     }
 
-    if (countries.length) {
+  if (countries.length) {
         const normalizedCountries = countries.map((country) =>
             country.toLowerCase()
         );
@@ -171,7 +180,8 @@ const buildFilters = (
             allocationFocus,
             ALLOCATION_FOCUS_LABEL_TO_COLUMN
         );
-
+
+
         if (allocationFocusConditions.length) {
             andConditions.push({
                 [Op.or]: allocationFocusConditions,

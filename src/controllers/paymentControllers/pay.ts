@@ -12,6 +12,7 @@ import { runLeadGeneration } from "../leadsController/leadGenSelector";
 import {CustomerPref} from "../../models/CustomerPref";
 import {subscriptionNameToRefreshLeads} from "../../utils/services/subscriptionNameToRefreshLeads";
 import Organizations from "../../models/Organizations";
+import {isProdEnv} from "../../utils/env";
 
 dotenv.config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -48,7 +49,7 @@ export const payment = async (request: JwtPayload, response: Response) => {
   let teamYearly = "";
   let scaleMonthly = "";
   let scaleYearly = "";
-  if (process.env.APP_ENV === "poduction") {
+  if (isProdEnv()) {
     basicMonthly = "price_1RP4cyJlttlFevLMsbWAahtg";
     basicYearly = "price_1RP4cyJlttlFevLMigbEa2Ek";
     starterMonthly = "price_1RP4eaJlttlFevLMuVo2zImh";
