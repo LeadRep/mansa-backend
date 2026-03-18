@@ -23,7 +23,7 @@ export const sendEmail = async (
 ) => {
 
   // In non-production environments, redirect emails to a test email
-  const actualTo = isProdEnv ? to : (process.env.TEST_EMAIL || 'heemega@gmail.com');
+  const actualTo = isProdEnv() ? to : (process.env.TEST_EMAIL || 'heemega@gmail.com');
 
   const mailOptions = {
     from: `${process.env.MAIL_FROM_NAME} <${process.env.MAIL_USERNAME}>`,

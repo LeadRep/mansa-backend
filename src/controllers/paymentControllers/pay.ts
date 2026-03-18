@@ -49,7 +49,7 @@ export const payment = async (request: JwtPayload, response: Response) => {
   let teamYearly = "";
   let scaleMonthly = "";
   let scaleYearly = "";
-  if (isProdEnv) {
+  if (isProdEnv()) {
     basicMonthly = "price_1RP4cyJlttlFevLMsbWAahtg";
     basicYearly = "price_1RP4cyJlttlFevLMigbEa2Ek";
     starterMonthly = "price_1RP4eaJlttlFevLMuVo2zImh";
