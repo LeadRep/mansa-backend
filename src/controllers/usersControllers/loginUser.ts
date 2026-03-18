@@ -28,10 +28,10 @@ export const loginUser = async (request: Request, response: Response) => {
       userEmail = microsoftDetails.preferred_username || "";
     }
 
-    const user = await Users.findOne({ where: { email: userEmail } });
+    const user = await Users.findOne({ where: { email: userEmail.trim().toLowerCase() } });
 
     if (!user) {
-      return sendResponse(response, 400, `${userEmail} not found`);
+      return sendResponse(response, 400, `${userEmail.trim().toLowerCase()} not found`);
     }
 
     // If it's an OAuth login, skip password check

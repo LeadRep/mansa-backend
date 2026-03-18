@@ -109,14 +109,14 @@ const buildFilters = (
     }
 
     if (titles.length) {
-        andConditions.push({
-            [Op.or]: titles.map((title) => ({
-                title: {[Op.iLike]: `%${title}%`},
-            })),
-        });
+      andConditions.push({
+        [Op.or]: titles.map((title) => (
+          (ACILeads.sequelize as any).literal(`COALESCE(normalized_title, title) ILIKE '%${title.replace(/'/g, "''")}%'`)
+        )),
+      });
     }
 
-    if (countries.length) {
+  if (countries.length) {
         const normalizedCountries = countries.map((country) =>
             country.toLowerCase()
         );
@@ -171,7 +171,8 @@ const buildFilters = (
             allocationFocus,
             ALLOCATION_FOCUS_LABEL_TO_COLUMN
         );
-
+
+
         if (allocationFocusConditions.length) {
             andConditions.push({
                 [Op.or]: allocationFocusConditions,

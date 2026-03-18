@@ -1,0 +1,1 @@
+export const isProdEnv = (process.env.APP_ENV === "poduction" || process.env.APP_ENV === "production")

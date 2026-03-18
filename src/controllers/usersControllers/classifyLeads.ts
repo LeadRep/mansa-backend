@@ -73,14 +73,13 @@ function buildWhereFromBody(payload: any): any {
 
 export const classifyLeads = async (req: Request, res: Response) => {
   try {
-    const where = buildWhereFromBody(req.body);
-    console.log(`RVRV ${JSON.stringify(where)}`)
+    //const where = buildWhereFromBody(req.body);
+    //console.log(`RVRV ${JSON.stringify(where)}`)
     const leadRecord = await ACILeads.findOne({
-      where
-      // where: {
-      //   //id: userId ,
-      //   individual_segments: null,
-      //   priority: 1,
+      where: {
+        //id: userId ,
+        individual_segments: null,
+        priority: 2,
       //   title: {
       //     [Op.iLike]: '%ortfolio manager%'
       //   },
@@ -107,7 +106,8 @@ export const classifyLeads = async (req: Request, res: Response) => {
         //   [Op.iLike]: '%asset%'
         // },
 
-      // }
+       },
+      order: [["createdAt", "DESC"]],
     })
     if (!leadRecord) {
       sendResponse(res, 202, "No leads to classify", []);

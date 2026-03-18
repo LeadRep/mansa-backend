@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import logger from "../../logger";
+import {isProdEnv} from "../../utils/env";
 
 dotenv.config();
 
@@ -20,9 +21,13 @@ export const sendEmail = async (
   text?: string,
   html?: string
 ) => {
+
+  // In non-production environments, redirect emails to a test email
+  const actualTo = isProdEnv ? to : (process.env.TEST_EMAIL || 'heemega@gmail.com');
+
   const mailOptions = {
     from: `${process.env.MAIL_FROM_NAME} <${process.env.MAIL_USERNAME}>`,
-    to,
+    to: actualTo,
     subject,
     text,
     html,
@@ -30,7 +35,7 @@ export const sendEmail = async (
 
   try {
     const result = await transporter.sendMail(mailOptions);
-      logger.info(`Email sent:${JSON.stringify(result)}`);
+    logger.info(`Email sent to: ${actualTo} (intended: ${to}), subject: ${mailOptions.subject}, result: ${JSON.stringify(result)}`);
     return result;
   } catch (error) {
     logger.error(error, "Error sending email:");

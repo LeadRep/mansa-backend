@@ -10,6 +10,7 @@ export interface ACILeadsAttributes {
     name: string | null;
     linkedin_url: string | null;
     title: string | null;
+    normalized_title: string | null;
     photo_url: string | null;
     twitter_url: string | null;
     github_url: string | null;
@@ -107,6 +108,11 @@ ACILeads.init(
             type: DataTypes.STRING,
             allowNull: true,
             defaultValue: null,
+        },
+        normalized_title: {
+          type: DataTypes.STRING,
+          allowNull: true,
+          defaultValue: null,
         },
         photo_url: {
             type: DataTypes.TEXT,
