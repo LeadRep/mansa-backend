@@ -1,5 +1,5 @@
 import {Request, Response} from "express";
-import {Op, WhereOptions} from "sequelize";
+import {Op, WhereOptions, Sequelize} from "sequelize";
 import sendResponse from "../../utils/http/sendResponse";
 import {
     ACILeads,
@@ -110,9 +110,18 @@ const buildFilters = (
 
     if (titles.length) {
       andConditions.push({
-        [Op.or]: titles.map((title) => (
-          (ACILeads.sequelize as any).literal(`COALESCE(normalized_title, title) ILIKE '%${title.replace(/'/g, "''")}%'`)
-        )),
+        [Op.or]: titles.map((title) =>
+          Sequelize.where(
+            Sequelize.fn(
+              "COALESCE",
+              Sequelize.col("normalized_title"),
+              Sequelize.col("title")
+            ),
+            {
+              [Op.iLike]: `%${title}%`,
+            }
+          )
+        ),
       });
     }
 
