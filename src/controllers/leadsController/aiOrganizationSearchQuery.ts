@@ -18,7 +18,7 @@ export const aiOrganizationSearchQuery = async (customerPref: any) => {
       Generate search parameters in JSON format that can be used to query Apollo's organization search API. Only output a valid JSON object with keys 
       organization_num_employees_ranges, organization_locations, revenue_range[max], revenue_range[min], q_organization_keyword_tags only. Do not include triple backticks or extra text.
         
-      note the following
+      note the following 
       * organization_num_employees_ranges[] array of strings
       The number range of employees working for the company. This enables you to find companies based on headcount. You can add multiple ranges to expand your search results.
       Each range you add needs to be a string, with the upper and lower numbers of the range separated only by a comma. Examples: 1,10; 250,500; 10000,20000

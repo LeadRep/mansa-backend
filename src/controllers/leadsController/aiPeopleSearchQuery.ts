@@ -18,8 +18,8 @@ export const aiPeopleSearchQuery = async (customers: any) => {
         Return only valid JSON without any additional comments or explanations.
         Required JSON format:
         {
-          "person_titles": [],
-          "organization_locations": [],
+          "person_titles": [], 
+          "person_locations": [],
           "organization_num_employees_ranges": [],
           "revenue_range[min]": "",
           "revenue_range[max]": "",
@@ -27,7 +27,7 @@ export const aiPeopleSearchQuery = async (customers: any) => {
         }
         where:
         * person_titles: array of strings separated by commas example: ["Sales Director Africa", "Sales Director EMEA", "Head of Business Development Africa", "Head of Business Development EMEA", "Sales Manager Africa", "Sales Manager EMEA"]
-        * organization_locations: array of strings separated by commas example: ["Germany", "France"]
+        * person_locations: array of strings separated by commas example: ["Germany", "France"]
         * organization_num_employees_ranges: array of strings separated by commas example: ["1,10", "11,50", "51,100"]
         * revenue_range[min]: integer example: 50000000
         * revenue_range[max]: integer example: 50000000000
@@ -53,7 +53,7 @@ export const aiPeopleSearchQuery = async (customers: any) => {
 
     const keysToClean = [
       "person_titles",
-      "organization_locations",
+      "person_locations",
       "organization_num_employees_ranges",
       "revenue_range[min]",
       "revenue_range[max]",

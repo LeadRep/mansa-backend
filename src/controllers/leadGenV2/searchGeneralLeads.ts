@@ -120,7 +120,7 @@ const buildGeneralLeadsFilters = (
     });
   }
 
-  const locations = uniqStrings(aiQueryParams?.organization_locations);
+  const locations = uniqStrings(aiQueryParams?.person_locations);
   if (locations.length) {
     andConditions.push({
       [Op.or]: [

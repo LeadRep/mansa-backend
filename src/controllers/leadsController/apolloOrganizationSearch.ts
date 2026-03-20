@@ -4,7 +4,7 @@ import { apolloService } from "../../utils/http/services/apolloService";
 
 interface organizationSearchQuery {
   organization_num_employees_ranges?: string[];
-  organization_locations?: string[];
+  person_locations?: string[];
   organization_not_locations?: string[];
   "revenue_range[max]"?: number;
   "revenue_range[min]"?: number;

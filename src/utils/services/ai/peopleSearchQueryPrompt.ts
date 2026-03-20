@@ -15,16 +15,16 @@ export const peopleSearchQueryPrompt = async (customerPref: any) => {
       ICP: ${JSON.stringify(customerPref.ICP)}
       BP: ${JSON.stringify(customerPref.BP)}
       
-      Generate search parameters in JSON format that can be used to query Apollo's people search API. Only output a valid JSON object with keys person_titles ,person_locations, person_seniorities, organization_num_employees_ranges, organization_locations only. Do not include triple backticks or extra text.
+      Generate search parameters in JSON format that can be used to query Apollo's people search API. Only output a valid JSON object with keys person_titles ,person_locations, person_seniorities, organization_num_employees_ranges, person_locations only. Do not include triple backticks or extra text.
 
       note the following
-      * person_titles[] array of strings
+      * person_titles[] array of strings 
       Job titles held by the people you want to find. For a person to be included in search results, they only need to match 1 of the job titles you add. Adding more job titles expands your search results.
       Results also include job titles with the same terms, even if they are not exact matches. For example, searching for marketing manager might return people with the job title content marketing manager.
       Use this parameter in combination with the person_seniorities[] parameter to find people based on specific job functions and seniority levels. Examples: sales development representative; marketing manager; research analyst
       * person_locations[] array of strings
       The location where people live. You can search across cities, US states, and countries.
-      To find people based on the headquarters locations of their current employer, use the organization_locations parameter. Examples: california; ireland; chicago
+      To find people based on the headquarters locations of their current employer, use the person_locations parameter. Examples: california; ireland; chicago
       * person_seniorities[] array of strings
       The job seniority that people hold within their current employer. This enables you to find people that currently hold positions at certain reporting levels, such as Director level or senior IC level.
       For a person to be included in search results, they only need to match 1 of the seniorities you add. Adding more seniorities expands your search results.
