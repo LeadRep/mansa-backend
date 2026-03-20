@@ -3,11 +3,12 @@ import logger from "../../logger";
 import Users from "../../models/Users";
 import sendResponse from "../../utils/http/sendResponse";
 import MonthlyQuotas from "../../models/MonthlyQuotas";
-import {GeneralLeads} from "../../models/GeneralLeads";
+import {ACILeads} from "../../models/ACILeads";
 import {Op} from "sequelize";
 import {v4 as uuidv4} from "uuid";
 import {Parser} from "json2csv";
 import {normalizeLead, PlainLead} from "./utils";
+import {recordLeadExport} from "../../services/exportService";
 
 
 export const exportLeads = async (request: Request, response: Response) => {
@@ -19,6 +20,7 @@ export const exportLeads = async (request: Request, response: Response) => {
             sendResponse(response, 401, "User not found");
             return;
         }
+        logger.info(`exportLeads for user ${userId} at organization ${user.organization_id}}`);
         const { ids } = request.body;
 
         // 1. Check and decrement quota atomically
@@ -28,16 +30,13 @@ export const exportLeads = async (request: Request, response: Response) => {
         }
 
         // 2. Generate CSV and upload (or serve)
-        const { csv, exportId } = await generateExportCsv(ids);
+        const jobId = uuidv4();
+        const { csv, exportId } = await generateExportCsv(ids, jobId);
 
-        // 4. Update asynchronously revealed_for_current_team to false all leads in ids
-        GeneralLeads.update(
-            {revealed_for_current_team: false},
-            {where: {id: {[Op.in]: ids}}}
-        ).catch(error => {
-            logger.error(error, "Error updating revealed_for_current_team status:");
+        // 4. Update asynchronously viewed record
+        recordLeadExport(ids, userId, user.organization_id, jobId, 'csv').catch((err) => {
+            logger.error(err, "Failed to record lead export");
         });
-        
 
         // 3. Return download URL and updated quota
         response.json({
@@ -64,16 +63,17 @@ export async function checkAndDecrementQuota(organizationId: string, count: numb
     return { ok: true, remaining: quota.remaining };
 }
 
-// Generates a CSV file for the given lead IDs and returns a download URL and export ID
-export async function generateExportCsv(leadIds: number[]) {
-    const rows = await GeneralLeads.findAll({ where: { id: { [Op.in]: leadIds } } });
+// Generates a CSV file for the given lead IDs and returns it along with the provided export ID
+export async function generateExportCsv(leadIds: string[], exportId: string) {
+    const rows = await ACILeads.findAll({ where: { id: { [Op.in]: leadIds } } });
     const leads = rows.map((lead) =>
         normalizeLead(lead.get({ plain: true }) as PlainLead)
     );
-    const exportId = uuidv4();
+
     const fields = [
         {"label": "ID", "value": "id"},
-        {"label": "Name", "value": "name"},
+        {"label": "firstName", "value": "firstName"},
+        {"label": "lastName", "value": "lastName"},
         {"label": "Title", "value": "title"},
         {"label": "Company", "value": "company"},
         {"label": "Country", "value": "country"},

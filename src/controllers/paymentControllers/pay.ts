@@ -11,6 +11,8 @@ import logger from "../../logger";
 import { runLeadGeneration } from "../leadsController/leadGenSelector";
 import {CustomerPref} from "../../models/CustomerPref";
 import {subscriptionNameToRefreshLeads} from "../../utils/services/subscriptionNameToRefreshLeads";
+import Organizations from "../../models/Organizations";
+import {isProdEnv} from "../../utils/env";
 
 dotenv.config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -47,7 +49,7 @@ export const payment = async (request: JwtPayload, response: Response) => {
   let teamYearly = "";
   let scaleMonthly = "";
   let scaleYearly = "";
-  if (process.env.APP_ENV === "poduction") {
+  if (isProdEnv()) {
     basicMonthly = "price_1RP4cyJlttlFevLMsbWAahtg";
     basicYearly = "price_1RP4cyJlttlFevLMigbEa2Ek";
     starterMonthly = "price_1RP4eaJlttlFevLMuVo2zImh";
@@ -182,7 +184,7 @@ export const successPayment = async (
         },
         { where: { session_id: sessionID } }
       );
-      await Users.update(
+      const [affectedCount, updatedRows]= (await Users.update(
         {
           subscriptionStartDate: startDate,
           subscriptionEndDate: endDate,
@@ -192,8 +194,9 @@ export const successPayment = async (
           where: {
             id: userId,
           },
+          returning: true,
         }
-      );
+      ))  as [number, Users[]];
       const DEFAULT_REFRESH_LEADS = 100;
       const planKey = typeof planType === "string" && planType.length > 0 ? planType : undefined;
       const mappedRefresh = planKey ? subscriptionNameToRefreshLeads[planKey as keyof typeof subscriptionNameToRefreshLeads] : undefined;
@@ -209,9 +212,6 @@ export const successPayment = async (
       }
       await CustomerPref.update(
         {
-          subscriptionStartDate: startDate,
-          subscriptionEndDate: endDate,
-          subscriptionName: planType,
           refreshLeads: refreshLeads,
           nextRefresh: moment(startDate).add(1, "month").startOf("day").toDate(),
         },
@@ -221,6 +221,20 @@ export const successPayment = async (
           },
         }
       );
+      const updatedUser = updatedRows && updatedRows[0] ? updatedRows[0].get({ plain: true }) : null;
+
+      await Organizations.update(
+        {
+          plan: planType,
+          subscriptionStartDate: startDate,
+          subscriptionEndDate: endDate,
+        },
+        {
+          where: {
+            organization_id: updatedUser?.organization_id,
+          },
+        }
+      )
       const userInSequence = await NewUsersSequence.findOne({
         where: { user_id: userId },
       });

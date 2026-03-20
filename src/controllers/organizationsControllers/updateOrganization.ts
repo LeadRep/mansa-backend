@@ -20,6 +20,9 @@ export const updateOrganization = async (
             plan,
             subscriptionStartDate,
             subscriptionEndDate,
+            basicModules,
+            imModule,
+            demoAccount,
         } = request.body;
 
         if (!userId) {
@@ -63,6 +66,12 @@ export const updateOrganization = async (
             updateData.subscriptionStartDate = subscriptionStartDate;
         if (subscriptionEndDate !== undefined)
             updateData.subscriptionEndDate = subscriptionEndDate;
+        if (basicModules !== undefined)
+          updateData.basicModules = basicModules;
+        if (imModule !== undefined)
+          updateData.imModule = imModule;
+        if (demoAccount !== undefined)
+          updateData.demoAccount = demoAccount;
 
         await organization.update(updateData);
 

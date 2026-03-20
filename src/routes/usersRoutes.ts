@@ -6,7 +6,6 @@ import multer from "multer";
 import { registerUserWithOrganization } from "../controllers/usersControllers/registerUserWithOrganization";
 import { loginUser } from "../controllers/usersControllers/loginUser";
 import { classifyLeads } from "../controllers/usersControllers/classifyLeads";
-import { classifyLeadsBulk } from "../controllers/usersControllers/classifyLeadsBulk";
 import { userLeads } from "../controllers/usersControllers/userLeads";
 import { userAuth } from "../middlewares/userAuth";
 import { payment, successPayment } from "../controllers/paymentControllers/pay";
@@ -72,8 +71,7 @@ const dealPhotoUpload = multer({
 });
 usersRoutes.post("/register", registerUserWithOrganization);
 usersRoutes.post("/login", loginUser);
-usersRoutes.get("/classifyLeads", classifyLeads);
-usersRoutes.get("/classifyLeadsBulk", classifyLeadsBulk);
+usersRoutes.post("/classifyLeads", classifyLeads);
 usersRoutes.post("/autologin", autologin);
 usersRoutes.post("/forgot-password", forgotPassword);
 usersRoutes.post("/reset-password", resetPassword);

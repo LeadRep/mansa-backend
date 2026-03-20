@@ -1,10 +1,12 @@
-import {GeneralLeadsAttributes} from "../../models/GeneralLeads";
+import {ACILeadsAttributes} from "../../models/ACILeads";
 import logger from "../../logger";
 
-export type PlainLead = GeneralLeadsAttributes & {
+export type PlainLead = ACILeadsAttributes & {
     organization?: any;
     createdAt?: Date;
     updatedAt?: Date;
+    exportedForOrganization: boolean;
+
 };
 
 const coerceJSON = (value: unknown, name: string): Record<string, any> | null => {
@@ -81,6 +83,8 @@ export const normalizeLead = (lead: PlainLead) => {
         id: lead.id,
         externalId: lead.external_id,
         name: lead.full_name ?? lead.name ?? organizationName ?? null,
+        firstName: lead.first_name ?? null,
+        lastName: lead.last_name ?? null,
         title: lead.title ?? null,
         company: organizationName,
         country: organizationCountry,
@@ -98,7 +102,7 @@ export const normalizeLead = (lead: PlainLead) => {
         organization,
         updatedAt: lead.updatedAt ?? null,
         createdAt: lead.createdAt ?? null,
-        consumed: Boolean(!lead.revealed_for_current_team),
+        consumed: lead.exportedForOrganization,
         individualSegments: individualSegmentsJSON
     };
 };

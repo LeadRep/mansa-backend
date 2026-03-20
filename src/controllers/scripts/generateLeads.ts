@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import sendResponse from "../../utils/http/sendResponse";
 import logger from "../../logger";
-import Companies from "../../models/Companies";
+import ACICompanies from "../../models/ACICompanies";
 import { v4 } from "uuid";
 import { apolloEnrichedPeople } from "../leadsController/apolloEnrichedPeople";
-import { GeneralLeads } from "../../models/GeneralLeads";
+import { ACILeads } from "../../models/ACILeads";
 import {apolloService} from "../../utils/http/services/apolloService";
 
 const DEFAULT_TITLES = [
@@ -117,13 +117,13 @@ export const generateLeads = async (request: Request, response: Response) => {
         // Ensure company using enriched organization payload (more complete)
         const organizationId = person?.organization?.id;
         if (organizationId) {
-          const company = await Companies.findOne({
+          const company = await ACICompanies.findOne({
             where: { external_id: organizationId },
           });
           if (!company) {
             const organizationPayload = person.organization ?? {};
             const { id, ...companyInfo } = organizationPayload;
-            await Companies.create({
+            await ACICompanies.create({
               id: v4(),
               ...companyInfo,
               external_id: organizationId,
@@ -136,12 +136,12 @@ export const generateLeads = async (request: Request, response: Response) => {
         if (!personId) {
           continue;
         }
-        const lead = await GeneralLeads.findOne({
+        const lead = await ACILeads.findOne({
           where: { external_id: personId },
         });
         if (!lead) {
           const { id, person_id, ...leadInfo } = person ?? {};
-          await GeneralLeads.create({
+          await ACILeads.create({
             id: v4(),
             ...leadInfo,
             external_id: personId,

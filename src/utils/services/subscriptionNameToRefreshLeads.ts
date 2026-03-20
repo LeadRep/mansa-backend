@@ -1,4 +1,5 @@
 export const subscriptionNameToRefreshLeads: Record<string, number> = {
+  "free": 0,
   "Basic-Monthly": 100,
   "Basic-Yearly": 100,
   "Starter-Monthly": 100,

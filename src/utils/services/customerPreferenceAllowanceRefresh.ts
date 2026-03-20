@@ -1,64 +1,65 @@
 import dotenv from "dotenv";
-import Users from "../../models/Users";
-import {Op} from "sequelize";
+import {Op, QueryTypes} from "sequelize";
 import logger from "../../logger";
-import {CustomerPref} from "../../models/CustomerPref";
 import {subscriptionNameToRefreshLeads} from "./subscriptionNameToRefreshLeads";
+import Organizations from "../../models/Organizations";
+import {database} from "../../configs/database/database";
 
 dotenv.config();
 
 export const customerPreferenceAllowanceRefresh = async () => {
   logger.info("Running customerPreferenceAllowanceRefresh...");
   try {
-    const duePrefs = await CustomerPref.findAll({
+    const dueOrgs = await Organizations.findAll({
       where: {
         nextRefresh: {
           [Op.lte]: new Date(),
-        },
-      },
-      include: [
-        {
-          model: Users,
-          as: "user",
-          attributes: ["id", "subscriptionName"],
-        },
-      ],
+        }
+      }
     });
 
-    if (!duePrefs.length) {
-      logger.info("No customer prefs to refresh.");
+    if (!dueOrgs.length) {
+      logger.info("No org prefs to refresh.");
       return;
     }
 
-    for (const pref of duePrefs) {
+    for (const org of dueOrgs) {
       try {
-        const user = pref.user;
-        const userId = pref.userId;
 
         let allowance: number = 100; // Default allowance
-        if (user) {
-          const subscriptionName = user.subscriptionName;
-          if (subscriptionName && subscriptionNameToRefreshLeads[subscriptionName]) {
-            allowance = subscriptionNameToRefreshLeads[subscriptionName];
-          } else {
-            logger.warn(
-              { userId, subscriptionName },
-              "Unknown or missing subscriptionName, using default allowance"
-            );
-          }
+        const subscriptionName = org.plan;
+        if (subscriptionName && subscriptionNameToRefreshLeads[subscriptionName]) {
+          allowance = subscriptionNameToRefreshLeads[subscriptionName];
         } else {
-          logger.warn({ prefId: pref.id }, "CustomerPref missing user, using default allowance");
+          logger.warn(
+            { orgId: org.organization_id, subscriptionName },
+            "Unknown or missing subscriptionName, using default allowance"
+          );
         }
+
 
         const nextRefresh = new Date();
         nextRefresh.setMonth(nextRefresh.getMonth() + 1);
         nextRefresh.setHours(0, 0, 0, 0);
 
-        await pref.update({
-          refreshLeads: allowance,
-          nextRefresh,
+
+
+        await database.query(
+          `UPDATE "CustomerPrefs"
+            SET "refreshLeads" = :allowance
+            WHERE "userId" IN (
+                SELECT id FROM "Users" WHERE organization_id = :orgId
+            )`,
+          {
+            replacements: { allowance, orgId: (org as any).organization_id },
+            type: QueryTypes.UPDATE,
+          }
+        );
+        logger.info({ prefId: org.id, allowance }, "Refreshed customer pref");
+        await org.update({
+          //refreshLeads: allowance,
+          nextRefresh: nextRefresh,
         });
-        logger.info({ prefId: pref.id, allowance }, "Refreshed customer pref");
       } catch (innerErr) {
         logger.error(innerErr, "Failed to refresh a customer pref");
       }
