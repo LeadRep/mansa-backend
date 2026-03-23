@@ -9,10 +9,10 @@ import sendResponse from "../../utils/http/sendResponse";
 import NewUsersSequence from "../../models/NewUsersSequence";
 import logger from "../../logger";
 import { runLeadGeneration } from "../leadsController/leadGenSelector";
-import {CustomerPref} from "../../models/CustomerPref";
-import {subscriptionNameToRefreshLeads} from "../../utils/services/subscriptionNameToRefreshLeads";
+import { CustomerPref } from "../../models/CustomerPref";
+import { subscriptionNameToRefreshLeads } from "../../utils/services/subscriptionNameToRefreshLeads";
 import Organizations from "../../models/Organizations";
-import {isProdEnv} from "../../utils/env";
+import { isProdEnv } from "../../utils/env";
 
 dotenv.config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -49,6 +49,12 @@ export const payment = async (request: JwtPayload, response: Response) => {
   let teamYearly = "";
   let scaleMonthly = "";
   let scaleYearly = "";
+  let salesRepMonthly = "";
+  let salesRepYearly = "";
+  let salesTeamMonthly = "";
+  let salesTeamYearly = "";
+  let salesScaleMonthly = "";
+  let salesScaleYearly = "";
   if (isProdEnv()) {
     basicMonthly = "price_1RP4cyJlttlFevLMsbWAahtg";
     basicYearly = "price_1RP4cyJlttlFevLMigbEa2Ek";
@@ -60,6 +66,12 @@ export const payment = async (request: JwtPayload, response: Response) => {
     teamYearly = "price_1SHiMoJlttlFevLM16jtqMp0";
     scaleMonthly = "price_1RrlThJlttlFevLM7qs7Mod2";
     scaleYearly = "price_1RrlThJlttlFevLMBSpjtdUe";
+    salesRepMonthly = "price_1TATzRJlttlFevLM0lXDDO6y";
+    salesRepYearly = "price_1TATzRJlttlFevLM5t3FaClw";
+    salesTeamMonthly = "price_1TAU0qJlttlFevLM9HpmD1Hg";
+    salesTeamYearly = "price_1TAU1VJlttlFevLMfxRoJSm5";
+    salesScaleMonthly = "price_1TAU3aJlttlFevLMwh4vqRQp";
+    salesScaleYearly = "price_1TAU3aJlttlFevLMksFQzsh1";
   } else {
     basicMonthly = "price_1RP3rtQwj7e0FQ8k5TRLrFOD";
     basicYearly = "price_1RP3w8Qwj7e0FQ8k0PK1ynTJ";
@@ -88,6 +100,12 @@ export const payment = async (request: JwtPayload, response: Response) => {
     1499: teamYearly,
     349: scaleMonthly,
     3490: scaleYearly,
+    1999: salesRepMonthly,
+    19990: salesRepYearly,
+    8999: salesTeamMonthly,
+    89990: salesTeamYearly,
+    17999: salesScaleMonthly,
+    179990: salesScaleYearly,
   };
 
   const planId = planMap[planAmount];
@@ -95,7 +113,7 @@ export const payment = async (request: JwtPayload, response: Response) => {
   if (!planId) {
     logger.error(
       { planAmount, env: process.env.APP_ENV },
-      "No Stripe price ID configured for plan amount"
+      "No Stripe price ID configured for plan amount",
     );
     return response.status(400).json({
       status: "error",
@@ -133,7 +151,7 @@ export const payment = async (request: JwtPayload, response: Response) => {
 
 export const successPayment = async (
   request: JwtPayload,
-  response: Response
+  response: Response,
 ) => {
   const userId = request.user?.id;
   const sessionID = request.body.sessionId;
@@ -156,9 +174,15 @@ export const successPayment = async (
       if (amount === 149900) planType = "Team-Yearly";
       if (amount === 34900) planType = "Scale-Monthly";
       if (amount === 349000) planType = "Scale-Yearly";
+      if(amount === 199900) planType = "SalesRep-Monthly";
+      if(amount === 1999000) planType = "SalesRep-Yearly";
+       if(amount === 899900) planType = "SalesTeam-Monthly";
+      if(amount === 8999000) planType = "SalesTeam-Yearly";
+      if(amount === 1799900) planType = "SalesScale-Monthly";
+      if(amount === 17999000) planType = "SalesScale-Yearly";
 
       const startDate = new Date(
-        moment.unix(subscription.start_date).toDate().toISOString()
+        moment.unix(subscription.start_date).toDate().toISOString(),
       );
       let endDate: Date;
       if (subscription.plan.interval === "month") {
@@ -182,9 +206,9 @@ export const successPayment = async (
           plan_duration: String(durationInDays),
           customer_id: subscription.customer,
         },
-        { where: { session_id: sessionID } }
+        { where: { session_id: sessionID } },
       );
-      const [affectedCount, updatedRows]= (await Users.update(
+      const [affectedCount, updatedRows] = (await Users.update(
         {
           subscriptionStartDate: startDate,
           subscriptionEndDate: endDate,
@@ -195,33 +219,46 @@ export const successPayment = async (
             id: userId,
           },
           returning: true,
-        }
-      ))  as [number, Users[]];
+        },
+      )) as [number, Users[]];
       const DEFAULT_REFRESH_LEADS = 100;
-      const planKey = typeof planType === "string" && planType.length > 0 ? planType : undefined;
-      const mappedRefresh = planKey ? subscriptionNameToRefreshLeads[planKey as keyof typeof subscriptionNameToRefreshLeads] : undefined;
+      const planKey =
+        typeof planType === "string" && planType.length > 0
+          ? planType
+          : undefined;
+      const mappedRefresh = planKey
+        ? subscriptionNameToRefreshLeads[
+            planKey as keyof typeof subscriptionNameToRefreshLeads
+          ]
+        : undefined;
       let refreshLeads: number;
       if (typeof mappedRefresh === "number" && !Number.isNaN(mappedRefresh)) {
         refreshLeads = mappedRefresh;
       } else {
         logger.warn(
           { userId, planType, mappedRefresh },
-          "Missing or invalid refreshLeads mapping for plan; using default"
+          "Missing or invalid refreshLeads mapping for plan; using default",
         );
         refreshLeads = DEFAULT_REFRESH_LEADS;
       }
       await CustomerPref.update(
         {
           refreshLeads: refreshLeads,
-          nextRefresh: moment(startDate).add(1, "month").startOf("day").toDate(),
+          nextRefresh: moment(startDate)
+            .add(1, "month")
+            .startOf("day")
+            .toDate(),
         },
         {
           where: {
             userId: userId,
           },
-        }
+        },
       );
-      const updatedUser = updatedRows && updatedRows[0] ? updatedRows[0].get({ plain: true }) : null;
+      const updatedUser =
+        updatedRows && updatedRows[0]
+          ? updatedRows[0].get({ plain: true })
+          : null;
 
       await Organizations.update(
         {
@@ -233,8 +270,8 @@ export const successPayment = async (
           where: {
             organization_id: updatedUser?.organization_id,
           },
-        }
-      )
+        },
+      );
       const userInSequence = await NewUsersSequence.findOne({
         where: { user_id: userId },
       });
@@ -266,7 +303,7 @@ export const successPayment = async (
 
 export const customerPortal = async (
   request: JwtPayload,
-  response: Response
+  response: Response,
 ) => {
   try {
     const email = request.body.email;
