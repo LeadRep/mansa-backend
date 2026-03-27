@@ -29,6 +29,11 @@ export interface DealContactAttributes {
   reason: string;
   score: number;
   deal_value: number;
+  suggested_mail?: {
+    stage: string;
+    subject: string;
+    mail: string;
+  } | null;
 }
 
 export class DealContact extends Model<DealContactAttributes> {
@@ -169,6 +174,11 @@ DealContact.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
+    },
+    suggested_mail: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: null,
     },
   },
   {

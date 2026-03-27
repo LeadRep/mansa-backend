@@ -38,6 +38,7 @@ export const updateDealContact = async (
       organization,
       deal_value,
       photo_url,
+      suggested_mail,
     } = request.body;
 
     const updateData: Record<string, any> = {};
@@ -80,6 +81,19 @@ export const updateDealContact = async (
       if (Number.isFinite(parsedValue)) {
         updateData.deal_value = parsedValue;
       }
+    }
+    if (
+      suggested_mail &&
+      typeof suggested_mail === "object" &&
+      typeof suggested_mail.stage === "string" &&
+      typeof suggested_mail.subject === "string" &&
+      typeof suggested_mail.mail === "string"
+    ) {
+      updateData.suggested_mail = {
+        stage: suggested_mail.stage.trim(),
+        subject: suggested_mail.subject.trim(),
+        mail: suggested_mail.mail.trim(),
+      };
     }
 
     await contact.update(updateData);

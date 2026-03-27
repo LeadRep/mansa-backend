@@ -24,6 +24,7 @@ import { createDealContactNote } from "../controllers/usersControllers/deals/cre
 import { uploadDealContactPhoto } from "../controllers/usersControllers/deals/uploadDealContactPhoto";
 import { updateDealStages } from "../controllers/usersControllers/deals/updateStages";
 import { deleteStage } from "../controllers/usersControllers/deals/deleteStage";
+import { getOrGenerateDealSuggestedMail } from "../controllers/usersControllers/deals/dealSuggestedMail";
 import { forgotPassword } from "../controllers/usersControllers/forgotPassword";
 import { resetPassword } from "../controllers/usersControllers/resetPassword";
 import { shareLeads } from "../controllers/usersControllers/shareLeads";
@@ -106,6 +107,11 @@ usersRoutes.get(
   "/deal-contacts/:contactId/notes",
   userAuth,
   getDealContactNotes
+);
+usersRoutes.post(
+  "/deal-contacts/:contactId/suggested-mail",
+  userAuth,
+  getOrGenerateDealSuggestedMail
 );
 usersRoutes.post(
   "/deal-contacts/:contactId/notes",
