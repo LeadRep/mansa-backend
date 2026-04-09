@@ -14,7 +14,12 @@ import {
     CONTACT_FRONTEND_SUCCESS_URL,
     CONTACT_FRONTEND_FAILURE_URL
 } from "./googleConfig";
+import { decodeGoogleAuthState } from "./googleContactsController";
 
+const appendReason = (baseUrl: string, reason: string) => {
+    const separator = baseUrl.includes("?") ? "&" : "?";
+    return `${baseUrl}${separator}reason=${encodeURIComponent(reason)}`;
+};
 
 async function createAccountRecordFromIdToken(userId: string, idToken: string) {
     const decoded: any = jwt.decode(idToken);
@@ -81,21 +86,32 @@ export const googleCallback = async (
     response: Response
 ) => {
     const {code, scope, state} = request.query; // state is the userId
-    const userId = state as string;
+    const decodedState = state
+        ? decodeGoogleAuthState(String(state))
+        : null;
+    const userId = decodedState?.userId || String(state || "");
+    const successRedirectUrl = decodedState?.successRedirect || CONTACT_FRONTEND_SUCCESS_URL;
+    const failureRedirectUrl = decodedState?.failureRedirect || CONTACT_FRONTEND_FAILURE_URL;
     logger.info(`received consent callback for user: ${userId}`);
     if (!code) {
         logger.error('No authorization code received from Google.');
-        return response.redirect(CONTACT_FRONTEND_FAILURE_URL + '&reason=no_code');
+        return response.redirect(appendReason(failureRedirectUrl, 'no_code'));
     }
     if (!scope) {
         logger.error('No authorization code received from Google.');
-        return response.redirect(CONTACT_FRONTEND_FAILURE_URL + '&reason=no_scope');
+        return response.redirect(appendReason(failureRedirectUrl, 'no_scope'));
     }
     try {
         const scopeArray = (scope as string).split(' ');
         if (scopeArray.includes(SCOPE3[0])) {
             logger.debug('Received SCOPE3 consent');
-            await handleScope3Callback(code as string, userId, response);
+            await handleScope3Callback(
+                code as string,
+                userId,
+                response,
+                successRedirectUrl,
+                failureRedirectUrl
+            );
             return;
         }
         if (scopeArray.includes(SCOPE2[0])) {
@@ -116,7 +132,7 @@ export const googleCallback = async (
 
     } catch (error: any) {
         logger.error(error, `Error during Google OAuth callback: ${error?.stack || error?.message || error}.`);
-        response.redirect(CONTACT_FRONTEND_FAILURE_URL + `&reason=${encodeURIComponent(error.message)}`);
+        response.redirect(appendReason(failureRedirectUrl, error.message));
     }
 }
 
@@ -325,7 +341,13 @@ async function storeFetchedContacts(userId: string, userAccountId: string , cont
     }
 }
 
-async function handleScope3Callback(code: string, userId: string, response: Response) {
+async function handleScope3Callback(
+    code: string,
+    userId: string,
+    response: Response,
+    successRedirectUrl: string,
+    failureRedirectUrl: string
+) {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
@@ -340,7 +362,7 @@ async function handleScope3Callback(code: string, userId: string, response: Resp
 
     if (!account) {
         logger.error('No linked account found for user when handling SCOPE3 callback.');
-        response.redirect(CONTACT_FRONTEND_FAILURE_URL + '&reason=no_linked_account');
+        response.redirect(appendReason(failureRedirectUrl, 'no_linked_account'));
         return;
     }
 
@@ -358,5 +380,8 @@ async function handleScope3Callback(code: string, userId: string, response: Resp
         }
     }
 
-    response.redirect(CONTACT_FRONTEND_SUCCESS_URL + `?accountId=${encodeURIComponent(account.user_account_id)}`);
+    const separator = successRedirectUrl.includes("?") ? "&" : "?";
+    response.redirect(
+        `${successRedirectUrl}${separator}accountId=${encodeURIComponent(account.user_account_id)}`
+    );
 }

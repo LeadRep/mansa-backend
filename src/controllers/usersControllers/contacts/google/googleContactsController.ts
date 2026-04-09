@@ -3,13 +3,42 @@ import {Response} from "express";
 import logger from "../../../../logger";
 import { SCOPE1, SCOPE2, SCOPE3, oauth2Client } from "./googleConfig";
 
+type GoogleAuthState = {
+    userId: string;
+    successRedirect?: string;
+    failureRedirect?: string;
+};
 
-export const generateGoogleAuthUrl = (userId: string, scope: string[]) => {
+export const encodeGoogleAuthState = (state: GoogleAuthState) =>
+    Buffer.from(JSON.stringify(state)).toString("base64url");
+
+export const decodeGoogleAuthState = (value: string): GoogleAuthState | null => {
+    try {
+        return JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+    } catch (_error) {
+        return null;
+    }
+};
+
+export const generateGoogleAuthUrl = (
+    userId: string,
+    scope: string[],
+    options?: {
+        successRedirect?: string;
+        failureRedirect?: string;
+    }
+) => {
+    const state = encodeGoogleAuthState({
+        userId,
+        successRedirect: options?.successRedirect,
+        failureRedirect: options?.failureRedirect,
+    });
+
     return oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope,
         prompt: 'select_account',
-        state: userId,
+        state,
         response_type: 'code',
     });
 };
