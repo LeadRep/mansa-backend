@@ -115,6 +115,9 @@ export const sendLeadIntroMailWithGmail = async (req: Request, res: Response) =>
   }
 
   try {
+    const appDomain = String(process.env.APP_DOMAIN || "").replace(/\/$/, "");
+    const successRedirect = `${appDomain}/leads?google_auth_status=success&gmail_action=intro_mail_send`;
+    const failureRedirect = `${appDomain}/leads?google_auth_status=error&gmail_action=intro_mail_send`;
     const user = await Users.findByPk(userId, {
       attributes: ["firstName", "lastName", "companyName"],
     });
@@ -176,7 +179,10 @@ export const sendLeadIntroMailWithGmail = async (req: Request, res: Response) =>
     if (!linkedAccount) {
       sendResponse(res, 200, "Google authorization required", {
         requiresGoogleAuth: true,
-        authorizeUrl: generateGoogleAuthUrl(userId, SCOPE3),
+        authorizeUrl: generateGoogleAuthUrl(userId, SCOPE3, {
+          successRedirect,
+          failureRedirect,
+        }),
       });
       return;
     }
@@ -201,7 +207,10 @@ export const sendLeadIntroMailWithGmail = async (req: Request, res: Response) =>
     if (!tokenRecord?.encrypted_refresh_token) {
       sendResponse(res, 200, "Google authorization required", {
         requiresGoogleAuth: true,
-        authorizeUrl: generateGoogleAuthUrl(userId, SCOPE3),
+        authorizeUrl: generateGoogleAuthUrl(userId, SCOPE3, {
+          successRedirect,
+          failureRedirect,
+        }),
       });
       return;
     }
