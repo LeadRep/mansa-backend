@@ -18,6 +18,15 @@ import {
   normalizeIntroMail,
 } from "../leadsController/introMail";
 
+const isInsufficientScopeError = (error: any) => {
+  const message = String(error?.message || "").toLowerCase();
+  const responseData = JSON.stringify(error?.response?.data || {}).toLowerCase();
+  return (
+    message.includes("insufficient authentication scopes") ||
+    responseData.includes("insufficient authentication scopes")
+  );
+};
+
 const toBase64Url = (value: string): string =>
   Buffer.from(value)
     .toString("base64")
@@ -182,12 +191,13 @@ export const sendLeadIntroMailWithGmail = async (req: Request, res: Response) =>
         authorizeUrl: generateGoogleAuthUrl(userId, SCOPE3, {
           successRedirect,
           failureRedirect,
+          prompt: "consent select_account",
         }),
       });
       return;
     }
 
-    let tokenRecord = await UserLinkedAccountTokens.findOne({
+    const tokenRecord = await UserLinkedAccountTokens.findOne({
       where: {
         user_account_id: linkedAccount.user_account_id,
         scope: TokenScope.SCOPE3,
@@ -196,20 +206,12 @@ export const sendLeadIntroMailWithGmail = async (req: Request, res: Response) =>
     });
 
     if (!tokenRecord?.encrypted_refresh_token) {
-      tokenRecord = await UserLinkedAccountTokens.findOne({
-        where: {
-          user_account_id: linkedAccount.user_account_id,
-        },
-        order: [["last_used_at", "DESC"]],
-      });
-    }
-
-    if (!tokenRecord?.encrypted_refresh_token) {
       sendResponse(res, 200, "Google authorization required", {
         requiresGoogleAuth: true,
         authorizeUrl: generateGoogleAuthUrl(userId, SCOPE3, {
           successRedirect,
           failureRedirect,
+          prompt: "consent select_account",
         }),
       });
       return;
@@ -241,6 +243,37 @@ export const sendLeadIntroMailWithGmail = async (req: Request, res: Response) =>
       gmailMessageId: sendResult.data?.id || null,
     });
   } catch (error: any) {
+    if (isInsufficientScopeError(error)) {
+      const linkedAccount = await UserLinkedAccounts.findOne({
+        where: {
+          user_id: userId,
+          provider: LinkedAccountProvider.GOOGLE,
+        },
+        order: [["updatedAt", "DESC"]],
+      });
+
+      if (linkedAccount) {
+        await UserLinkedAccountTokens.destroy({
+          where: {
+            user_account_id: linkedAccount.user_account_id,
+            scope: TokenScope.SCOPE3,
+          },
+        });
+      }
+
+      const appDomain = String(process.env.APP_DOMAIN || "").replace(/\/$/, "");
+      const successRedirect = `${appDomain}/leads?google_auth_status=success&gmail_action=intro_mail_send`;
+      const failureRedirect = `${appDomain}/leads?google_auth_status=error&gmail_action=intro_mail_send`;
+      sendResponse(res, 200, "Google authorization required", {
+        requiresGoogleAuth: true,
+        authorizeUrl: generateGoogleAuthUrl(userId, SCOPE3, {
+          successRedirect,
+          failureRedirect,
+          prompt: "consent select_account",
+        }),
+      });
+      return;
+    }
     logger.error(error, "Error sending intro mail with Gmail");
     sendResponse(res, 500, "Failed to send intro mail", null, error.message);
   }
