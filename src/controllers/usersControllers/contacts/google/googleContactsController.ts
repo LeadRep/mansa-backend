@@ -26,6 +26,7 @@ export const generateGoogleAuthUrl = (
     options?: {
         successRedirect?: string;
         failureRedirect?: string;
+        prompt?: string;
     }
 ) => {
     const state = encodeGoogleAuthState({
@@ -37,7 +38,7 @@ export const generateGoogleAuthUrl = (
     return oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope,
-        prompt: 'select_account',
+        prompt: options?.prompt || 'select_account',
         state,
         response_type: 'code',
     });
@@ -80,7 +81,9 @@ export const googleConsentSendEmail = async (
     try {
         const userId = request.user.id;
         logger.info(`google send consent required for user ID: ${userId}`);
-        const authorizeUrl = generateGoogleAuthUrl(userId, SCOPE3);
+        const authorizeUrl = generateGoogleAuthUrl(userId, SCOPE3, {
+            prompt: "consent select_account",
+        });
         response.status(200).json({ authorizeUrl });
     } catch (err) {
         response.status(500).json({ error: "Failed to generate consent URL" });
