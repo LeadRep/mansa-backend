@@ -99,7 +99,7 @@ export async function generateExportCsv(leadIds: string[], exportId: string) {
         {"label": "Firm size", "value": "companySize"},
         {"label": "Firm segment", "value": "companySegment"},
         {"label": "AUM", "value": (row: any) => {
-            const aum = row.org_info?.aum;
+            const aum = row.aumJson;
             const value = aum?.value || '';
             const currency = aum?.currency || '';
 

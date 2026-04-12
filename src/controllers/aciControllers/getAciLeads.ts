@@ -315,7 +315,7 @@ export const getAciLeads = async (req: Request, res: Response) => {
                 (ACILeads.sequelize as any).literal(`
                             (SELECT COUNT(*) > 0 FROM "LeadExports" le
                              WHERE le.lead_id = "aci_leads".id
-                               AND le.exported_for_organization_id = '${user.organization_id}')
+                               AND le.exported_for_organization_id = ${(ACILeads.sequelize as any).escape(user.organization_id)})
                         `),
                 'exportedForOrganization'
               ]
@@ -324,9 +324,6 @@ export const getAciLeads = async (req: Request, res: Response) => {
         distinct: true // This ensures proper counting with joins
       });
 
-      console.log("ACI leads count:", count);
-      console.log("ACI leads rows:", rows.length);
-      console.log("ACI first leads:", rows[0]?.get({plain: true}));
       const leads = rows.map((lead) =>
             normalizeLead(lead.get({plain: true}) as PlainLead)
         );

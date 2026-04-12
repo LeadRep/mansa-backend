@@ -48,7 +48,6 @@ app.use(
     credentials: true,
   })
 );
-app.use(httpLoggingMiddleware);
 app.use(pinoHttpMiddleware);
 app.use(cookieParser());
 const uploadsRoot = path.resolve(process.cwd(), "uploads");
@@ -103,5 +102,6 @@ server.listen(port, () => {
     pinoLogger.info(`App running at port ${port}`);
 });
 
+app.use(httpLoggingMiddleware);
 
 export default app;
