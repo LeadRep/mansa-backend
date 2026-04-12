@@ -291,9 +291,9 @@ export const getAciLeads = async (req: Request, res: Response) => {
             include: [
               [
                 (ACILeads.sequelize as any).literal(`
-                            (SELECT COUNT(*) > 0 FROM "LeadExports" le
-                             WHERE le.lead_id = "aci_leads".id
-                               AND le.exported_for_organization_id = ${(ACILeads.sequelize as any).escape(user.organization_id)})
+                            EXISTS (SELECT 1 FROM "LeadExports" le
+                                    WHERE le.lead_id = "aci_leads".id
+                                      AND le.exported_for_organization_id = ${(ACILeads.sequelize as any).escape(user.organization_id)})
                         `),
                 'exportedForOrganization'
               ]
