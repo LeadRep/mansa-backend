@@ -49,6 +49,7 @@ export interface ACILeadsAttributes {
     is_lead_alternatives: boolean | null;
     is_lead_multi_asset: boolean | null;
     is_lead_digital_assets: boolean | null;
+    is_lead_none_identified: boolean | null;
     industries: string[] | null;
     segments: string[] | null;
     individual_segments: JSON | null;
@@ -300,6 +301,11 @@ ACILeads.init(
           type: DataTypes.BOOLEAN,
           allowNull: true,
           defaultValue: false,
+        },
+        is_lead_none_identified: {
+          type: DataTypes.BOOLEAN,
+          allowNull: true,
+          defaultValue: true,
         },
         individual_segments: {
           type: DataTypes.JSON,
