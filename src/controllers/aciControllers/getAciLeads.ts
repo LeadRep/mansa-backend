@@ -265,28 +265,6 @@ export const getAciLeads = async (req: Request, res: Response) => {
 
     const where = buildFilters(search, titles, countries, segments, allocationFocus, tags, lock, user.organization_id);
 
-        // const {rows, count} = await ACILeads.findAndCountAll({
-        //     where,
-        //     limit,
-        //     offset,
-        //     order: [["priority", "DESC"], ["createdAt", "DESC"]],
-        //   attributes: {
-        //     include: [
-        //       [
-        //         (ACILeads.sequelize as any).literal(`
-        //                     EXISTS (
-        //                         SELECT 1 FROM "LeadExports" le
-        //                         WHERE le.lead_id = "aci_leads".id
-        //                           AND le.exported_for_organization_id = ${(ACILeads.sequelize as any).escape(user.organization_id)}
-        //                     )
-        //                 `),
-        //         'exportedForOrganization'
-        //       ]
-        //     ]
-        //   }
-        //
-        // });
-
       const {rows, count} = await ACILeads.findAndCountAll({
         where,
         limit,
