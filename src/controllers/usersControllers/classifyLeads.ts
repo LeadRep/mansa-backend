@@ -4,6 +4,7 @@ import { aiClassifyLead } from "../aiControllers/testSegmentation";
 import logger from "../../logger";
 import { Op } from "sequelize";
 import {ACILeads} from "../../models/ACILeads";
+import ACICompanies from "../../models/ACICompanies";
 
 // Map JSON operator names to Sequelize Ops
 const OP_MAP: Record<string, symbol> = {
@@ -107,6 +108,12 @@ export const classifyLeads = async (req: Request, res: Response) => {
         // },
 
        },
+      include: [
+        {
+          model: ACICompanies,
+          as: "org_info",
+        }
+      ],
       order: [["createdAt", "DESC"]],
     })
     if (!leadRecord) {

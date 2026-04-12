@@ -9,6 +9,7 @@ import {v4 as uuidv4} from "uuid";
 import {Parser} from "json2csv";
 import {normalizeLead, PlainLead} from "./utils";
 import {recordLeadExport} from "../../services/exportService";
+import ACICompanies from "../../models/ACICompanies";
 
 
 export const exportLeads = async (request: Request, response: Response) => {
@@ -65,7 +66,15 @@ export async function checkAndDecrementQuota(organizationId: string, count: numb
 
 // Generates a CSV file for the given lead IDs and returns it along with the provided export ID
 export async function generateExportCsv(leadIds: string[], exportId: string) {
-    const rows = await ACILeads.findAll({ where: { id: { [Op.in]: leadIds } } });
+    const rows = await ACILeads.findAll({
+      where: { id: { [Op.in]: leadIds } },
+      include: [
+        {
+          model: ACICompanies,
+          as: "org_info",
+        }
+      ]
+    });
     const leads = rows.map((lead) =>
         normalizeLead(lead.get({ plain: true }) as PlainLead)
     );
@@ -75,13 +84,58 @@ export async function generateExportCsv(leadIds: string[], exportId: string) {
         {"label": "firstName", "value": "firstName"},
         {"label": "lastName", "value": "lastName"},
         {"label": "Title", "value": "title"},
-        {"label": "Company", "value": "company"},
-        {"label": "Country", "value": "country"},
         {"label": "Email", "value": "email"},
         {"label": "Phone", "value": "phone"},
+        {"label": "City", "value": "city"},
+        {"label": "Country", "value": "country"},
+        {"label": "Firm", "value": "company"},
+        {"label": "Firm raw address", "value": "organization.raw_address"},
+        {"label": "Firm street address", "value": "organization.street_address"},
+        {"label": "Firm city", "value": "organization.city"},
+        {"label": "Firm state", "value": "organization.state"},
+        {"label": "Firm postal code", "value": "organization.postal_code"},
+        {"label": "Firm country", "value": "organization.country"},
+        {"label": "Firm industry", "value": "organization.industry"},
+        {"label": "Firm size", "value": "companySize"},
+        {"label": "Firm segment", "value": "companySegment"},
+        {"label": "AUM", "value": (row: any) => {
+            const aum = row.aumJson;
+            const value = aum?.value || '';
+            const currency = aum?.currency || '';
+
+            if (!value && !currency) return '';
+            if (!currency) return value;
+            if (!value) return currency;
+
+            return `${value} ${currency}`;
+          }},
+      {"label": "Lead specialty(AI)", "value": (row: any) => {
+
+          const segs = Array.isArray(row.individualSegments)
+            ? row.individualSegments
+            : Array.isArray(row.individualSegments?.asset_allocation_focus)
+              ? row.individualSegments.asset_allocation_focus
+              : null;
+
+          const displayText = segs
+            ? segs.length > 0
+              ? segs.join(", ")
+              : "None identified"
+            :null
+          return displayText;
+      }},
+      {"label": "Lead specialty(AI) notes", "value": (row: any) => {
+          const notes =
+            typeof row.individualSegments === "object" && row.individualSegments
+              ? (row.individualSegments.notes as string | undefined)
+              : null;
+          return notes;
+        }},
     ];
     const parser = new Parser({ fields });
     const csv = parser.parse(leads);
-    
-    return { csv, exportId };
+    // Add UTF-8 BOM to ensure Excel recognizes UTF-8 encoding
+    const csvWithBOM = '\ufeff' + csv;
+
+    return { csv: csvWithBOM, exportId };
 }

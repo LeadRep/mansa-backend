@@ -25,9 +25,11 @@ export const runLeadGeneration = async (
       .toLowerCase();
 
     if (model === "v2") {
+      logger.info("Running lead generation using leadGenV2");
       return leadGenV2(userId, totalLeads, restart, expand);
     }
 
+    logger.info("Running lead generation using leadGenV1");
     return step2LeadGen(userId, totalLeads, restart);
   } catch (error) {
     logger.error(error, "Error running lead generation");

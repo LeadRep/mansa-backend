@@ -6,6 +6,7 @@ export type PlainLead = ACILeadsAttributes & {
     createdAt?: Date;
     updatedAt?: Date;
     exportedForOrganization: boolean;
+    org_info?: any;
 
 };
 
@@ -33,7 +34,7 @@ const coerceJSON = (value: unknown, name: string): Record<string, any> | null =>
     return null;
 };
 
-const getCompanySizeRange = (size?: number) => {
+export const getCompanySizeRange = (size?: number) => {
     if (!size) return "-";
     if (size < 10) return "<10";
     if (size < 100) return "10-99";
@@ -42,8 +43,8 @@ const getCompanySizeRange = (size?: number) => {
 }
 
 export const normalizeLead = (lead: PlainLead) => {
-    const organization = coerceJSON(lead.organization, "organization");
-    const aumJson = coerceJSON(lead.aum, "aum");
+    const organization = coerceJSON(lead.org_info?.raw_data, "organization");
+    const aumJson = lead.org_info?.aum; // coerceJSON(lead.aum, "aum");
     const individualSegmentsJSON = coerceJSON(lead.individual_segments, "segments");
     const organizationName =
         organization?.name ??
@@ -86,6 +87,8 @@ export const normalizeLead = (lead: PlainLead) => {
         firstName: lead.first_name ?? null,
         lastName: lead.last_name ?? null,
         title: lead.title ?? null,
+        leadCity: lead.city ?? null,
+        leadCountry: lead.country ?? null,
         company: organizationName,
         country: organizationCountry,
         email: lead.email ?? organization?.email ?? null,

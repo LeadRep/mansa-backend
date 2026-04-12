@@ -49,7 +49,7 @@ Return JSON only.
 
 CRM DB data:
 - Name: ${lead.first_name + " " + lead.last_name}
-- Company: ${lead.organization.name ?? ""}
+- Company: ${lead.org_info.name ?? ""}
 - LinkedIn: ${lead.linkedin_url ?? ""}
 - Notes: ${lead.notes ?? ""}
 

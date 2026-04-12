@@ -51,6 +51,11 @@ export interface ACICompaniesAttributes {
     state: string | null;
     postal_code: string | null;
     country: string | null;
+    aum: JSON | null;
+    raw_data: JSON | null;
+    is_equities: boolean | null;
+    is_fixed_income: boolean | null;
+    is_etf: boolean | null;
 }
 
 export class ACICompanies extends Model<ACICompaniesAttributes> {
@@ -300,7 +305,32 @@ ACICompanies.init(
             allowNull: true,
             defaultValue: null,
         },
-
+        aum: {
+          type: DataTypes.JSON,
+          allowNull: true,
+          defaultValue: null,
+        },
+        raw_data: {
+          type: DataTypes.JSON,
+          allowNull: true,
+          defaultValue: null,
+          field: "organization",
+        },
+      is_etf: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        defaultValue: false,
+      },
+      is_equities: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        defaultValue: false,
+      },
+      is_fixed_income: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        defaultValue: false,
+      },
     },
     {
         sequelize: database,

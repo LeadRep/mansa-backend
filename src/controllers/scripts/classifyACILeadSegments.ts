@@ -4,6 +4,7 @@ import logger from "../../logger";
 import { ACILeads } from "../../models/ACILeads";
 import sendResponse from "../../utils/http/sendResponse";
 import {aiService} from "../../utils/http/services/aiService";
+import ACICompanies from "../../models/ACICompanies";
 
 const SEGMENT_OPTIONS: string[] = [
   "Commercial Banking",
@@ -77,7 +78,7 @@ const SEGMENT_OPTIONS: string[] = [
 ];
 
 const formatLeadSummary = (lead: any) => {
-  const org = lead.organization ?? {};
+  const org = lead.org_info ?? {};
   const sections: string[] = [];
   sections.push(`Name: ${lead.full_name ?? lead.name ?? "N/A"}`);
   sections.push(`Title: ${lead.title ?? "N/A"}`);
@@ -196,6 +197,12 @@ export const classifyACILeadSegments = async (
       where: {
         segments: { [Op.is]: null },
       },
+      include: [
+        {
+          model: ACICompanies,
+          as: "org_info",
+        }
+      ],
       limit,
       order: [["updatedAt", "ASC"]],
     });
