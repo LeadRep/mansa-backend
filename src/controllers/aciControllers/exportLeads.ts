@@ -95,7 +95,6 @@ export async function generateExportCsv(leadIds: string[], exportId: string) {
         {"label": "Firm state", "value": "organization.state"},
         {"label": "Firm postal code", "value": "organization.postal_code"},
         {"label": "Firm country", "value": "organization.country"},
-        {"label": "Firm raw address", "value": "organization.raw_address"},
         {"label": "Firm industry", "value": "organization.industry"},
         {"label": "Firm size", "value": "companySize"},
         {"label": "Firm segment", "value": "companySegment"},
