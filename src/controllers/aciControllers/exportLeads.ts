@@ -118,11 +118,6 @@ export async function generateExportCsv(leadIds: string[], exportId: string) {
               ? row.individualSegments.asset_allocation_focus
               : null;
 
-          const notes =
-            typeof row.individualSegments === "object" && row.individualSegments
-              ? (row.individualSegments.notes as string | undefined)
-              : null;
-
           const displayText = segs
             ? segs.length > 0
               ? segs.join(", ")
