@@ -9,7 +9,6 @@ import logger from "../../logger";
 import {normalizeLead, PlainLead} from "./utils";
 import Users from "../../models/Users";
 import ACICompanies, {ACICompaniesAttributes} from "../../models/ACICompanies";
-import {LeadExport} from "../../models/LeadExport";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 50;
