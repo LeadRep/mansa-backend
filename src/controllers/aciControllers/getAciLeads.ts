@@ -26,6 +26,7 @@ const ALLOCATION_FOCUS_LABEL_TO_COLUMN: Record<string, keyof ACILeadsAttributes>
     "alternatives": "is_lead_alternatives",
     "multi-asset": "is_lead_multi_asset",
     "digital assets": "is_lead_digital_assets",
+    "none identified": "is_lead_none_identified",
 };
 
 const buildLeadBooleanFlagConditions = (
