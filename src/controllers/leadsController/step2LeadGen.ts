@@ -7,6 +7,7 @@ import { apolloEnrichedPeople } from "./apolloEnrichedPeople";
 import { emitLeadUpdate } from "../../utils/socket";
 import { normalizeIntroMail } from "./introMail";
 import Users from "../../models/Users";
+import logger from "../../logger";
 
 export const step2LeadGen = async (
   userId: string,
@@ -189,6 +190,7 @@ export const step2LeadGen = async (
     const createdLeads = await Leads.bulkCreate(scoredLeads, {
       returning: true,
     });
+    logger.info(`added ${scoredLeads.length} leads to DB (step2LeadGen)`);
 
     if (createdLeads?.length) {
       emitLeadUpdate(userId, {

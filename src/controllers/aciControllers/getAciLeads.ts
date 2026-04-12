@@ -8,11 +8,13 @@ import {
 import logger from "../../logger";
 import {normalizeLead, PlainLead} from "./utils";
 import Users from "../../models/Users";
+import ACICompanies, {ACICompaniesAttributes} from "../../models/ACICompanies";
+import {LeadExport} from "../../models/LeadExport";
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 50;
 
-const TAG_LABEL_TO_COLUMN: Record<string, keyof ACILeadsAttributes> = {
+const TAG_LABEL_TO_COLUMN: Record<string, keyof ACICompaniesAttributes> = {
     "etf": "is_etf",
     "fixed income": "is_fixed_income",
     "equities": "is_equities",
@@ -27,7 +29,7 @@ const ALLOCATION_FOCUS_LABEL_TO_COLUMN: Record<string, keyof ACILeadsAttributes>
     "digital assets": "is_lead_digital_assets",
 };
 
-const buildBooleanFlagConditions = (
+const buildLeadBooleanFlagConditions = (
     rawLabels: unknown[],
     mapping: Record<string, keyof ACILeadsAttributes>
 ): any[] => {
@@ -43,6 +45,24 @@ const buildBooleanFlagConditions = (
 
     return conditions;
 };
+
+const buildCompanyBooleanFlagConditions = (
+  rawLabels: unknown[],
+  mapping: Record<string, keyof ACICompaniesAttributes>
+): any[] => {
+  const conditions: any[] = [];
+
+  for (const raw of rawLabels) {
+    const normalized = String(raw).toLowerCase().trim();
+    const column = mapping[normalized];
+    if (column) {
+      conditions.push({[`$org_info.${column}$`]: true});
+    }
+  }
+
+  return conditions;
+};
+
 const MAX_LIMIT = 200;
 
 
@@ -166,7 +186,7 @@ const buildFilters = (
   }
 
     if (tags.length) {
-        const tagConditions = buildBooleanFlagConditions(tags, TAG_LABEL_TO_COLUMN);
+        const tagConditions = buildCompanyBooleanFlagConditions(tags, TAG_LABEL_TO_COLUMN);
 
         if (tagConditions.length) {
             andConditions.push({
@@ -176,7 +196,7 @@ const buildFilters = (
     }
 
     if (allocationFocus.length) {
-        const allocationFocusConditions = buildBooleanFlagConditions(
+        const allocationFocusConditions = buildLeadBooleanFlagConditions(
             allocationFocus,
             ALLOCATION_FOCUS_LABEL_TO_COLUMN
         );
@@ -246,29 +266,69 @@ export const getAciLeads = async (req: Request, res: Response) => {
 
     const where = buildFilters(search, titles, countries, segments, allocationFocus, tags, lock, user.organization_id);
 
-        const {rows, count} = await ACILeads.findAndCountAll({
-            where,
-            limit,
-            offset,
-            order: [["priority", "DESC"], ["createdAt", "DESC"]],
+        // const {rows, count} = await ACILeads.findAndCountAll({
+        //     where,
+        //     limit,
+        //     offset,
+        //     order: [["priority", "DESC"], ["createdAt", "DESC"]],
+        //   attributes: {
+        //     include: [
+        //       [
+        //         (ACILeads.sequelize as any).literal(`
+        //                     EXISTS (
+        //                         SELECT 1 FROM "LeadExports" le
+        //                         WHERE le.lead_id = "aci_leads".id
+        //                           AND le.exported_for_organization_id = ${(ACILeads.sequelize as any).escape(user.organization_id)}
+        //                     )
+        //                 `),
+        //         'exportedForOrganization'
+        //       ]
+        //     ]
+        //   }
+        //
+        // });
+
+      const {rows, count} = await ACILeads.findAndCountAll({
+        where,
+        limit,
+        offset,
+        order: [["priority", "DESC"], ["createdAt", "DESC"]],
+        include: [
+          {
+            model: ACICompanies,
+            as: 'org_info',
+            required: false, // LEFT JOIN
+          },
+          // {
+          //   model: LeadExport,
+          //   required: false, // LEFT JOIN
+          //   on: {
+          //     '$ACILeads.id$': { [Op.col]: 'LeadExports.lead_id' }
+          //   },
+          //   where: {
+          //     exported_for_organization_id: user.organization_id
+          //   }
+          // }
+        ],
           attributes: {
             include: [
               [
                 (ACILeads.sequelize as any).literal(`
-                            EXISTS (
-                                SELECT 1 FROM "LeadExports" le
-                                WHERE le.lead_id = "aci_leads".id
-                                  AND le.exported_for_organization_id = ${(ACILeads.sequelize as any).escape(user.organization_id)}
-                            )
+                            (SELECT COUNT(*) > 0 FROM "LeadExports" le
+                             WHERE le.lead_id = "aci_leads".id
+                               AND le.exported_for_organization_id = '${user.organization_id}')
                         `),
                 'exportedForOrganization'
               ]
             ]
-          }
+          },
+        distinct: true // This ensures proper counting with joins
+      });
 
-        });
-
-        const leads = rows.map((lead) =>
+      console.log("ACI leads count:", count);
+      console.log("ACI leads rows:", rows.length);
+      console.log("ACI first leads:", rows[0]?.get({plain: true}));
+      const leads = rows.map((lead) =>
             normalizeLead(lead.get({plain: true}) as PlainLead)
         );
 

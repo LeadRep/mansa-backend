@@ -1,5 +1,7 @@
 import {DataTypes, Model, Optional} from "sequelize";
 import {database} from "../configs/database/database";
+import ACICompanies from "./ACICompanies";
+import {LeadExport} from "./LeadExport";
 
 export interface ACILeadsAttributes {
     id: string;
@@ -21,7 +23,6 @@ export interface ACILeadsAttributes {
     email: string | null;
     phone: string | null;
     organization_id: string | null;
-    organization: JSON | null;
     employment_history: JSON | null;
     departments: string[] | null;
     subdepartments: string[] | null;
@@ -42,9 +43,6 @@ export interface ACILeadsAttributes {
     show_intent: boolean | null;
     email_domain_catchall: boolean | null;
     revealed_for_current_team: boolean | null;
-    is_etf: boolean | null;
-    is_equities: boolean | null;
-    is_fixed_income: boolean | null;
     is_lead_etf: boolean | null;
     is_lead_equities: boolean | null;
     is_lead_fixed_income: boolean | null;
@@ -53,7 +51,6 @@ export interface ACILeadsAttributes {
     is_lead_digital_assets: boolean | null;
     industries: string[] | null;
     segments: string[] | null;
-    aum: JSON | null;
     individual_segments: JSON | null;
 }
 
@@ -161,11 +158,6 @@ ACILeads.init(
         },
         organization_id: {
             type: DataTypes.STRING,
-            allowNull: true,
-            defaultValue: null,
-        },
-        organization: {
-            type: DataTypes.JSON,
             allowNull: true,
             defaultValue: null,
         },
@@ -279,26 +271,6 @@ ACILeads.init(
             allowNull: true,
             defaultValue: null,
         },
-        aum: {
-            type: DataTypes.JSON,
-            allowNull: true,
-            defaultValue: null,
-        },
-        is_etf: {
-            type: DataTypes.BOOLEAN,
-            allowNull: true,
-            defaultValue: false,
-        },
-        is_equities: {
-            type: DataTypes.BOOLEAN,
-            allowNull: true,
-            defaultValue: false,
-        },
-        is_fixed_income: {
-            type: DataTypes.BOOLEAN,
-            allowNull: true,
-            defaultValue: false,
-        },
         is_lead_etf: {
           type: DataTypes.BOOLEAN,
           allowNull: true,
@@ -341,3 +313,15 @@ ACILeads.init(
         timestamps: true,
     }
 );
+
+ACILeads.belongsTo(ACICompanies, {
+  foreignKey: "organization_id",
+  targetKey: "external_id",
+  as: "org_info",
+});
+
+ACILeads.hasMany(LeadExport, {
+  foreignKey: "lead_id",
+  as: "leadExports"
+});
+
