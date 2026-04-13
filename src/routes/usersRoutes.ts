@@ -32,7 +32,10 @@ import {
   getOrGenerateLeadIntroMail,
   sendLeadIntroMailWithGmail,
 } from "../controllers/usersControllers/leadIntroMail";
-import { userCompanies } from "../controllers/usersControllers/userCompanies";
+import {
+  userCompanies,
+  userCompanyFilterOptions,
+} from "../controllers/usersControllers/userCompanies";
 
 const usersRoutes = express.Router();
 const dealNotesUploadDir = path.join(__dirname, "../../uploads/tmp");
@@ -79,6 +82,7 @@ usersRoutes.post("/forgot-password", forgotPassword);
 usersRoutes.post("/reset-password", resetPassword);
 usersRoutes.get("/leads", userAuth, userLeads);
 usersRoutes.get("/companies", userAuth, userCompanies);
+usersRoutes.get("/companies/filter-options", userAuth, userCompanyFilterOptions);
 usersRoutes.post("/leads/share", userAuth, shareLeads);
 usersRoutes.post("/leads/:leadId/intro-mail", userAuth, getOrGenerateLeadIntroMail);
 usersRoutes.post(
