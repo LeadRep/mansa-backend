@@ -4,7 +4,7 @@ import { apolloService } from "../../utils/http/services/apolloService";
 
 interface organizationSearchQuery {
   organization_num_employees_ranges?: string[];
-  person_locations?: string[];
+  organization_locations?: string[];
   organization_not_locations?: string[];
   "revenue_range[max]"?: number;
   "revenue_range[min]"?: number;
@@ -16,7 +16,8 @@ interface organizationSearchQuery {
 
 export const apolloOrganizationSearch = async (
   searchParams: organizationSearchQuery,
-  page?: number
+  page?: number,
+  perPage?: number
 ) => {
   try {
     const response = await apolloService.request(
@@ -24,8 +25,8 @@ export const apolloOrganizationSearch = async (
       {
         q_organization_domains: [],
         ...searchParams,
-        page:page? page : 1,
-        per_page: 100,
+        page: page ? page : 1,
+        per_page: perPage ? perPage : 100,
       }
     );
     return response.data;
