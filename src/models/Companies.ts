@@ -51,6 +51,8 @@ export interface CompaniesAttributes {
     state: string | null;
     postal_code: string | null;
     country: string | null;
+    short_description: string | null;
+    departmental_head_count: JSON | null;
 }
 
 export class Companies extends Model<CompaniesAttributes> {
@@ -297,6 +299,16 @@ Companies.init(
         },
         country: {
             type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: null,
+        },
+        short_description: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            defaultValue: null,
+        },
+        departmental_head_count: {
+            type: DataTypes.JSON,
             allowNull: true,
             defaultValue: null,
         },

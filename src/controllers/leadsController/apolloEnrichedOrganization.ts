@@ -5,7 +5,7 @@ import { apolloService } from "../../utils/http/services/apolloService";
 dotenv.config();
 
 interface ApolloOrganizationResponse {
-  matches?: Array<Record<string, any>>;
+  organizations?: Array<Record<string, any>>;
 }
 
 const sanitizeDomain = (raw: string): string | null => {
@@ -36,7 +36,6 @@ const sanitizeDomain = (raw: string): string | null => {
 
 /**
  * Calls Apollo's bulk organization enrichment endpoint in batches of domains.
- * Apollo expects repeated `domains[]` query params (max 10 per call).
  */
 export const apolloEnrichedOrganization = async (
   domains: string[]
@@ -57,27 +56,14 @@ export const apolloEnrichedOrganization = async (
 
       const response = await apolloService.request<ApolloOrganizationResponse>(
         "organizations/bulk_enrich",
-        {},
         {
-          params: {
-            "domains[]": batch,
-          },
-          paramsSerializer: (params: { ["domains[]"]: string[] }) => {
-            const searchParams = new URLSearchParams();
-            const values = params["domains[]"];
-            if (Array.isArray(values)) {
-              values.forEach((value) =>
-                searchParams.append("domains[]", value?.trim())
-              );
-            }
-            return searchParams.toString();
-          },
+          domains: batch,
         }
       );
 
-      enrichedData.push(...(response.data?.matches ?? []));
+      enrichedData.push(...(response.data?.organizations ?? []));
     }
-    console.log(enrichedData);
+
     return enrichedData;
   } catch (error: any) {
     const status = error?.response?.status;
