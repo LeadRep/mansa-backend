@@ -4,6 +4,7 @@ import Companies from "../../models/Companies";
 import sendResponse from "../../utils/http/sendResponse";
 import logger from "../../logger";
 import { apolloOrganizationSearch } from "../leadsController/apolloOrganizationSearch";
+import { apolloEnrichedOrganization } from "../leadsController/apolloEnrichedOrganization";
 
 type CompanySearchFilters = {
   search: string;
@@ -162,6 +163,66 @@ const dedupeApolloOrganizations = (organizations: any[] = []) => {
   });
 };
 
+const sanitizeDomain = (raw?: string | null) => {
+  if (!raw) {
+    return null;
+  }
+
+  let candidate = raw.trim().toLowerCase();
+  if (!candidate) {
+    return null;
+  }
+
+  try {
+    if (candidate.startsWith("http")) {
+      candidate = new URL(candidate).hostname;
+    }
+  } catch {
+    // Keep sanitized fallback below.
+  }
+
+  candidate = candidate
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "")
+    .replace(/^www\./, "");
+
+  return candidate || null;
+};
+
+const mergeSearchAndEnrichedOrganizations = (
+  organizations: any[],
+  enrichedOrganizations: any[],
+) => {
+  const enrichedByDomain = new Map<string, any>();
+  const enrichedById = new Map<string, any>();
+
+  enrichedOrganizations.forEach((organization) => {
+    const domain = sanitizeDomain(
+      organization?.primary_domain || organization?.website_url,
+    );
+
+    if (domain) {
+      enrichedByDomain.set(domain, organization);
+    }
+
+    if (organization?.id) {
+      enrichedById.set(organization.id, organization);
+    }
+  });
+
+  return organizations.map((organization) => {
+    const domain = sanitizeDomain(
+      organization?.primary_domain || organization?.website_url,
+    );
+
+    return (
+      (domain ? enrichedByDomain.get(domain) : undefined) ||
+      (organization?.id ? enrichedById.get(organization.id) : undefined) ||
+      organization
+    );
+  });
+};
+
 const persistApolloOrganizations = async (organizations: any[]) => {
   if (!organizations.length) {
     return [];
@@ -258,7 +319,26 @@ export const userCompanies = async (request: Request, response: Response) => {
       );
 
       if (organizations.length) {
-        await persistApolloOrganizations(organizations);
+        const enrichmentDomains = organizations
+          .map((organization) =>
+            sanitizeDomain(
+              organization?.primary_domain || organization?.website_url,
+            ),
+          )
+          .filter((domain): domain is string => Boolean(domain));
+
+        const enrichedOrganizations = enrichmentDomains.length
+          ? await apolloEnrichedOrganization(enrichmentDomains)
+          : [];
+
+        const organizationsToPersist = dedupeApolloOrganizations(
+          mergeSearchAndEnrichedOrganizations(
+            organizations,
+            enrichedOrganizations,
+          ),
+        );
+
+        await persistApolloOrganizations(organizationsToPersist);
 
         const refreshedResult = await Companies.findAndCountAll({
           where: whereClause,
