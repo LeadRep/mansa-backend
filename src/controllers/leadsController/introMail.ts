@@ -178,18 +178,53 @@ export const normalizeIntroMail = (
   };
 };
 
+const getPreferredLanguage = (customer: any): string => {
+  const appSettings = customer?.appSettings;
+  if (!appSettings || typeof appSettings !== 'object') {
+    return 'en'; // default to English
+  }
+
+  const preferredLanguage = safeTrim(appSettings.preferredLanguage);
+  return preferredLanguage || 'en'; // default to English if not specified
+};
+
+const getLanguageInstructions = (languageCode: string): string => {
+  const languageMap: Record<string, string> = {
+    'en': 'Generate the email in English.',
+    'fr': 'Generate the email in French (Français).',
+    'es': 'Generate the email in Spanish (Español).',
+    'de': 'Generate the email in German (Deutsch).',
+    'it': 'Generate the email in Italian (Italiano).',
+    'pt': 'Generate the email in Portuguese (Português).',
+    'nl': 'Generate the email in Dutch (Nederlands).',
+    'pl': 'Generate the email in Polish (Polski).',
+    'ru': 'Generate the email in Russian (Русский).',
+    'zh': 'Generate the email in Chinese (中文).',
+    'ja': 'Generate the email in Japanese (日本語).',
+    'ko': 'Generate the email in Korean (한국어).',
+  };
+
+  return languageMap[languageCode] || languageMap['en'];
+};
+
+
+
 export const generateIntroMailForLead = async (
   customer: any,
   lead: any,
   sender?: IntroMailSender | null
 ): Promise<IntroMail> => {
+
   const senderDisplay = getSenderDisplay(sender);
+  const preferredLanguage = getPreferredLanguage(customer);
+  const languageInstructions = getLanguageInstructions(preferredLanguage);
+
   try {
     const messages = [
       {
         role: "system",
         content:
-          "You generate concise B2B intro emails and output only JSON with double-quoted keys.",
+          "You generate concise B2B intro emails and output only JSON with double-quoted keys. ${languageInstructions}",
       },
       {
         role: "user",
@@ -199,7 +234,7 @@ export const generateIntroMailForLead = async (
           senderDisplay
         )}\n\nGenerate ONE intro email for this lead:\n${JSON.stringify(
           lead
-        )}\n\nReturn only JSON object with this shape:\n{\n  \"subject\": \"string\",\n  \"body\": \"string\"\n}\n\nTemplate guidance:\n- Subject should match: Helping {{role/company type}} with {{measurable outcome}}\n- Greeting line: Hi {{first name}}\n- Include a short observation hook\n- Include a short value proposition\n- Include one-line CTA for a 3-minute intro call\n- Include signature placeholder with First name Last name / Company`,
+        )}\n\nReturn only JSON object with this shape:\n{\n  \"subject\": \"string\",\n  \"body\": \"string\"\n}\n\nTemplate guidance:\n- Subject should match: Helping {{role/company type}} with {{measurable outcome}}\n- Greeting line: Hi {{first name}}\n- Include a short observation hook\n- Include a short value proposition\n- Include one-line CTA for a 3-minute intro call\n- Include signature placeholder with First name Last name / Company\n\n${languageInstructions}`,
       },
     ];
 
