@@ -62,7 +62,7 @@ export const aiEvaluatedLeads = async (
         Sender: ${JSON.stringify(sender || {})}
         Evaluate this lead: ${JSON.stringify(people)}
     
-        Return a JSON object with a "leads" property containing an array of objects with these fields for the provided leads:
+        Return a JSON array of objects with these fields for the provided leads:
         - id
         - category (one of: "fit", "high score", "news", "event")
         - reason (a one-sentence reason why this lead is a good fit, aligned with the category)
@@ -80,7 +80,7 @@ export const aiEvaluatedLeads = async (
               ${sender?.companyName || "Company"}
         
         ${languageInstructions}
-        Only return a valid JSON object of the shape { "leads": [...] }. No extra text or explanations. Ensure all property names are double-quoted and the JSON is complete.
+        Only return a valid JSON object. No extra text or explanations. Ensure all property names are double-quoted and the JSON is complete.
         `,
       },
     ];
