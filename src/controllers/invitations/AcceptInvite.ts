@@ -105,19 +105,35 @@ export const AcceptInvite = async (request: Request, response: Response) => {
             isVerified: true
         });
 
-        const adminCustomerPref = await CustomerPref.findOne({
-          where: { userId: invitation.inviter_id }
-        })
-        if (!adminCustomerPref) {
-          return sendResponse(response, 400, "Admin customer pref not found");
+      const org = (invitation as any).organization;
+      const needsAdminPref =
+        org == null ||
+        org.ICP === undefined ||
+        org.ICP === null ||
+        org.BP === undefined ||
+        org.BP === null ||
+        org.territories === undefined ||
+        org.territories === null;
+
+        let adminCustomerPref: any | null = null;
+        if (needsAdminPref) {
+          adminCustomerPref = await CustomerPref.findOne({
+            where: { userId: invitation.inviter_id },
+          });
+          // if admin pref is missing and org didn't provide values, fallback to nulls (or defaults)
         }
+
+        // Compute final preference values preferring org values, then admin prefs, then null/default
+        const finalICP = (org && org.ICP != null) ? org.ICP : adminCustomerPref?.ICP ?? null;
+        const finalBP = (org && org.BP != null) ? org.BP : adminCustomerPref?.BP ?? null;
+        const finalTerritories = (org && org.territories != null) ? org.territories : adminCustomerPref?.territories ?? null;
 
         await CustomerPref.create({
             id: v4(),
             userId: user.id,
-            ICP: adminCustomerPref.ICP,
-            BP: adminCustomerPref.BP,
-            territories: adminCustomerPref.territories,
+            ICP: finalICP,
+            BP: finalBP,
+            territories: finalTerritories,
             refreshLeads: subscriptionNameToRefreshLeads[
               invitation.organization?.plan || "free"] || 100
         });
