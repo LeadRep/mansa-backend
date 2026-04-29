@@ -124,9 +124,9 @@ export const AcceptInvite = async (request: Request, response: Response) => {
         }
 
         // Compute final preference values preferring org values, then admin prefs, then null/default
-        const finalICP = (org && org.ICP != null) ? org.ICP : adminCustomerPref?.ICP ?? null;
-        const finalBP = (org && org.BP != null) ? org.BP : adminCustomerPref?.BP ?? null;
-        const finalTerritories = (org && org.territories != null) ? org.territories : adminCustomerPref?.territories ?? null;
+        const finalICP = (org && org.ICP != null) ? org.ICP : adminCustomerPref?.ICP ?? {};
+        const finalBP = (org && org.BP != null) ? org.BP : adminCustomerPref?.BP ?? {};
+        const finalTerritories = (org && org.territories != null) ? org.territories : adminCustomerPref?.territories ?? [];
 
         await CustomerPref.create({
             id: v4(),
