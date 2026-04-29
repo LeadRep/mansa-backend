@@ -57,6 +57,8 @@ export interface CustomerPrefAttributes {
   totalPages?: number;
   currentPage?: number;
   demoMode?: boolean;
+  appSettings?: JSON | null;
+
 }
 
 export class CustomerPref extends Model<CustomerPrefAttributes> {
@@ -128,7 +130,13 @@ CustomerPref.init(
       allowNull: false,
       defaultValue: false,
       field: "demo_mode", // Maps to snake_case in DB
+    },
+    appSettings: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: null,
     }
+
   },
   {
     sequelize: database,

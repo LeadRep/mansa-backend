@@ -16,12 +16,17 @@ export const updateCustomerPref = async (
   response: Response
 ) => {
   const userId = request.user.id;
-  const { ICP, BP } = request.body;
+  const { ICP, BP, appSettings } = request.body;
 
-  if (!ICP || !BP) {
-    sendResponse(response, 400, "ICP and BP are required");
+  // Check if this is an ICP/BP update flow
+  const isICPBPUpdate = ICP !== undefined || BP !== undefined;
+
+  // Only require ICP and BP for ICP/BP update flow
+  if (isICPBPUpdate && (!ICP || !BP)) {
+    sendResponse(response, 400, "ICP and BP are required for preference updates");
     return;
   }
+
   try {
     const user = await Users.findByPk(userId);
     const removeLimit = process.env.SKIP_LIMIT === "true";
@@ -122,36 +127,65 @@ export const updateCustomerPref = async (
       return;
     }
 
-    const hasSubscription = Boolean(
-      user?.subscriptionName || customer?.subscriptionName
-    );
-    const targetLeadCount = hasSubscription ? 20 : 10;
+    let shouldResetLeadGeneration = false;
 
-    await customer.update({
-      BP,
-      ICP,
-      leadsGenerationStatus: LeadsGenerationStatus.NOT_STARTED,
-      aiQueryParams: null,
-      currentPage: 0,
-      totalPages: 0,
-    });
+    const updateData: any = {};
 
-    // Archive existing leads before starting a new generation cycle.
-    await Leads.update(
-      { status: LeadStatus.VIEWED },
-      { where: { owner_id: userId } }
-    );
+    // Handle ICP/BP updates if provided
+    if (isICPBPUpdate) {
+      const icpChanged = JSON.stringify(customer.ICP) !== JSON.stringify(ICP);
+      const bpChanged = JSON.stringify(customer.BP) !== JSON.stringify(BP);
+      shouldResetLeadGeneration = icpChanged || bpChanged;
 
-    sendResponse(response, 200, "Customer preferences updated successfully");
+      updateData.BP = BP;
+      updateData.ICP = ICP;
+    }
 
-    runLeadGeneration(userId, targetLeadCount, true).catch(
-      (generationError: any) => {
-        logger.error(
-          generationError,
-          "Error triggering lead generation after customer pref update"
-        );
-      }
-    );
+    // Include other optional fields if provided
+    if (appSettings !== undefined) {
+      updateData.appSettings = appSettings;
+    }
+
+    // Only reset lead generation if ICP or BP changed
+    if (shouldResetLeadGeneration) {
+      updateData.leadsGenerationStatus = LeadsGenerationStatus.NOT_STARTED;
+      updateData.aiQueryParams = null;
+      updateData.currentPage = 0;
+      updateData.totalPages = 0;
+    }
+
+
+
+
+    await customer.update(updateData);
+
+    // Only archive existing leads and trigger new generation if ICP or BP changed
+    if (shouldResetLeadGeneration) {
+      const hasSubscription = Boolean(
+        user?.subscriptionName || customer?.subscriptionName
+      );
+      const targetLeadCount = hasSubscription ? 20 : 10;
+
+      // Archive existing leads before starting a new generation cycle.
+      await Leads.update(
+        { status: LeadStatus.VIEWED },
+        { where: { owner_id: userId } }
+      );
+
+      sendResponse(response, 200, "Customer preferences updated successfully");
+
+      runLeadGeneration(userId, targetLeadCount, true).catch(
+        (generationError: any) => {
+          logger.error(
+            generationError,
+            "Error triggering lead generation after customer pref update"
+          );
+        }
+      );
+
+    } else {
+      sendResponse(response, 200, "Customer preferences updated successfully");
+    }
     return;
   } catch (error: any) {
     logger.error(error, "Error updating customer preferences:");
