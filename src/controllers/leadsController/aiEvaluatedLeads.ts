@@ -51,7 +51,7 @@ export const aiEvaluatedLeads = async (
       {
         role: "system",
         content:
-          "You are a helpful assistant that evaluates leads and outputs only JSON. Do not include any extra text or explanations. Ensure all property names are double-quoted and the JSON is complete. ${languageInstructions}",
+          `You are a helpful assistant that evaluates leads and outputs only JSON. Do not include any extra text or explanations. Ensure all property names are double-quoted and the JSON is complete. ${languageInstructions}`,
       },
       {
         role: "user",
