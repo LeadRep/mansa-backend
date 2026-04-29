@@ -1,7 +1,39 @@
-import { CustomerPref } from "../../models/CustomerPref";
 import logger from "../../logger";
 import {aiService} from "../../utils/http/services/aiService";
 import { IntroMailSender } from "./introMail";
+
+const safeTrim = (value: any): string => {
+  return typeof value === 'string' ? value.trim() : '';
+};
+
+const getPreferredLanguage = (customer: any): string => {
+  const appSettings = customer?.appSettings;
+  if (!appSettings || typeof appSettings !== 'object') {
+    return 'en'; // default to English
+  }
+
+  const preferredLanguage = safeTrim(appSettings.preferredLanguage);
+  return preferredLanguage || 'en'; // default to English if not specified
+};
+
+const getLanguageInstructions = (languageCode: string): string => {
+  const languageMap: Record<string, string> = {
+    'en': 'Generate the email and reason in English.',
+    'fr': 'Generate the email and reason in French (Français).',
+    'es': 'Generate the email and reason in Spanish (Español).',
+    'de': 'Generate the email and reason in German (Deutsch).',
+    'it': 'Generate the email and reason in Italian (Italiano).',
+    'pt': 'Generate the email and reason in Portuguese (Português).',
+    'nl': 'Generate the email and reason in Dutch (Nederlands).',
+    'pl': 'Generate the email and reason in Polish (Polski).',
+    'ru': 'Generate the email and reason in Russian (Русский).',
+    'zh': 'Generate the email and reason in Chinese (中文).',
+    'ja': 'Generate the email and reason in Japanese (日本語).',
+    'ko': 'Generate the email and reason in Korean (한국어).',
+  };
+
+  return languageMap[languageCode] || languageMap['en'];
+};
 
 const apiKey = process.env.OPENAI_API_KEY;
 const endpoint = process.env.OPENAI_ENDPOINT;
@@ -11,11 +43,15 @@ export const aiEvaluatedLeads = async (
   sender?: IntroMailSender | null
 ) => {
   try {
+
+    const preferredLanguage = getPreferredLanguage(customers);
+    const languageInstructions = getLanguageInstructions(preferredLanguage);
+
     const messages = [
       {
         role: "system",
         content:
-          "You are a helpful assistant that evaluates leads and outputs only JSON. Do not include any extra text or explanations. Ensure all property names are double-quoted and the JSON is complete.",
+          `You are a helpful assistant that evaluates leads and outputs only JSON. Do not include any extra text or explanations. Ensure all property names are double-quoted and the JSON is complete. ${languageInstructions}`,
       },
       {
         role: "user",
@@ -42,6 +78,8 @@ export const aiEvaluatedLeads = async (
             - signature placeholder:
               ${sender?.firstName || "First name"} ${sender?.lastName || "Last name"}
               ${sender?.companyName || "Company"}
+        
+        ${languageInstructions}
         Only return a valid JSON object. No extra text or explanations. Ensure all property names are double-quoted and the JSON is complete.
         `,
       },
