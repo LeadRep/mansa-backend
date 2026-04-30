@@ -8,6 +8,7 @@ import {
   createAdmin,
 } from "../controllers/adminControllers/users";
 import { getGeneralLeads } from "../controllers/adminControllers/leads";
+import { generateLeadsAdmin } from "../controllers/adminControllers/generateLeads";
 import { adminInviteUser } from "../controllers/adminControllers/adminInviteUser";
 import { getCompanies } from "../controllers/adminControllers/companies";
 import {
@@ -42,7 +43,7 @@ const upload = multer({
   fileFilter: (
     _req: Request,
     file: Express.Multer.File,
-    cb: FileFilterCallback
+    cb: FileFilterCallback,
   ) => {
     if (!file.mimetype.startsWith("image/")) {
       return cb(new Error("Only image uploads are allowed"));
@@ -65,6 +66,7 @@ adminRoutes.put("/users/:id", updateUser);
 adminRoutes.put("/users/:userId/preferences", updateCustomerPref);
 
 // Leads Routes
+adminRoutes.post("/leads/search", generateLeadsAdmin);
 adminRoutes.get("/leads", getGeneralLeads);
 
 // Companies Routes
