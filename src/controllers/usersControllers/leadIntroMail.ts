@@ -129,7 +129,7 @@ export const sendLeadIntroMailWithGmail = async (req: Request, res: Response) =>
     const successRedirect = `${appDomain}/leads?google_auth_status=success&gmail_action=intro_mail_send`;
     const failureRedirect = `${appDomain}/leads?google_auth_status=error&gmail_action=intro_mail_send`;
     const user = await Users.findByPk(userId, {
-      attributes: ["firstName", "lastName", "companyName"],
+      attributes: ["firstName", "lastName", "companyName", "organization_id"],
     });
     const senderProfile = {
       firstName: user?.firstName || null,
