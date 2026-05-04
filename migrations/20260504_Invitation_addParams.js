@@ -52,7 +52,7 @@ module.exports = {
       const territoriesExists = await columnExists('Invitations', 'territories');
       if (!territoriesExists) {
         await queryInterface.addColumn('Invitations', 'territories', {
-          type: Sequelize.TEXT,
+          type: Sequelize.ARRAY(Sequelize.STRING),
           allowNull: true,
         }, { transaction });
         console.log('Added territories column to Invitations table');
