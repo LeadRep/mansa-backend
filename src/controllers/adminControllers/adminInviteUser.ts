@@ -11,7 +11,7 @@ import {v4} from "uuid";
 export const adminInviteUser = async (request: Request, response: Response) => {
   try {
     const adminUserId = request.user?.id;
-    const { email, firstName, lastName, role, organization_id } = request.body;
+    const { email, firstName, lastName, role, organization_id, language} = request.body;
     const normalizeEmail = email?.trim().toLowerCase();
 
     logger.info(
@@ -102,7 +102,7 @@ export const adminInviteUser = async (request: Request, response: Response) => {
 
     // Send invitation email
     const inviteLink = `${process.env.APP_DOMAIN}/accept-invite?token=${token}`;
-    await sendInviteEmail(organization.name, normalizeEmail, inviteLink);
+    await sendInviteEmail(organization.name, normalizeEmail, inviteLink, language);
 
     logger.info(`Invitation email sent to ${normalizeEmail} for organization ${organization.name}`);
     return sendResponse(response, 200, "Invitation sent successfully");

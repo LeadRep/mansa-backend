@@ -14,6 +14,11 @@ interface InvitationAttributes {
     token: string;
     status: "pending" | "accepted" | "declined";
     expiryAt?: Date | null;
+    ICP?: JSON;
+    BP?: JSON;
+    territories?: Array<string> | [];
+    initial_allowance?: number;
+    app_settings?: JSON | null;
 }
 
 export class Invitations extends Model<InvitationAttributes> {
@@ -75,6 +80,27 @@ Invitations.init(
           type: DataTypes.DATE,
           allowNull: true,
         },
+        ICP: {
+          type: DataTypes.JSON,
+          allowNull: true,
+        },
+        BP: {
+          type: DataTypes.JSON,
+          allowNull: true,
+        },
+        territories: {
+          type: DataTypes.ARRAY(DataTypes.STRING),
+          allowNull: true
+        },
+        initial_allowance: {
+          type: DataTypes.INTEGER,
+          allowNull: true,
+        },
+        app_settings: {
+          type: DataTypes.JSON,
+          allowNull: true,
+          defaultValue: null,
+        }
     },
     {
         sequelize: database,
