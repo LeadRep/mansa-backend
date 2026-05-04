@@ -49,10 +49,7 @@ export const generateLeadsAdmin = async (req: Request, res: Response) => {
     );
     const numberOfLeads = Math.max(
       1,
-      Math.min(
-        25,
-        parseNumber(payload?.numberOfLeads ?? payload?.numberOfLeads, 10),
-      ),
+      parseNumber(payload?.numberOfLeads ?? payload?.numberOfLeads, 10),
     );
 
     if (!titles.length || !locations.length) {
@@ -78,19 +75,53 @@ export const generateLeadsAdmin = async (req: Request, res: Response) => {
       searchParams.person_seniorities = personSeniorities;
     }
 
-    const searchResult = await apolloPeopleSearch(searchParams, 1);
-    const people = Array.isArray(searchResult?.people)
-      ? searchResult.people
-      : [];
-    const leadIds = people
-      .map((person: any) => person?.id ?? person?.person_id)
-      .filter((id: any) => typeof id === "string" && id.length > 0)
-      .slice(0, numberOfLeads);
+    const apolloPageSize = 100;
+    let page = 1;
+    let totalPages = 0;
+    const triedIds = new Set<string>();
+    const enrichedLeads: any[] = [];
 
-    const enrichedLeads = leadIds.length
-      ? await apolloEnrichedPeople(leadIds)
-      : [];
-    await persistApolloResults(enrichedLeads);
+    while (enrichedLeads.length < numberOfLeads) {
+      searchParams.page = page;
+      searchParams.per_page = apolloPageSize;
+      const searchResult = await apolloPeopleSearch(searchParams, page);
+      const people = Array.isArray(searchResult?.people)
+        ? searchResult.people
+        : [];
+      const totalEntries = Number(searchResult?.total_entries) || 0;
+      if (totalEntries > 0) {
+        totalPages = Math.ceil(totalEntries / apolloPageSize);
+      }
+
+      if (!people.length) {
+        break;
+      }
+
+      const pageIds: string[] = people
+        .map((person: any) => person?.id ?? person?.person_id)
+        .filter(
+          (id: any) =>
+            typeof id === "string" && id.length > 0 && !triedIds.has(id),
+        ) as string[];
+
+      pageIds.forEach((id: string) => triedIds.add(id));
+
+      if (pageIds.length) {
+        const batchLeads = await apolloEnrichedPeople(pageIds);
+        if (Array.isArray(batchLeads) && batchLeads.length) {
+          enrichedLeads.push(...batchLeads);
+        }
+      }
+
+      if (totalPages > 0 && page >= totalPages) {
+        break;
+      }
+
+      page += 1;
+    }
+
+    const resultLeads = enrichedLeads.slice(0, numberOfLeads);
+    await persistApolloResults(resultLeads);
 
     const records = enrichedLeads
       .slice(0, numberOfLeads)
