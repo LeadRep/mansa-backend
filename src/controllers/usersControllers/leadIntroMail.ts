@@ -71,12 +71,13 @@ export const getOrGenerateLeadIntroMail = async (req: Request, res: Response) =>
 
   try {
     const user = await Users.findByPk(userId, {
-      attributes: ["firstName", "lastName", "companyName"],
+      attributes: ["firstName", "lastName", "companyName", "organization_id"],
     });
     const senderProfile = {
       firstName: user?.firstName || null,
       lastName: user?.lastName || null,
       companyName: user?.companyName || null,
+      companyId: user?.organization_id || null,
     };
 
     const lead = await getLeadByOwner(leadId, userId);
@@ -134,6 +135,7 @@ export const sendLeadIntroMailWithGmail = async (req: Request, res: Response) =>
       firstName: user?.firstName || null,
       lastName: user?.lastName || null,
       companyName: user?.companyName || null,
+      companyId: user?.organization_id || null,
     };
 
     const lead = await getLeadByOwner(leadId, userId);

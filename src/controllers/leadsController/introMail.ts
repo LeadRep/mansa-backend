@@ -10,6 +10,7 @@ export type IntroMailSender = {
   firstName?: string | null;
   lastName?: string | null;
   companyName?: string | null;
+  companyId?: string | null;
 };
 
 const safeTrim = (value: unknown): string =>
@@ -207,6 +208,67 @@ const getLanguageInstructions = (languageCode: string): string => {
   return languageMap[languageCode] || languageMap['en'];
 };
 
+const getBfsLikeAccounts = (): Set<string> => {
+  const accountsEnv = process.env.BFS_LIKE_ACCOUNTS || '';
+  return new Set(accountsEnv.split(',').map(id => id.trim()).filter(Boolean));
+};
+
+
+const buildBfsTemplate = (
+  lead: any,
+  customer: any,
+  sender?: IntroMailSender | null
+): IntroMail => {
+  const firstName = safeTrim(lead?.first_name) || "Contact";
+  const senderDisplay = getSenderDisplay(sender);
+
+  const subject = "Opportunités d'Investissement Afrique de l'Ouest | Allocation Stratégique Q2 2026";
+
+  const body = `Cher(e) ${firstName},
+
+Dans le cadre d'échanges sur la diversification en portefeuilles émergents et frontières, je souhaite partager avec vous nos dernières convictions sur le marché de l'Afrique de l'Ouest (zone UEMOA), une région qui affiche aujourd'hui une résilience et un dynamisme accrus face à la volatilité mondiale.
+
+En tant qu'investisseur professionnel au sein de l'UE, vous trouverez ci-dessous une sélection d'opportunités structurées répondant aux standards de transparence et de rendement exigés par vos mandats :
+
+📊 1. OBLIGATIONS : Rendements & Résilience
+
+Nous observons des rendements obligataires souverains en EUR particulièrement attractifs, offrant un spread significatif par rapport aux actifs "Core" de la zone Euro. Nos analyses crédit indiquent une amélioration des ratios d'endettement pour la Côte d'Ivoire et le Sénégal.
+
+🎯 Focus : Eurobonds et émissions locales syndiquées avec garanties multilatérales
+
+📈 2. ACTIONS : Champions Régionaux
+
+Le marché de la BRVM présente des opportunités sur des titres à dividendes élevés, notamment dans les secteurs de l'énergie et de la finance. Les valorisations actuelles (P/E ratios) offrent une décote historique par rapport à d'autres marchés frontières.
+
+🚀 3. PRIVATE EQUITY : Croissance Structurelle
+
+Accès exclusif à des fonds de capital-croissance ciblant les infrastructures logistiques et la transformation digitale en Afrique de l'Ouest. Idéal pour les portefeuilles cherchant une exposition à la croissance démographique et à l'urbanisation rapide de la région.
+
+📋 ANALYSE DE MARCHÉ & RESEARCH
+
+Vous trouverez en pièce jointe notre "West Africa Macro-Outlook – Spring 2026". Ce rapport inclut nos prévisions de croissance du PIB, nos analyses de risque de change et l'impact des politiques monétaires locales.
+
+📞 PROCHAINES ÉTAPES
+
+Nous sommes à votre disposition pour organiser un Roadshow virtuel ou une rencontre dans vos bureaux afin d'approfondir ces thématiques.
+
+Bien cordialement,
+
+${senderDisplay.fullName}
+Head of Sales & Distribution
+${senderDisplay.companyName}
+
+⚠️ INFORMATIONS RÉGLEMENTAIRES ET DISCLAIMERS (Conformité UE)
+
+Avertissement sur les risques : Ce document est une communication marketing à destination exclusive des Investisseurs Professionnels au sens de la directive MiFID II (2014/65/UE). Il ne constitue pas un conseil en investissement, une recommandation personnalisée ou une offre de vente.
+
+Risques liés aux marchés émergents : L'investissement dans la région Afrique de l'Ouest comporte des risques spécifiques, notamment : le risque de liquidité, la volatilité des taux de change, ainsi que des risques politiques et réglementaires. Les performances passées ne préjugent pas des performances futures. La valeur de votre investissement peut fluctuer et le capital investi n'est pas garanti.
+
+🔒 Confidentialité : Les informations contenues dans cet e-mail sont strictement confidentielles et destinées uniquement à son destinataire. Toute diffusion non autorisée est interdite. ${senderDisplay.companyName} est agréée et régulée par l'autorité compétente.`;
+
+  return { subject, body };
+};
+
 
 
 export const generateIntroMailForLead = async (
@@ -214,6 +276,18 @@ export const generateIntroMailForLead = async (
   lead: any,
   sender?: IntroMailSender | null
 ): Promise<IntroMail> => {
+
+  // Check if this is a BFS-like account
+  const bfsAccounts = getBfsLikeAccounts();
+  const customerId = sender?.companyId;
+  logger.info(`BFS-like accounts: ${bfsAccounts.size}`);
+  logger.info(`Customer ID: ${customerId}`);
+
+  if (customerId && bfsAccounts.has(customerId)) {
+    logger.info(`Using BFS template for customer: ${customerId}`);
+    return buildBfsTemplate(lead, customer, sender);
+  }
+
 
   const senderDisplay = getSenderDisplay(sender);
   const preferredLanguage = getPreferredLanguage(customer);
