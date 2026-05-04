@@ -246,7 +246,7 @@ Accès exclusif à des fonds de capital-croissance ciblant les infrastructures l
 
 📋 ANALYSE DE MARCHÉ & RESEARCH
 
-Vous trouverez en pièce jointe notre "West Africa Macro-Outlook – Spring 2026". Ce rapport inclut nos prévisions de croissance du PIB, nos analyses de risque de change et l'impact des politiques monétaires locales.
+Notre "West Africa Macro-Outlook – Spring 2026" présente nos prévisions de croissance du PIB, nos analyses de risque de change et l'impact des politiques monétaires locales.
 
 📞 PROCHAINES ÉTAPES
 
