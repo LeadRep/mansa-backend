@@ -140,15 +140,19 @@ export const AcceptInvite = async (request: Request, response: Response) => {
       const finalRefreshLeads = invitation.initial_allowance ??
         subscriptionNameToRefreshLeads[invitation.organization?.plan || "free"] ?? 100;
 
+      const finalAppSettings = invitation.app_settings ??
+        adminCustomerPref?.appSettings ?? null;
 
-        await CustomerPref.create({
+
+      await CustomerPref.create({
             id: v4(),
             userId: user.id,
             ICP: finalICP,
             BP: finalBP,
             territories: finalTerritories,
-            refreshLeads: finalRefreshLeads
-        });
+            refreshLeads: finalRefreshLeads,
+            appSettings: finalAppSettings,
+      });
         await createDeal(user.id);
 
         // Mark invitation as accepted
