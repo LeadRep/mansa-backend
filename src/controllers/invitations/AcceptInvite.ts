@@ -107,13 +107,17 @@ export const AcceptInvite = async (request: Request, response: Response) => {
 
       const org = (invitation as any).organization;
       const needsAdminPref =
-        org == null ||
-        org.ICP === undefined ||
-        org.ICP === null ||
-        org.BP === undefined ||
-        org.BP === null ||
-        org.territories === undefined ||
-        org.territories === null;
+        (org == null ||
+          org.ICP === undefined ||
+          org.ICP === null ||
+          org.BP === undefined ||
+          org.BP === null ||
+          org.territories === undefined ||
+          org.territories === null) &&
+        (invitation.ICP === null &&
+          invitation.BP === null &&
+          invitation.territories === null);
+
 
         let adminCustomerPref: any | null = null;
         if (needsAdminPref) {
@@ -123,10 +127,19 @@ export const AcceptInvite = async (request: Request, response: Response) => {
           // if admin pref is missing and org didn't provide values, fallback to nulls (or defaults)
         }
 
-        // Compute final preference values preferring org values, then admin prefs, then null/default
-        const finalICP = (org && org.ICP != null) ? org.ICP : adminCustomerPref?.ICP ?? {};
-        const finalBP = (org && org.BP != null) ? org.BP : adminCustomerPref?.BP ?? {};
-        const finalTerritories = (org && org.territories != null) ? org.territories : adminCustomerPref?.territories ?? [];
+      // Compute final preference values with priority: invitation > org > admin prefs > defaults
+      const finalICP = invitation.ICP ??
+        (org && org.ICP != null ? org.ICP : adminCustomerPref?.ICP ?? {});
+
+      const finalBP = invitation.BP ??
+        (org && org.BP != null ? org.BP : adminCustomerPref?.BP ?? {});
+
+      const finalTerritories = invitation.territories ??
+        (org && org.territories != null ? org.territories : adminCustomerPref?.territories ?? []);
+
+      const finalRefreshLeads = invitation.initial_allowance ??
+        subscriptionNameToRefreshLeads[invitation.organization?.plan || "free"] ?? 100;
+
 
         await CustomerPref.create({
             id: v4(),
@@ -134,8 +147,7 @@ export const AcceptInvite = async (request: Request, response: Response) => {
             ICP: finalICP,
             BP: finalBP,
             territories: finalTerritories,
-            refreshLeads: subscriptionNameToRefreshLeads[
-              invitation.organization?.plan || "free"] || 100
+            refreshLeads: finalRefreshLeads
         });
         await createDeal(user.id);
 
