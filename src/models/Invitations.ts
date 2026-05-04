@@ -95,7 +95,6 @@ Invitations.init(
         initial_allowance: {
           type: DataTypes.INTEGER,
           allowNull: true,
-          defaultValue: 5,
         },
         app_settings: {
           type: DataTypes.JSON,
