@@ -141,9 +141,7 @@ export const step2LeadGen = async (
       const pageProcessed = pagination?.page ?? pageToFetch;
 
       const existingLeadIds = new Set(
-        userLeads
-          .filter((existingLead) => existingLead.owner_id === userId)
-          .map((existingLead) => existingLead.external_id)
+        userLeads.map((existingLead) => existingLead.external_id)
       );
 
       for (const lead of people) {
