@@ -39,7 +39,10 @@ export const step2LeadGen = async (
 ) => {
   logger.info(`generating leads (step2LeadGen) for user:${userId}`);
   try {
-    const userLeads = await Leads.findAll({});
+    const userLeads = await Leads.findAll({
+      where: { owner_id: userId },
+      attributes: ["external_id"],
+    });
     const user = await Users.findByPk(userId, {
       attributes: ["firstName", "lastName", "companyName", "organization_id"],
     });
