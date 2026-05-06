@@ -1,5 +1,6 @@
 import logger from "../../logger";
 import { aiService } from "../../utils/http/services/aiService";
+import {getBfsLikeAccounts} from "../../utils/env";
 
 export type IntroMail = {
   subject: string;
@@ -207,12 +208,6 @@ const getLanguageInstructions = (languageCode: string): string => {
 
   return languageMap[languageCode] || languageMap['en'];
 };
-
-const getBfsLikeAccounts = (): Set<string> => {
-  const accountsEnv = process.env.BFS_LIKE_ACCOUNTS || '';
-  return new Set(accountsEnv.split(',').map(id => id.trim()).filter(Boolean));
-};
-
 
 const buildBfsTemplate = (
   lead: any,

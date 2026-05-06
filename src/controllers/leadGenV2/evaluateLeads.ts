@@ -6,13 +6,7 @@ export const evaluateLeads = async (
   customerPref: any,
   people: ApolloPerson[],
   sender?: IntroMailSender | null
-) => {
+) : Promise<any[]> => {
   const aiEvaluation = await aiEvaluatedLeads(customerPref, people, sender);
-  const evaluationResults = Array.isArray(aiEvaluation)
-    ? aiEvaluation
-    : Array.isArray(aiEvaluation?.leads)
-    ? aiEvaluation.leads
-    : [];
-
-  return evaluationResults;
+  return aiEvaluation;
 };
