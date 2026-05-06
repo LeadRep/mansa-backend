@@ -1,23 +1,50 @@
-import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
-import { Leads, LeadStatus } from "../../models/Leads";
-import { aiPeopleSearchQuery } from "./aiPeopleSearchQuery";
-import { apolloPeopleSearch } from "./apolloPeopleSearch";
-import { aiEvaluatedLeads } from "./aiEvaluatedLeads";
-import { apolloEnrichedPeople } from "./apolloEnrichedPeople";
-import { emitLeadUpdate } from "../../utils/socket";
-import { normalizeIntroMail } from "./introMail";
+import {CustomerPref, LeadsGenerationStatus} from "../../models/CustomerPref";
+import {Leads, LeadStatus} from "../../models/Leads";
+import {aiPeopleSearchQuery} from "./aiPeopleSearchQuery";
+import {apolloPeopleSearch} from "./apolloPeopleSearch";
+import {aiEvaluatedLeads} from "./aiEvaluatedLeads";
+import {apolloEnrichedPeople} from "./apolloEnrichedPeople";
+import {emitLeadUpdate} from "../../utils/socket";
+import {normalizeIntroMail} from "./introMail";
 import Users from "../../models/Users";
 import logger from "../../logger";
+import {getBfsLikeAccounts} from "../../utils/env";
+import BfsLeads from "../../models/BfsLeads";
+import {QueryTypes, Sequelize} from "sequelize";
+import BfsLeadsOrganizations from "../../models/BfsLeadsOrganizations";
+import {v4} from "uuid";
+
+async function getLeadsNotSeenByOrgRaw(orgId: string, totalLeads: number) {
+  const sql = `
+    SELECT b.*
+    FROM bfs_leads b
+    LEFT JOIN bfs_leads_organizations o
+      ON o.bfs_id = b.bfs_id AND o.organization_id = $orgId
+    WHERE o.organization_id IS NULL AND b.external_id IS NOT NULL
+        LIMIT $totalLeads
+  `;
+  const results = await (BfsLeads.sequelize as Sequelize).query(sql, {
+    bind: { orgId, totalLeads },
+    type: QueryTypes.SELECT,
+    model: BfsLeads,
+    mapToModel: true,
+  });
+  return Array.isArray(results) ? results : results ? [results] : [];
+}
 
 export const step2LeadGen = async (
   userId: string,
   totalLeads: number,
   restart?: boolean
 ) => {
+  logger.info(`generating leads (step2LeadGen) for user:${userId}`);
   try {
-    const userLeads = await Leads.findAll({});
+    const userLeads = await Leads.findAll({
+      where: { owner_id: userId },
+      attributes: ["external_id"],
+    });
     const user = await Users.findByPk(userId, {
-      attributes: ["firstName", "lastName", "companyName"],
+      attributes: ["firstName", "lastName", "companyName", "organization_id"],
     });
     const senderProfile = {
       firstName: user?.firstName || null,
@@ -53,6 +80,38 @@ export const step2LeadGen = async (
     }
     const leadsToEvaluate: any[] = [];
     const collectedLeadIds: string[] = [];
+    const leadsFromBfsPool: any[] = [];
+
+    const bfsAccounts = getBfsLikeAccounts();
+    const organizationId = user?.organization_id;
+    logger.info(`BFS-like accounts: ${bfsAccounts.size}`);
+    logger.info(`organization ID: ${organizationId}`);
+
+    try {
+      if (organizationId && bfsAccounts.has(organizationId)) {
+        const bfsLeadsResult = await getLeadsNotSeenByOrgRaw(organizationId, totalLeads);
+
+        // Convert model instances to plain objects safely
+        const bfsLeads = Array.isArray(bfsLeadsResult)
+          ? bfsLeadsResult.map((lead: any) => (lead && typeof lead.get === 'function' ? lead.get({ plain: true }) : lead))
+          : [];
+
+        if (bfsLeads.length) {
+          const ids = bfsLeads.map((lead: any) => lead.external_id);
+          leadsToEvaluate.push(...bfsLeads);
+          leadsFromBfsPool.push(...bfsLeads);
+          collectedLeadIds.push(...ids);
+        }
+
+        logger.info(`BFS-like leads found: ${bfsLeads.length}`);
+        logger.info(`BFS-like leads to evaluate: ${leadsToEvaluate.length}`);
+        logger.info(`BFS-like leads from BFS pool: ${leadsFromBfsPool.length}`);
+        logger.info(`BFS-like leads collected: ${collectedLeadIds.length}`);
+      }
+    } catch (error: any) {
+      logger.error(`Error fetching BFS-like leads: ${error.message}`);
+    }
+
 
     while (leadsToEvaluate.length < totalLeads && !reachedEndOfResults) {
       if (totalPages > 0 && currentPage > totalPages) {
@@ -82,9 +141,7 @@ export const step2LeadGen = async (
       const pageProcessed = pagination?.page ?? pageToFetch;
 
       const existingLeadIds = new Set(
-        userLeads
-          .filter((existingLead) => existingLead.owner_id === userId)
-          .map((existingLead) => existingLead.external_id)
+        userLeads.map((existingLead) => existingLead.external_id)
       );
 
       for (const lead of people) {
@@ -124,20 +181,17 @@ export const step2LeadGen = async (
 
     const enrichedLeads = await apolloEnrichedPeople(collectedLeadIds);
 
+    logger.info(`enriched ${enrichedLeads.length} leads (step2LeadGen)`);
     const aiEvaluation = await aiEvaluatedLeads(
       customerPref,
       enrichedLeads,
       senderProfile
     );
 
-    const evaluationResults = Array.isArray(aiEvaluation)
-      ? aiEvaluation
-      : Array.isArray(aiEvaluation?.leads)
-      ? aiEvaluation.leads
-      : [];
+    logger.info(`evaluated ${aiEvaluation.length} leads (step2LeadGen)`);
 
     const scoredLeads = enrichedLeads.reduce((acc: any[], lead: any) => {
-      const aiScore = evaluationResults.find(
+      const aiScore = aiEvaluation.find(
         (item: any) => item.id === lead.id
       );
       if (!aiScore) {
@@ -186,6 +240,7 @@ export const step2LeadGen = async (
         message: "No lead found, please update buyer persona",
       };
     }
+    logger.info(`scored ${scoredLeads.length} leads (step2LeadGen)`);
 
     const createdLeads = await Leads.bulkCreate(scoredLeads, {
       returning: true,
@@ -196,6 +251,32 @@ export const step2LeadGen = async (
       emitLeadUpdate(userId, {
         leadIds: createdLeads.map((lead) => lead.id),
       });
+    }
+    if (leadsFromBfsPool.length) {
+      logger.info(`adding ${leadsFromBfsPool.length} leads from BFS pool to DB (step2LeadGen)`);
+      try {
+        await BfsLeadsOrganizations.bulkCreate(
+          leadsFromBfsPool.map(
+            (lead: any) => ({
+              id: v4(),
+              bfs_id: lead.bfs_id,
+              organization_id: organizationId!,
+              loaded_by: userId
+            })
+          )
+        );
+      } catch (error) {
+        logger.error(
+          {
+            error,
+            userId,
+            organizationId,
+            bfsLeadCount: leadsFromBfsPool.length,
+          },
+          "failed to persist BFS lead organization mappings (step2LeadGen)"
+        );
+        throw error;
+      }
     }
 
     return createdLeads;
