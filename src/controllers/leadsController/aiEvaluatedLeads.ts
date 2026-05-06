@@ -122,7 +122,7 @@ export const aiEvaluatedLeads = async (
         raw: response?.data ? JSON.stringify(response.data).slice(0, 1000) : null,
       });
 
-      const parsed = parseAiResponse(response?.data);
+      const parsed = parseAiResponse(response?.data?.leads ?? response?.data);
       allResults.push(...parsed);
     }
 
