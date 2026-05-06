@@ -97,7 +97,7 @@ export const aiEvaluatedLeads = async (
           BP: ${JSON.stringify(customers?.BP)}
           Sender: ${JSON.stringify(sender || {})}
 
-          Evaluate these leads (an array). IMPORTANT: return a JSON array with one object per input lead in the same order. Each object must contain: id, category (one of: "fit","high score","news","event"), reason (one sentence), score (0-100), intro_mail: { subject, body }.
+          Evaluate these leads (an array). IMPORTANT: return a JSON object with this shape: {"leads":[...]} where leads contains one object per input lead in the same order. Each lead object must contain: id, category (one of: "fit","high score","news","event"), reason (one sentence), score (0-100), intro_mail: { subject, body }.
           the email subject format: Helping {{role/company type}} with {{measurable outcome}}
           the email body must include a greeting, short observation/hook relevant to the lead/company, short value proposition tied to ICP/BP, an offering description, one-line CTA for a 3-minute intro call and a signature with the sender name and the sender company.
           ${languageInstructions}
@@ -105,7 +105,7 @@ export const aiEvaluatedLeads = async (
           Leads: ${JSON.stringify(chunk)}
           
 
-          Only return the JSON array. No extra text.`,
+          Only return valid JSON matching this shape: {"leads":[...]}. No extra text.`,
         },
       ];
 
