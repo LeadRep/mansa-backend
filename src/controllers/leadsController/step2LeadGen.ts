@@ -253,16 +253,29 @@ export const step2LeadGen = async (
     }
     if (leadsFromBfsPool.length) {
       logger.info(`adding ${leadsFromBfsPool.length} leads from BFS pool to DB (step2LeadGen)`);
-      BfsLeadsOrganizations.bulkCreate(
-        leadsFromBfsPool.map(
-          (lead: any) => ({
-            id: v4(),
-            bfs_id: lead.bfs_id,
-            organization_id: organizationId!,
-            loaded_by: userId
-          })
-        )
-      )
+      try {
+        await BfsLeadsOrganizations.bulkCreate(
+          leadsFromBfsPool.map(
+            (lead: any) => ({
+              id: v4(),
+              bfs_id: lead.bfs_id,
+              organization_id: organizationId!,
+              loaded_by: userId
+            })
+          )
+        );
+      } catch (error) {
+        logger.error(
+          {
+            error,
+            userId,
+            organizationId,
+            bfsLeadCount: leadsFromBfsPool.length,
+          },
+          "failed to persist BFS lead organization mappings (step2LeadGen)"
+        );
+        throw error;
+      }
     }
 
     return createdLeads;
