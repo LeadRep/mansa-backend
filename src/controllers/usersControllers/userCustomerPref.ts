@@ -22,7 +22,7 @@ export const userCustomerPref = async (
       ],
     });
     if (!pref) {
-      sendResponse(response, 400, "Not found");
+      sendResponse(response, 404, "Not found");
       return;
     }
     sendResponse(response, 200, "successful", pref);
