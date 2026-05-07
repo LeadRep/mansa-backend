@@ -19,7 +19,8 @@ export const userCustomerPref = async (
           as: "user", // must match the association alias
           attributes: ["id", "email", "subscriptionName", "firstName", "lastName"],
         },
-      ],});
+      ],
+    });
     if (!pref) {
       sendResponse(response, 400, "Not found");
       return;
