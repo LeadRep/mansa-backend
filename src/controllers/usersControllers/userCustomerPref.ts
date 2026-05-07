@@ -3,6 +3,7 @@ import { JwtPayload } from "jsonwebtoken";
 import sendResponse from "../../utils/http/sendResponse";
 import { CustomerPref } from "../../models/CustomerPref";
 import logger from "../../logger";
+import Users from "../../models/Users";
 
 export const userCustomerPref = async (
   request: JwtPayload,
@@ -10,9 +11,18 @@ export const userCustomerPref = async (
 ) => {
   const userId = request.user.id;
   try {
-    const pref = await CustomerPref.findOne({ where: { userId: userId } });
+    const pref = await CustomerPref.findOne({
+      where: { userId: userId },
+      include: [
+        {
+          model: Users,
+          as: "user", // must match the association alias
+          attributes: ["id", "email", "subscriptionName", "firstName", "lastName"],
+        },
+      ],
+    });
     if (!pref) {
-      sendResponse(response, 400, "Not found");
+      sendResponse(response, 404, "Not found");
       return;
     }
     sendResponse(response, 200, "successful", pref);
