@@ -125,8 +125,7 @@ const buildFilters = (
                 {title: {[Op.iLike]: likeValue}},
                 {email: {[Op.iLike]: likeValue}},
                 {country: {[Op.iLike]: likeValue}},
-                {city: {[Op.iLike]: likeValue}},
-                {}
+                {city: {[Op.iLike]: likeValue}}
             ],
         });
     }
