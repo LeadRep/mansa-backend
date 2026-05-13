@@ -31,6 +31,7 @@ import { shareLeads } from "../controllers/usersControllers/shareLeads";
 import {
   getOrGenerateLeadIntroMail,
   sendLeadIntroMailWithGmail,
+  sendLeadIntroMailWithOutlook,
 } from "../controllers/usersControllers/leadIntroMail";
 import {
   userCompanies,
@@ -89,6 +90,11 @@ usersRoutes.post(
   "/leads/:leadId/intro-mail/send",
   userAuth,
   sendLeadIntroMailWithGmail
+);
+usersRoutes.post(
+  "/leads/:leadId/intro-mail/send-outlook",
+  userAuth,
+  sendLeadIntroMailWithOutlook
 );
 usersRoutes.post("/add-lead-to-deal", userAuth, addLeadToDeal);
 usersRoutes.post("/pay", userAuth, payment);
