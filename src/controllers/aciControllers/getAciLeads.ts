@@ -107,6 +107,7 @@ const buildFilters = (
     search: string,
     titles: string[],
     countries: string[],
+    leadCountries: string[],
     segments: string[],
     allocationFocus: string[],
     tags: string[],
@@ -124,6 +125,8 @@ const buildFilters = (
                 {title: {[Op.iLike]: likeValue}},
                 {email: {[Op.iLike]: likeValue}},
                 {country: {[Op.iLike]: likeValue}},
+                {city: {[Op.iLike]: likeValue}},
+              {}
             ],
         });
     }
@@ -146,24 +149,44 @@ const buildFilters = (
     }
 
   if (countries.length) {
-        const normalizedCountries = countries.map((country) =>
-            country.toLowerCase()
-        );
-        andConditions.push({
-            [Op.or]: [
-                {
-                    country: {
-                        [Op.in]: countries,
-                    },
-                },
-                {
-                    country: {
-                        [Op.in]: normalizedCountries,
-                    },
-                },
-            ],
-        });
-    }
+    const normalizedCountries = countries.map((country) =>
+      country.toLowerCase()
+    );
+    andConditions.push({
+      [Op.or]: [
+        {
+          "$org_info.country$": {
+            [Op.in]: countries,
+          },
+        },
+        {
+          "$org_info.country$": {
+            [Op.in]: normalizedCountries,
+          },
+        },
+      ],
+    });
+  }
+
+  if (leadCountries.length) {
+    const normalizedCountries = leadCountries.map((country) =>
+      country.toLowerCase()
+    );
+    andConditions.push({
+      [Op.or]: [
+        {
+          country: {
+            [Op.in]: leadCountries,
+          },
+        },
+        {
+          country: {
+            [Op.in]: normalizedCountries,
+          },
+        },
+      ],
+    });
+  }
 
   // lock can be "locked", "unlocked" or null
   if (lock) {
@@ -258,18 +281,20 @@ export const getAciLeads = async (req: Request, res: Response) => {
             typeof req.query.search === "string" ? req.query.search.trim() : "";
         const titles = parseListParam(req.query.titles);
         const countries = parseListParam(req.query.countries);
+        const leadCountries: string[] = parseListParam(req.query.leadCountries);
         const segments = parseListParam(req.query.segments);
         const lock = typeof req.query.lock === "string" ? req.query.lock.trim() : null;
         const tags = parseListParam(req.query.tags);
         const allocationFocus = parseListParam(req.query.allocationFocus);
 
 
-    const where = buildFilters(search, titles, countries, segments, allocationFocus, tags, lock, user.organization_id);
+    const where = buildFilters(search, titles, countries, leadCountries, segments, allocationFocus, tags, lock, user.organization_id);
 
       const {rows, count} = await ACILeads.findAndCountAll({
         where,
         limit,
         offset,
+        subQuery: false,
         order: [["priority", "DESC"], ["createdAt", "DESC"]],
         include: [
           {
