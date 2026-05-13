@@ -9,6 +9,7 @@ import {
     saveReviewedContacts
 } from "../controllers/usersControllers/contacts/contactsReviewController";
 import {googleCallback} from "../controllers/usersControllers/contacts/google/googleCallBackController";
+import {microsoftCallback} from "../controllers/usersControllers/contacts/microsoft/microsoftCallBackController";
 
 const contactsRoutes = express.Router();
 contactsRoutes.get("/google/consent", userAuth, googleConsentBasicDetails);
@@ -16,6 +17,7 @@ contactsRoutes.get("/google/consent/email", userAuth, googleConsentReadEmail);
 contactsRoutes.get("/google/consent/send-email", userAuth, googleConsentSendEmail);
 
 contactsRoutes.get("/google/callback", googleCallback);
+contactsRoutes.get("/microsoft/callback", microsoftCallback);
 contactsRoutes.get("/", userAuth, getContacts);
 contactsRoutes.get("/review", userAuth, getUnreviewedContacts);
 contactsRoutes.post("/review", userAuth, saveReviewedContacts);

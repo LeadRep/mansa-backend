@@ -38,7 +38,7 @@ UserLinkedAccountsToken.init(
             onDelete: "CASCADE",
         },
         encrypted_refresh_token: {
-            type: DataTypes.STRING(255),
+            type: DataTypes.TEXT,
             allowNull: false,
         },
         scope: {
