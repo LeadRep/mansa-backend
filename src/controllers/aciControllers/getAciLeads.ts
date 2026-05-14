@@ -128,7 +128,6 @@ const buildFilters = (
                 {city: {[Op.iLike]: likeValue}},
                 {"$org_info.country$": {[Op.iLike]: likeValue}},
                 {"$org_info.city$": {[Op.iLike]: likeValue}},
-              {}
             ],
         });
     }
