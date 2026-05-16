@@ -6,7 +6,7 @@ import sendResponse from '../../utils/http/sendResponse';
 import logger from '../../logger';
 import {sendEmail} from "../../configs/email/emailConfig";
 
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL ?? 'heemega@gmail.com';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL?.trim() ?? 'heemega@gmail.com';
 
 const escapeHtml = (value: unknown): string => {
   return String(value ?? '')
