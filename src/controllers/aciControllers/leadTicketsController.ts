@@ -8,23 +8,40 @@ import {sendEmail} from "../../configs/email/emailConfig";
 
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL ?? 'heemega@gmail.com';
 
+const escapeHtml = (value: unknown): string => {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 const sendTicketNotificationEmail = async (
   ticket: ACILeadTickets,
   userEmail: string
 ): Promise<void> => {
+  const safeTicketId = escapeHtml(ticket.id);
+  const safeLeadId = escapeHtml(ticket.leadId);
+  const safeLeadName = escapeHtml(ticket.leadName);
+  const safeLeadCompany = escapeHtml(ticket.leadCompany ?? '—');
+  const safeField = escapeHtml(ticket.field);
+  const safeDescription = escapeHtml(ticket.description);
+  const safeUserEmail = escapeHtml(userEmail);
+
   await sendEmail(
     SUPPORT_EMAIL,
-    `[New Ticket] ${ticket.field} — ${ticket.leadName}`,
+    `[New Ticket] ${safeField} — ${safeLeadName}`,
     undefined,
     `
       <h2>New data correction ticket submitted</h2>
       <table cellpadding="8" style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
-        <tr><td><strong>Ticket ID</strong></td><td>${ticket.id}</td></tr>
-        <tr><td><strong>Lead</strong></td><td>${ticket.leadName} (${ticket.leadId})</td></tr>
-        <tr><td><strong>Company</strong></td><td>${ticket.leadCompany ?? '—'}</td></tr>
-        <tr><td><strong>Field</strong></td><td>${ticket.field}</td></tr>
-        <tr><td><strong>Description</strong></td><td>${ticket.description}</td></tr>
-        <tr><td><strong>Submitted by</strong></td><td>${userEmail}</td></tr>
+        <tr><td><strong>Ticket ID</strong></td><td>${safeTicketId}</td></tr>
+        <tr><td><strong>Lead</strong></td><td>${safeLeadName} (${safeLeadId})</td></tr>
+        <tr><td><strong>Company</strong></td><td>${safeLeadCompany}</td></tr>
+        <tr><td><strong>Field</strong></td><td>${safeField}</td></tr>
+        <tr><td><strong>Description</strong></td><td>${safeDescription}</td></tr>
+        <tr><td><strong>Submitted by</strong></td><td>${safeUserEmail}</td></tr>
       </table>
     `
   );
