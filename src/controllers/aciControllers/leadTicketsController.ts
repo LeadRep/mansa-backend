@@ -60,7 +60,7 @@ export const createLeadTicket = async (req: Request, res: Response) => {
     sendTicketNotificationEmail(ticket, user.email ?? userId!)
       .catch((err) => logger.error({ error: err?.message }, 'Failed to send ticket notification email'));
 
-    sendResponse(res, 201, 'Ticket created', { data: ticket });
+    sendResponse(res, 200, 'Ticket created', { data: ticket });
   } catch (error: any) {
     logger.error({ error: error?.message, stack: error?.stack }, 'Failed to create lead ticket');
     sendResponse(res, 500, 'Failed to create ticket', null, error?.message);
