@@ -90,3 +90,13 @@ export const emitLeadExpansionPrompt = (
   }
   io.to(`leads:${userId}`).emit("leads:expand", payload);
 };
+
+export const emitLeadGenerationStatus = (
+  userId: string,
+  payload: { status: "completed" | "failed"; message?: string; foundCount?: number }
+) => {
+  if (!io) {
+    return;
+  }
+  io.to(`leads:${userId}`).emit("leads:status", payload);
+};
