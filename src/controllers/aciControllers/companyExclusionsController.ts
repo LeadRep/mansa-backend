@@ -298,7 +298,7 @@ export const searchAciCompanies = async (req: Request, res: Response) => {
         totalPages,
       },
       filtersApplied: {
-        search,
+        search: search || null,
       },
     });
   } catch (error: any) {
