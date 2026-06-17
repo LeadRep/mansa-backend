@@ -237,8 +237,11 @@ export const searchAciCompanies = async (req: Request, res: Response) => {
         ? Number.parseInt(req.query.limit, 10)
         : NaN;
     const search =
-      typeof req.query.query === "string" ? req.query.query.trim() : "";
-
+      typeof req.query.search === "string"
+        ? req.query.search.trim()
+        : typeof req.query.query === "string"
+          ? req.query.query.trim()
+          : "";
     const page = Number.isNaN(pageParam) || pageParam < 1 ? DEFAULT_PAGE : pageParam;
     const limitCandidate =
       Number.isNaN(limitParam) || limitParam < 1 ? DEFAULT_LIMIT : limitParam;
