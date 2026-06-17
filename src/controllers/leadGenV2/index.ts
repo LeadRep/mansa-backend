@@ -1,6 +1,10 @@
 import { CustomerPref, LeadsGenerationStatus } from "../../models/CustomerPref";
 import { Leads, LeadStatus } from "../../models/Leads";
-import { emitLeadUpdate, emitLeadExpansionPrompt } from "../../utils/socket";
+import {
+  emitLeadUpdate,
+  emitLeadExpansionPrompt,
+  emitLeadGenerationStatus,
+} from "../../utils/socket";
 import { apolloEnrichedPeople } from "../leadsController/apolloEnrichedPeople";
 import { getSearchParams } from "./getSearchParams";
 import { searchGeneralLeads } from "./searchGeneralLeads";
@@ -144,7 +148,9 @@ export const leadGenV2 = async (
         totalLeads,
         existingLeadIds,
         collectedLeadIds,
-        customerPref
+        // During expansion the query is relaxed, so its pagination must not
+        // leak into the user's saved ICP pagination state.
+        expand ? undefined : customerPref
       );
 
       currentPage = apolloResult.currentPage;
@@ -169,6 +175,32 @@ export const leadGenV2 = async (
       }
     };
 
+    const finishWithNoLeads = async () => {
+      const message = "No lead found, please update buyer persona";
+      if (!expand) {
+        customerPref.currentPage = 1;
+        await customerPref.save();
+        emitLeadExpansionPrompt(userId, {
+          missingCount: totalLeads,
+          foundCount: 0,
+          totalLeads,
+        });
+      }
+      // Always notify completion so the frontend can drop the "generating"
+      // state and surface the real outcome, even on the expand path.
+      emitLeadGenerationStatus(userId, {
+        status: "completed",
+        message,
+        foundCount: 0,
+      });
+      return {
+        leads: [],
+        message,
+        needsExpansion: !expand,
+        missingCount: totalLeads,
+      };
+    };
+
     if (expand) {
       let reachedRelaxBaseline = false;
 
@@ -177,10 +209,9 @@ export const leadGenV2 = async (
         reachedRelaxBaseline = areQueryParamsEqual(aiQueryParams, relaxedParams);
         aiQueryParams = relaxedParams;
 
-        customerPref.aiQueryParams = aiQueryParams;
-        customerPref.currentPage = 1;
-        customerPref.totalPages = 0;
-        await customerPref.save();
+        // Relaxation is transient: keep the broadened query in-memory only so
+        // the user's saved ICP (aiQueryParams/currentPage/totalPages) is never
+        // overwritten and stays intact for future non-expand runs.
         currentPage = 1;
         totalPages = 0;
 
@@ -194,47 +225,21 @@ export const leadGenV2 = async (
       await collectWithQueryParams(aiQueryParams);
     }
 
-    customerPref.currentPage = currentPage;
-    customerPref.totalPages = totalPages;
+    if (!expand) {
+      customerPref.currentPage = currentPage;
+      customerPref.totalPages = totalPages;
+    }
     customerPref.leadsGenerationStatus = LeadsGenerationStatus.COMPLETED;
     await customerPref.save();
 
     if (!leadsToEvaluate.length) {
-      if (!expand) {
-        customerPref.currentPage = 1;
-        await customerPref.save();
-        emitLeadExpansionPrompt(userId, {
-          missingCount: totalLeads,
-          foundCount: 0,
-          totalLeads,
-        });
-      }
-      return {
-        leads: [],
-        message: "No lead found, please update buyer persona",
-        needsExpansion: !expand,
-        missingCount: totalLeads,
-      };
+      return finishWithNoLeads();
     }
 
     const filteredLeads = filterLowQualityLeads(leadsToEvaluate);
 
     if (!filteredLeads.length) {
-      if (!expand) {
-        customerPref.currentPage = 1;
-        await customerPref.save();
-        emitLeadExpansionPrompt(userId, {
-          missingCount: totalLeads,
-          foundCount: 0,
-          totalLeads,
-        });
-      }
-      return {
-        leads: [],
-        message: "No lead found, please update buyer persona",
-        needsExpansion: !expand,
-        missingCount: totalLeads,
-      };
+      return finishWithNoLeads();
     }
 
     const evaluationResults = await evaluateLeads(
@@ -252,21 +257,7 @@ export const leadGenV2 = async (
     );
 
     if (!scoredLeads.length) {
-      if (!expand) {
-        customerPref.currentPage = 1;
-        await customerPref.save();
-        emitLeadExpansionPrompt(userId, {
-          missingCount: totalLeads,
-          foundCount: 0,
-          totalLeads,
-        });
-      }
-      return {
-        leads: [],
-        message: "No lead found, please update buyer persona",
-        needsExpansion: !expand,
-        missingCount: totalLeads,
-      };
+      return finishWithNoLeads();
     }
 
     const maxAllowedLeads =
@@ -298,6 +289,13 @@ export const leadGenV2 = async (
         totalLeads,
       });
     }
+    if (!createdLeads.length) {
+      emitLeadGenerationStatus(userId, {
+        status: "completed",
+        message: "No lead found, please update buyer persona",
+        foundCount: 0,
+      });
+    }
     return {
       leads: createdLeads,
       message: createdLeads.length ? undefined : "No lead found, please update buyer persona",
@@ -311,6 +309,10 @@ export const leadGenV2 = async (
         { where: { userId } }
       );
     }
+    emitLeadGenerationStatus(userId, {
+      status: "failed",
+      message: "Lead generation failed. Please try again.",
+    });
     console.error("leadGenV2 error", error.message);
     return null;
   }
