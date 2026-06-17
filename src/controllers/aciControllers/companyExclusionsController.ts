@@ -9,6 +9,8 @@ import logger from "../../logger";
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
+const COMPANY_SEARCH_MAX_LIMIT = 20;
+const MIN_SEARCH_LENGTH = 2;
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -216,5 +218,94 @@ export const listExcludedAciCompanies = async (req: Request, res: Response) => {
       null,
       error?.message
     );
+  }
+};
+
+export const searchAciCompanies = async (req: Request, res: Response) => {
+  try {
+    const user = await getUserFromRequest(req, res);
+    if (!user) {
+      return;
+    }
+
+    const pageParam =
+      typeof req.query.page === "string"
+        ? Number.parseInt(req.query.page, 10)
+        : NaN;
+    const limitParam =
+      typeof req.query.limit === "string"
+        ? Number.parseInt(req.query.limit, 10)
+        : NaN;
+    const search =
+      typeof req.query.query === "string" ? req.query.query.trim() : "";
+
+    const page = Number.isNaN(pageParam) || pageParam < 1 ? DEFAULT_PAGE : pageParam;
+    const limitCandidate =
+      Number.isNaN(limitParam) || limitParam < 1 ? DEFAULT_LIMIT : limitParam;
+    const limit = Math.min(limitCandidate, COMPANY_SEARCH_MAX_LIMIT);
+    const offset = (page - 1) * limit;
+
+    if (search.length < MIN_SEARCH_LENGTH) {
+      sendResponse(res, 200, "ACI companies fetched successfully", {
+        data: [],
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0,
+        },
+        filtersApplied: {
+          search: search || null,
+        },
+      });
+      return;
+    }
+
+    const where = {
+      name: {
+        [Op.iLike]: `%${search}%`,
+      },
+    };
+
+    const { rows, count } = await ACICompanies.findAndCountAll({
+      where,
+      order: [["name", "ASC"]],
+      limit,
+      offset,
+      distinct: true,
+      attributes: [
+        "id",
+        "external_id",
+        "name",
+        "primary_domain",
+        "city",
+        "country",
+        "logo_url",
+        "website_url",
+      ],
+    });
+
+    const totalPages = limit ? Math.ceil(count / limit) : 1;
+
+    const data = rows.map((company: any) => company.get({ plain: true }));
+
+    sendResponse(res, 200, "ACI companies fetched successfully", {
+      data,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        totalPages,
+      },
+      filtersApplied: {
+        search,
+      },
+    });
+  } catch (error: any) {
+    logger.error(
+      { error: error?.message, stack: error?.stack },
+      "Failed to search ACI companies"
+    );
+    sendResponse(res, 500, "Failed to search ACI companies", null, error?.message);
   }
 };

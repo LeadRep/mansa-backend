@@ -7,6 +7,7 @@ import { createLeadTicket, listTickets, listTicketsForLead } from '../controller
 import {
 	excludeAciCompany,
 	includeAciCompany,
+	searchAciCompanies,
 	listExcludedAciCompanies,
 } from "../controllers/aciControllers/companyExclusionsController";
 
@@ -21,4 +22,5 @@ aciRoutes.get('/leads/:leadId/tickets', userAuth, listTicketsForLead);
 aciRoutes.post("/companies/exclusions", userAuth, excludeAciCompany);
 aciRoutes.delete("/companies/exclusions/:companyId", userAuth, includeAciCompany);
 aciRoutes.get("/companies/exclusions", userAuth, listExcludedAciCompanies);
+aciRoutes.get("/companies/search", userAuth, searchAciCompanies);
 export default aciRoutes;
