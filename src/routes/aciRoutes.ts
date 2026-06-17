@@ -4,6 +4,11 @@ import { getACIQuotas } from "../controllers/americanCenturyinvestment/getACIQuo
 import { getAciLeads } from "../controllers/aciControllers/getAciLeads";
 import {exportLeads} from "../controllers/aciControllers/exportLeads";
 import { createLeadTicket, listTickets, listTicketsForLead } from '../controllers/aciControllers/leadTicketsController';
+import {
+	excludeAciCompany,
+	includeAciCompany,
+	listExcludedAciCompanies,
+} from "../controllers/aciControllers/companyExclusionsController";
 
 const aciRoutes = express.Router();
 
@@ -13,4 +18,7 @@ aciRoutes.post("/export", userAuth, exportLeads);
 aciRoutes.post('/leads/:leadId/tickets', userAuth, createLeadTicket);
 aciRoutes.get('/tickets', userAuth, listTickets);
 aciRoutes.get('/leads/:leadId/tickets', userAuth, listTicketsForLead);
+aciRoutes.post("/companies/exclusions", userAuth, excludeAciCompany);
+aciRoutes.delete("/companies/exclusions/:companyId", userAuth, includeAciCompany);
+aciRoutes.get("/companies/exclusions", userAuth, listExcludedAciCompanies);
 export default aciRoutes;

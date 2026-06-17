@@ -90,6 +90,7 @@ export const normalizeLead = (lead: PlainLead) => {
         leadCity: lead.city ?? null,
         leadCountry: lead.country ?? null,
         company: organizationName,
+        companyUuid: lead.org_info?.id ?? null,
         country: organizationCountry,
         email: lead.email ?? organization?.email ?? null,
         phone: lead.phone ?? organization?.phone ?? null,

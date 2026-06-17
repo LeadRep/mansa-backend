@@ -115,6 +115,7 @@ const buildFilters = (
     organizationId: string
 ): WhereOptions<ACILeadsAttributes> => {
     const andConditions: any[] = [];
+  const escOrg = (ACILeads.sequelize as any).escape(organizationId);
 
     if (search) {
         const likeValue = `%${search}%`;
@@ -194,7 +195,6 @@ const buildFilters = (
   if (lock) {
     // If we have an organization context, check LeadExports for organization-scoped exports.
     // Use a literal EXISTS subquery for fast indexed lookups.
-    const escOrg = (ACILeads.sequelize as any).escape(organizationId);
     const existsSql = `EXISTS (
                 SELECT 1 FROM "LeadExports" le
                 WHERE le.lead_id = "aci_leads".id
@@ -209,6 +209,15 @@ const buildFilters = (
       andConditions.push((ACILeads.sequelize as any).literal(existsSql));
     }
   }
+
+    // Exclude leads whose company has been excluded for the current organization.
+    const exclusionSql = `NOT EXISTS (
+                SELECT 1
+                FROM "ACICompanyExclusions" ace
+                WHERE ace."organizationId" = ${escOrg}
+                  AND ace."companyId" = "org_info"."id"
+            )`;
+    andConditions.push((ACILeads.sequelize as any).literal(exclusionSql));
 
     if (tags.length) {
         const tagConditions = buildCompanyBooleanFlagConditions(tags, TAG_LABEL_TO_COLUMN);
