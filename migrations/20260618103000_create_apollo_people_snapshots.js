@@ -4,6 +4,14 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     const tableName = "apollo_people_snapshots";
 
+    try {
+      await queryInterface.sequelize.query(
+        "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+      );
+    } catch (e) {
+      // ignore if extension cannot be created in current environment
+    }
+
     const hasTable = await queryInterface
       .describeTable(tableName)
       .then(() => true)
