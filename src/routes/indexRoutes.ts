@@ -2,6 +2,7 @@ import express from "express";
 import aiRoutes from "./aiRoutes";
 import usersRoutes from "./usersRoutes";
 import { index } from "../controllers";
+import { adminAuth } from "../middlewares/adminAuth";
 
 import contactsRoutes from "./contactsRoutes";
 import organizationsRoutes from "./organizationsRoutes";
@@ -28,9 +29,11 @@ indexRoutes.use("/admin", adminRoutes);
 indexRoutes.use("/shared", sharedRoutes);
 indexRoutes.use("/blogs", blogRoutes);
 indexRoutes.use("/invitations", invitationsRoutes);
-indexRoutes.get("/delete-companies", deleteCompanies);
-indexRoutes.get("/generate-leads/:page/:endPage", generateLeads);
-indexRoutes.get("/classify-aci-leads/:limit", classifyACILeadSegments);
+
+// SECURITY: Admin-only utility endpoints
+indexRoutes.get("/delete-companies", adminAuth, deleteCompanies);
+indexRoutes.get("/generate-leads/:page/:endPage", adminAuth, generateLeads);
+indexRoutes.get("/classify-aci-leads/:limit", adminAuth, classifyACILeadSegments);
 
 export default indexRoutes;
 

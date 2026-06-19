@@ -3,6 +3,7 @@ import { CustomerPref } from "../../models/CustomerPref";
 import { ApolloPerson } from "./types";
 
 const APOLLO_PER_PAGE = 100;
+const APOLLO_TIMEOUT_MS = 60000; // 1 minute timeout per request
 
 export const collectApolloLeads = async (
   aiQueryParams: Record<string, any> | null | undefined,
@@ -19,8 +20,13 @@ export const collectApolloLeads = async (
   let page = currentPage < 1 ? 1 : currentPage;
   let maxPages = totalPages;
   let persistedTotalPages = false;
+  const startTime = Date.now();
 
   while (collectedLeadIds.size < targetCount && !reachedEndOfResults) {
+    if (Date.now() - startTime > APOLLO_TIMEOUT_MS) {
+      console.warn(`Apollo collection timeout exceeded after ${APOLLO_TIMEOUT_MS}ms, stopping collection`);
+      break;
+    }
     if (maxPages > 0 && page > maxPages) {
       reachedEndOfResults = true;
       break;

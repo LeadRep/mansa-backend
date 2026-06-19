@@ -20,8 +20,8 @@ export const relaxSearchParams = (
     return params;
   }
 
-  if (Array.isArray(params.organization_locations) && params.organization_locations.length) {
-    delete params.organization_locations;
+  if (Array.isArray(params.person_locations) && params.person_locations.length) {
+    delete params.person_locations;
     return params;
   }
    if (Array.isArray(params.person_seniorities) && params.person_seniorities.length) {

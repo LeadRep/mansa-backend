@@ -14,7 +14,8 @@ import {
 // import { findPeople } from "../controllers/aiControllers/findPeople.js";
 
 const aiRoutes = express.Router();
-aiRoutes.post("/customer-pref", customerPreference);
+// SECURITY: Requires authentication to prevent resource abuse and unauthorized AI operations
+aiRoutes.post("/customer-pref", userAuth, customerPreference);
 aiRoutes.post("/leads-prompt", userAuth, leadsPrompt);
 aiRoutes.get("/test", generateLeads);
 aiRoutes.post("/new", newSignUp);
