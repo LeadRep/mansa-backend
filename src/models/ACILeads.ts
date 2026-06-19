@@ -6,6 +6,10 @@ import {LeadExport} from "./LeadExport";
 export interface ACILeadsAttributes {
     id: string;
     external_id: string | null;
+    apollo_last_refreshed_at: Date | null;
+    apollo_last_payload_hash: string | null;
+    apollo_refresh_status: string | null;
+    apollo_refresh_error: string | null;
     first_name: string | null;
     last_name: string | null;
     full_name: string | null;
@@ -74,6 +78,26 @@ ACILeads.init(
         },
         external_id: {
             type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: null,
+        },
+        apollo_last_refreshed_at: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            defaultValue: null,
+        },
+        apollo_last_payload_hash: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: null,
+        },
+        apollo_refresh_status: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            defaultValue: null,
+        },
+        apollo_refresh_error: {
+            type: DataTypes.TEXT,
             allowNull: true,
             defaultValue: null,
         },
