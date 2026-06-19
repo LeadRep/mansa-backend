@@ -71,7 +71,7 @@ const main = async () => {
 
   const snapshots = await ApolloPeopleSnapshot.findAll({
     where,
-    order: [["fetched_at", "ASC"]],
+    order: [["fetched_at", "DESC"]],
     limit,
   });
 
