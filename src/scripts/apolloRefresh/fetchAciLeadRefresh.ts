@@ -209,15 +209,18 @@ const main = async () => {
         const attempts = (job.attempts ?? 0) + 1;
         const retryable = shouldRetry(statusCode) && attempts < maxAttempts;
 
-        await ApolloPeopleSnapshot.upsert({
-          run_id: job.run_id,
-          external_id: job.external_id,
-          fetched_at: new Date(),
-          fetch_status: ApolloPeopleSnapshotStatuses.FAILED,
-          payload_json: null,
-          payload_hash: null,
-          error: message,
-        });
+        await ApolloPeopleSnapshot.upsert(
+          {
+            run_id: job.run_id,
+            external_id: job.external_id,
+            fetched_at: new Date(),
+            fetch_status: ApolloPeopleSnapshotStatuses.FAILED,
+            payload_json: null,
+            payload_hash: null,
+            error: message,
+          },
+          { conflictFields: ["run_id", "external_id"] }
+        );
 
         await ApolloPeopleRefreshJob.update(
           {
