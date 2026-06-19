@@ -98,6 +98,11 @@ const main = async () => {
       continue;
     }
 
+    const lastRefreshedAt = (lead as any).apollo_last_refreshed_at as Date | null;
+    if (lastRefreshedAt && lastRefreshedAt >= snapshot.fetched_at) {
+      continue;
+    }
+
     if (snapshot.fetch_status === ApolloPeopleSnapshotStatuses.NOT_FOUND) {
       if (!dryRun) {
         await lead.update({
