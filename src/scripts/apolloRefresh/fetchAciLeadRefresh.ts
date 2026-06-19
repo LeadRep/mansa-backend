@@ -145,15 +145,18 @@ const main = async () => {
       for (const job of chunk) {
         const match = byExternalId.get(job.external_id);
         if (match) {
-          await ApolloPeopleSnapshot.upsert({
-            run_id: job.run_id,
-            external_id: job.external_id,
-            fetched_at: new Date(),
-            fetch_status: ApolloPeopleSnapshotStatuses.SUCCESS,
-            payload_json: match,
-            payload_hash: stableHash(match),
-            error: null,
-          });
+          await ApolloPeopleSnapshot.upsert(
+            {
+              run_id: job.run_id,
+              external_id: job.external_id,
+              fetched_at: new Date(),
+              fetch_status: ApolloPeopleSnapshotStatuses.SUCCESS,
+              payload_json: match,
+              payload_hash: stableHash(match),
+              error: null,
+            },
+            { conflictFields: ["run_id", "external_id"] }
+          );
 
           await ApolloPeopleRefreshJob.update(
             {
