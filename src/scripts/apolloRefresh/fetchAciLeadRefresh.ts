@@ -86,8 +86,10 @@ const main = async () => {
       {
         status: ApolloPeopleRefreshJobStatuses.RUNNING,
         started_at: new Date(),
+        finished_at: null,
+        next_retry_at: null,
         error: null,
-      },
+      }
       {
         where: {
           id: job.id,
