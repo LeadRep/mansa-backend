@@ -87,6 +87,10 @@ module.exports = {
       );
     } catch (e) {}
 
+    try {
+      await queryInterface.removeIndex(tableName, "aci_leads_external_id_idx");
+    } catch (e) {}
+
     const definition = await queryInterface.describeTable(tableName);
 
     if (definition.apollo_refresh_error) {
