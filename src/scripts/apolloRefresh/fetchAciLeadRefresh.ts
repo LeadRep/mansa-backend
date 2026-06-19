@@ -89,7 +89,7 @@ const main = async () => {
         finished_at: null,
         next_retry_at: null,
         error: null,
-      }
+      },
       {
         where: {
           id: job.id,
