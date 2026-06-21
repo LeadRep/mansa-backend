@@ -9,6 +9,7 @@ import {
   ApolloPeopleRefreshJobStatuses,
 } from "../../models/ApolloPeopleRefreshJob";
 import {
+  getBooleanArg,
   getNumberArg,
   getStringArg,
   parseCliArgs,
@@ -24,6 +25,7 @@ const main = async () => {
   const requestedBy = getStringArg(args, "requestedBy", "cli");
   const staleDays = getNumberArg(args, "staleDays", 30);
   const limit = getNumberArg(args, "limit", 5000);
+  const enqueueAll = getBooleanArg(args, "all", false) || getBooleanArg(args, "includeAll", false);
 
   const externalIdsArg = getStringArg(args, "externalIds", "");
 
@@ -31,6 +33,40 @@ const main = async () => {
 
   if (externalIdsArg) {
     externalIds = uniqueStrings(parseCsvArg(externalIdsArg));
+  } else if (enqueueAll) {
+    let offset = 0;
+
+    while (true) {
+      const leads = await ACILeads.findAll({
+        attributes: ["external_id"],
+        where: {
+          external_id: {
+            [Op.ne]: null,
+          },
+        },
+        limit,
+        offset,
+        order: [["id", "ASC"]],
+      });
+
+      if (!leads.length) {
+        break;
+      }
+
+      externalIds.push(
+        ...leads
+          .map((lead) => lead.external_id)
+          .filter((value): value is string => typeof value === "string" && value.length > 0)
+      );
+
+      if (leads.length < limit) {
+        break;
+      }
+
+      offset += limit;
+    }
+
+    externalIds = uniqueStrings(externalIds);
   } else {
     const staleSince = new Date();
     staleSince.setDate(staleSince.getDate() - staleDays);
@@ -94,6 +130,7 @@ const main = async () => {
       requestedBy,
       requestedCount: externalIds.length,
       queuedCount,
+      enqueueAll,
     },
     "Apollo ACI lead refresh jobs enqueued"
   );
