@@ -9,7 +9,11 @@
     "compile": "tsc -w",
     "migrate": "npx sequelize-cli db:migrate --config dist/configs/database/migration.js",
     "migration:generate": "npx sequelize-cli migration:generate --name",
-    "migrate:undo": "npx sequelize-cli db:migrate:undo"
+    "migrate:undo": "npx sequelize-cli db:migrate:undo",
+    "apollo:refresh:enqueue": "node dist/scripts/apolloRefresh/enqueueAciLeadRefresh.js",
+    "apollo:refresh:fetch": "node dist/scripts/apolloRefresh/fetchAciLeadRefresh.js",
+    "apollo:refresh:apply": "node dist/scripts/apolloRefresh/applyAciLeadRefresh.js",
+    "apollo:refresh:apply:dry": "node dist/scripts/apolloRefresh/applyAciLeadRefresh.js --dryRun=true"
   },
   "keywords": [],
   "author": "",
