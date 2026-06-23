@@ -12,8 +12,13 @@ export const evaluateLeads = async (
 
   if (Array.isArray(aiEvaluation)) {
     evaluationResults = aiEvaluation;
-  } else if (aiEvaluation && typeof aiEvaluation === "object" && Array.isArray(aiEvaluation.leads)) {
-    evaluationResults = aiEvaluation.leads;
+  } else if (
+    aiEvaluation &&
+    typeof aiEvaluation === "object" &&
+    "leads" in aiEvaluation &&
+    Array.isArray((aiEvaluation as any).leads)
+  ) {
+    evaluationResults = (aiEvaluation as any).leads;
   }
 
   if (!Array.isArray(evaluationResults)) {
