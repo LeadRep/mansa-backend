@@ -67,7 +67,6 @@ export const getSocket = () => {
   if (!io) {
     throw new Error("Socket.IO has not been initialized");
   }
-  console.log("Socket.IO has not been initialized");
   return io;
 };
 
@@ -76,9 +75,14 @@ export const emitLeadUpdate = (
   payload: { leadIds?: string[] }
 ) => {
   if (!io) {
+    logger.warn("Socket.IO not initialized, cannot emit leads:new");
     return;
   }
-  io.to(`leads:${userId}`).emit("leads:new", payload);
+  try {
+    io.to(`leads:${userId}`).emit("leads:new", payload);
+  } catch (error) {
+    logger.error(error, `Failed to emit leads:new for user ${userId}`);
+  }
 };
 
 export const emitLeadExpansionPrompt = (
@@ -86,9 +90,14 @@ export const emitLeadExpansionPrompt = (
   payload: { missingCount?: number; foundCount?: number; totalLeads?: number }
 ) => {
   if (!io) {
+    logger.warn("Socket.IO not initialized, cannot emit leads:expand");
     return;
   }
-  io.to(`leads:${userId}`).emit("leads:expand", payload);
+  try {
+    io.to(`leads:${userId}`).emit("leads:expand", payload);
+  } catch (error) {
+    logger.error(error, `Failed to emit leads:expand for user ${userId}`);
+  }
 };
 
 export const emitLeadGenerationStatus = (
@@ -96,7 +105,12 @@ export const emitLeadGenerationStatus = (
   payload: { status: "completed" | "failed"; message?: string; foundCount?: number }
 ) => {
   if (!io) {
+    logger.warn("Socket.IO not initialized, cannot emit leads:status");
     return;
   }
-  io.to(`leads:${userId}`).emit("leads:status", payload);
+  try {
+    io.to(`leads:${userId}`).emit("leads:status", payload);
+  } catch (error) {
+    logger.error(error, `Failed to emit leads:status for user ${userId}`);
+  }
 };

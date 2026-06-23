@@ -1,5 +1,6 @@
 import express from "express";
 import { adminAuth } from "../middlewares/adminAuth";
+import { adminBootstrap } from "../middlewares/adminBootstrap";
 import {
   getAllUsers,
   getUserDetails,
@@ -53,8 +54,9 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// Public Admin Routes (for initial setup)
-adminRoutes.post("/create", createAdmin);
+// Bootstrap admin route: only allows creation if no admins exist
+// After first admin is created, this endpoint is locked
+adminRoutes.post("/create", adminBootstrap, createAdmin);
 
 // Apply adminAuth middleware to all admin routes
 adminRoutes.use(adminAuth);

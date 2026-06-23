@@ -56,7 +56,10 @@ export const leadGenV2 = async (
     const customerPref = await CustomerPref.findOne({ where: { userId } });
     if (!customerPref) {
       console.error("ICP/BP data not found", userId);
-      //user socket to notify about missing ICP/BP data
+      emitLeadGenerationStatus(userId, {
+        status: "failed",
+        message: "Buyer profile not configured. Please set up your ICP/BP.",
+      });
       return null;
     }
 
@@ -81,11 +84,10 @@ export const leadGenV2 = async (
     if (restart) {
       customerPref.currentPage = 1;
       customerPref.totalPages = 0;
-      await customerPref.save();
       customerPref.aiQueryParams = null;
       await customerPref.save();
       await Leads.update(
-        { status: LeadStatus.VIEWED }, 
+        { status: LeadStatus.VIEWED },
         { where: { owner_id: userId, status: LeadStatus.NEW } }
       );
       currentPage = 1;
@@ -260,8 +262,8 @@ export const leadGenV2 = async (
       return finishWithNoLeads();
     }
 
-    const maxAllowedLeads =
-      user?.subscriptionName || customerPref.subscriptionName ? 20 : 10;
+    const hasSubscription = Boolean(user?.subscriptionName || customerPref.subscriptionName);
+    const maxAllowedLeads = hasSubscription ? 20 : 10;
     const currentNewLeadsCount = await Leads.count({
       where: { owner_id: userId, status: LeadStatus.NEW },
     });

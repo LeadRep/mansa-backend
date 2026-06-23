@@ -6,6 +6,8 @@ import { v4 } from "uuid";
 import { apolloEnrichedPeople } from "../leadsController/apolloEnrichedPeople";
 import { ACILeads } from "../../models/ACILeads";
 import {apolloService} from "../../utils/http/services/apolloService";
+import { GeneralLeads } from "../../models/GeneralLeads";
+import Companies from "../../models/Companies";
 
 const DEFAULT_TITLES = [
   "Independent Financial Advisor",
@@ -114,45 +116,103 @@ export const generateLeads = async (request: Request, response: Response) => {
       const enrichedData = await apolloEnrichedPeople(validPeopleIds);
 
       for (const person of enrichedData) {
-        // Ensure company using enriched organization payload (more complete)
+        // Process company data - Upsert into ACICompanies and Companies tables
         const organizationId = person?.organization?.id;
         if (organizationId) {
-          const company = await ACICompanies.findOne({
-            where: { external_id: organizationId },
-          });
-          if (!company) {
-            const organizationPayload = person.organization ?? {};
-            const { id, ...companyInfo } = organizationPayload;
-            await ACICompanies.create({
-              id: v4(),
-              ...companyInfo,
-              external_id: organizationId,
+          const organizationPayload = person.organization ?? {};
+          const { id, ...companyInfo } = organizationPayload;
+          const companyId = v4();
+
+          try {
+            // Upsert into ACICompanies (ACI-specific table)
+            const [aciCompany, aciCreated] = await ACICompanies.findOrCreate({
+              where: { external_id: organizationId },
+              defaults: {
+                id: companyId,
+                ...companyInfo,
+                external_id: organizationId,
+              }
             });
-            newCompany++;
+
+            if (!aciCreated) {
+              // Update existing record
+              await aciCompany.update(companyInfo);
+              updatedCompany++;
+            } else {
+              newCompany++;
+            }
+
+            // Upsert into Companies (org-wide general table)
+            const [generalCompany, generalCompanyCreated] = await Companies.findOrCreate({
+              where: { external_id: organizationId },
+              defaults: {
+                id: companyId,
+                ...companyInfo,
+                external_id: organizationId,
+              }
+            });
+
+            if (!generalCompanyCreated) {
+              // Update existing record in general table
+              await generalCompany.update(companyInfo);
+            }
+          } catch (companyError: any) {
+            logger.error({ organizationId, error: companyError.message }, "Error processing company");
           }
         }
 
+        // Process lead data - Upsert into ACILeads and GeneralLeads tables
         const personId = person?.id ?? person?.person_id;
         if (!personId) {
           continue;
         }
-        const lead = await ACILeads.findOne({
-          where: { external_id: personId },
-        });
-        if (!lead) {
+
+        try {
           const { id, person_id, ...leadInfo } = person ?? {};
-          await ACILeads.create({
-            id: v4(),
-            ...leadInfo,
-            external_id: personId,
+          const leadId = v4();
+
+          // Upsert into ACILeads (ACI-specific table)
+          const [aciLead, aciLeadCreated] = await ACILeads.findOrCreate({
+            where: { external_id: personId },
+            defaults: {
+              id: leadId,
+              ...leadInfo,
+              external_id: personId,
+            }
           });
-          newLead++;
-        }       
+
+          if (!aciLeadCreated) {
+            // Update existing record
+            await aciLead.update(leadInfo);
+            updatedLead++;
+          } else {
+            newLead++;
+          }
+
+          // Upsert into GeneralLeads (org-wide cache table)
+          const [generalLead, generalLeadCreated] = await GeneralLeads.findOrCreate({
+            where: { external_id: personId },
+            defaults: {
+              id: leadId,
+              ...leadInfo,
+              external_id: personId,
+            }
+          });
+
+          if (!generalLeadCreated) {
+            // Update existing record in general table
+            await generalLead.update(leadInfo);
+          }
+        } catch (leadError: any) {
+          logger.error({ personId, error: leadError.message }, "Error processing lead");
+        }
       }
     };
 
     let newCompany = 0;
     let newLead = 0;
+    let updatedCompany = 0;
+    let updatedLead = 0;
 
     let firstResponse;
     try {
@@ -220,9 +280,18 @@ export const generateLeads = async (request: Request, response: Response) => {
     }
 
     sendResponse(response, 200, "Success", {
-      newCompany,
-      newLead,
+      companies: {
+        new: newCompany,
+        updated: updatedCompany,
+        total: newCompany + updatedCompany
+      },
+      leads: {
+        new: newLead,
+        updated: updatedLead,
+        total: newLead + updatedLead
+      },
       totalPages,
+      details: "Leads added to ACILeads, GeneralLeads, Companies, and ACICompanies tables"
     });
     return;
   } catch (error: any) {
