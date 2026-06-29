@@ -36,7 +36,7 @@ function validateExportIds(ids: any): { valid: boolean; error?: string } {
   return { valid: true };
 }
 
-export const exportLeads = async (request: Request, response: Response) => {
+export const exportLeads = async (request: Request & { user?: any }, response: Response) => {
     try {
         const userId = request.user?.id;
         logger.info(`exportLeads initiated for user ${userId}`);
@@ -54,8 +54,9 @@ export const exportLeads = async (request: Request, response: Response) => {
         const { ids } = request.body;
         const validation = validateExportIds(ids);
         if (!validation.valid) {
-            logger.warn(`exportLeads validation failed for user ${userId}: ${validation.error}`);
-            return sendResponse(response, 400, validation.error);
+            const errorMsg = validation.error || "Invalid export request";
+            logger.warn(`exportLeads validation failed for user ${userId}: ${errorMsg}`);
+            return sendResponse(response, 400, errorMsg);
         }
 
         logger.info(`Exporting ${ids.length} leads for user ${userId} from org ${organizationId}`);
@@ -63,8 +64,9 @@ export const exportLeads = async (request: Request, response: Response) => {
         // Issue #2: Check and decrement quota atomically using database operation
         const quotaResult = await checkAndDecrementQuotaAtomic(organizationId, ids.length);
         if (!quotaResult.ok) {
-            logger.warn(`exportLeads quota check failed: ${quotaResult.message} (remaining: ${quotaResult.remaining})`);
-            return sendResponse(response, 400, quotaResult.message);
+            const quotaErrorMsg = quotaResult.message || "Quota check failed";
+            logger.warn(`exportLeads quota check failed: ${quotaErrorMsg} (remaining: ${quotaResult.remaining})`);
+            return sendResponse(response, 400, quotaErrorMsg);
         }
 
         logger.info(`Quota check passed. Remaining: ${quotaResult.remaining}`);
@@ -90,10 +92,10 @@ export const exportLeads = async (request: Request, response: Response) => {
             );
         }
 
-        // Issue #9: Consistent response format
+        // Issue #9: Consistent response format - Send CSV directly to frontend
         logger.info(`Export ${exportId} completed successfully for user ${userId}`);
         return sendResponse(response, 200, "Export completed successfully", {
-            downloadUrl: `/exports/${exportId}/download`,
+            csv: csv,
             exportId,
             remaining: quotaResult.remaining,
             leadsExported: ids.length
@@ -121,12 +123,14 @@ export async function checkAndDecrementQuotaAtomic(organizationId: string, count
         }
 
         // Issue #2: Use Sequelize atomic decrement (prevents race condition)
-        const [affectedCount] = await MonthlyQuotas.decrement('remaining', {
+        // decrement returns [affectedRows: MonthlyQuotas[], affectedCount?: number]
+        const result = await MonthlyQuotas.decrement('remaining', {
             by: count,
             where: { organization_id: organizationId }
-        });
+        }) as any;
 
-        if (affectedCount === 0) {
+        const affectedRows = Array.isArray(result) ? result : result?.[0];
+        if (!affectedRows || affectedRows.length === 0) {
             logger.error(`Failed to decrement quota for org ${organizationId}`);
             return { ok: false, message: "Failed to update quota", remaining: quota.remaining };
         }
