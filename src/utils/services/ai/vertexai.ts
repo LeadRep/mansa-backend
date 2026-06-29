@@ -90,14 +90,15 @@ class VertexAIService {
       }
 
       const credentials = await this.auth.getClient();
-      const token = await credentials.getAccessToken();
+      const tokenResponse = await credentials.getAccessToken();
 
-      if (!token.token) {
+      if (!tokenResponse.token) {
         throw new Error("Failed to obtain access token");
       }
 
-      this.accessToken = token.token;
-      this.tokenExpiry = token.expiry_date || Date.now() + 60 * 60 * 1000;
+      this.accessToken = tokenResponse.token;
+      // Google access tokens expire in ~1 hour, set expiry 55 minutes from now
+      this.tokenExpiry = Date.now() + 55 * 60 * 1000;
 
       return this.accessToken;
     } catch (error: any) {
