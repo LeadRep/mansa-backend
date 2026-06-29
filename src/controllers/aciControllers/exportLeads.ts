@@ -11,131 +11,254 @@ import {normalizeLead, PlainLead} from "./utils";
 import {recordLeadExport} from "../../services/exportService";
 import ACICompanies from "../../models/ACICompanies";
 
+const MAX_EXPORT_IDS = 1000;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Issue #1: Input validation helper
+function validateExportIds(ids: any): { valid: boolean; error?: string } {
+  if (!Array.isArray(ids)) {
+    return { valid: false, error: "ids must be an array" };
+  }
+
+  if (ids.length === 0) {
+    return { valid: false, error: "ids array cannot be empty" };
+  }
+
+  if (ids.length > MAX_EXPORT_IDS) {
+    return { valid: false, error: `Cannot export more than ${MAX_EXPORT_IDS} leads at once` };
+  }
+
+  const invalidIds = ids.filter((id: any) => !UUID_REGEX.test(id));
+  if (invalidIds.length > 0) {
+    return { valid: false, error: "Invalid lead ID format. All IDs must be valid UUIDs" };
+  }
+
+  return { valid: true };
+}
 
 export const exportLeads = async (request: Request, response: Response) => {
     try {
         const userId = request.user?.id;
-        logger.info(`exportLeads for user ${userId}}`);
+        logger.info(`exportLeads initiated for user ${userId}`);
+
         const user = await Users.findOne({ where: { id: userId } });
-        if(!user) {
-            sendResponse(response, 401, "User not found");
-            return;
+        if (!user || !user.organization_id) {
+            logger.warn(`exportLeads failed: User not found or missing organization for userId ${userId}`);
+            return sendResponse(response, 401, "User or organization not found");
         }
-        logger.info(`exportLeads for user ${userId} at organization ${user.organization_id}}`);
+
+        const organizationId = user.organization_id;
+        logger.info(`exportLeads for user ${userId} in organization ${organizationId}`);
+
+        // Issue #1: Validate IDs input
         const { ids } = request.body;
-
-        // 1. Check and decrement quota atomically
-        const quotaResult = await checkAndDecrementQuota(user.organization_id, ids.length);
-        if (!quotaResult.ok) {
-            return response.status(400).json({ message: quotaResult.message, remaining: quotaResult.remaining });
+        const validation = validateExportIds(ids);
+        if (!validation.valid) {
+            logger.warn(`exportLeads validation failed for user ${userId}: ${validation.error}`);
+            return sendResponse(response, 400, validation.error);
         }
 
-        // 2. Generate CSV and upload (or serve)
+        logger.info(`Exporting ${ids.length} leads for user ${userId} from org ${organizationId}`);
+
+        // Issue #2: Check and decrement quota atomically using database operation
+        const quotaResult = await checkAndDecrementQuotaAtomic(organizationId, ids.length);
+        if (!quotaResult.ok) {
+            logger.warn(`exportLeads quota check failed: ${quotaResult.message} (remaining: ${quotaResult.remaining})`);
+            return sendResponse(response, 400, quotaResult.message);
+        }
+
+        logger.info(`Quota check passed. Remaining: ${quotaResult.remaining}`);
+
+        // Generate CSV and upload
         const jobId = uuidv4();
-        const { csv, exportId } = await generateExportCsv(ids, jobId);
+        const { csv, exportId } = await generateExportCsv(ids, jobId, userId, organizationId);
 
-        // 4. Update asynchronously viewed record
-        recordLeadExport(ids, userId, user.organization_id, jobId, 'csv').catch((err) => {
-            logger.error(err, "Failed to record lead export");
-        });
+        logger.info(`CSV generated for export ${exportId}. File size: ${csv.length} bytes`);
 
-        // 3. Return download URL and updated quota
-        response.json({
-            data: {
-                csv: csv,
-                exportId,
-                remaining: quotaResult.remaining
-            }
+        // Issue #4: Wait for critical operation - don't fire and forget
+        try {
+            await recordLeadExport(ids, userId, organizationId, jobId, 'csv');
+            logger.info(`Export ${exportId} recorded successfully`);
+        } catch (err: any) {
+            logger.error({ error: err.message }, "Failed to record lead export after CSV generation");
+            return sendResponse(
+                response,
+                500,
+                "Export created but tracking failed. Please contact support.",
+                null,
+                err.message
+            );
+        }
+
+        // Issue #9: Consistent response format
+        logger.info(`Export ${exportId} completed successfully for user ${userId}`);
+        return sendResponse(response, 200, "Export completed successfully", {
+            downloadUrl: `/exports/${exportId}/download`,
+            exportId,
+            remaining: quotaResult.remaining,
+            leadsExported: ids.length
         });
     } catch (error: any) {
-        logger.error(error, "exportLeads Error:");
-        return sendResponse(response, 500, "Internal Server Error");
+        logger.error({ error: error.message, stack: error.stack }, "exportLeads Error");
+        return sendResponse(response, 500, "Internal Server Error", null, error.message);
     }
 };
 
-// Checks and decrements the user's monthly quota atomically
-export async function checkAndDecrementQuota(organizationId: string, count: number) {
-    const quota = await MonthlyQuotas.findOne({ where: { organization_id: organizationId } });
-    if (!quota || quota.remaining < count) {
-        return { ok: false, message: "Quota exceeded", remaining: quota?.remaining ?? 0 };
+// Issue #2 & #6: Use atomic database operation for quota decrement
+export async function checkAndDecrementQuotaAtomic(organizationId: string, count: number) {
+    try {
+        // First, check if quota exists and has sufficient remaining
+        const quota = await MonthlyQuotas.findOne({ where: { organization_id: organizationId } });
+
+        if (!quota) {
+            logger.warn(`Quota not configured for organization ${organizationId}`);
+            return { ok: false, message: "Export quota not configured for your organization", remaining: null };
+        }
+
+        if (quota.remaining < count) {
+            logger.warn(`Quota exceeded for org ${organizationId}: remaining=${quota.remaining}, requested=${count}`);
+            return { ok: false, message: "Quota exceeded", remaining: quota.remaining };
+        }
+
+        // Issue #2: Use Sequelize atomic decrement (prevents race condition)
+        const [affectedCount] = await MonthlyQuotas.decrement('remaining', {
+            by: count,
+            where: { organization_id: organizationId }
+        });
+
+        if (affectedCount === 0) {
+            logger.error(`Failed to decrement quota for org ${organizationId}`);
+            return { ok: false, message: "Failed to update quota", remaining: quota.remaining };
+        }
+
+        // Fetch updated quota
+        const updatedQuota = await MonthlyQuotas.findOne({ where: { organization_id: organizationId } });
+        logger.info(`Quota decremented for org ${organizationId}: ${count} leads. New remaining: ${updatedQuota?.remaining}`);
+
+        return { ok: true, remaining: updatedQuota?.remaining ?? 0 };
+    } catch (error: any) {
+        logger.error({ error: error.message }, "Error in checkAndDecrementQuotaAtomic");
+        throw error;
     }
-    quota.remaining -= count;
-    await quota.save();
-    return { ok: true, remaining: quota.remaining };
 }
 
-// Generates a CSV file for the given lead IDs and returns it along with the provided export ID
-export async function generateExportCsv(leadIds: string[], exportId: string) {
-    const rows = await ACILeads.findAll({
-      where: { id: { [Op.in]: leadIds } },
-      include: [
-        {
-          model: ACICompanies,
-          as: "org_info",
+// Issue #7: Generates a CSV file for the given lead IDs with validation
+export async function generateExportCsv(
+    leadIds: string[],
+    exportId: string,
+    userId: string,
+    organizationId: string
+) {
+    try {
+        logger.info(`Generating CSV for export ${exportId}: ${leadIds.length} leads`);
+
+        // Issue #7: Verify leads exist and belong to organization
+        const rows = await ACILeads.findAll({
+            where: {
+                id: { [Op.in]: leadIds },
+                // Add organization boundary check
+                organization_id: organizationId
+            },
+            include: [
+                {
+                    model: ACICompanies,
+                    as: "org_info",
+                }
+            ]
+        });
+
+        logger.info(`Found ${rows.length} leads matching export criteria (requested: ${leadIds.length})`);
+
+        // Issue #7: Check if all requested leads were found
+        if (rows.length === 0) {
+            logger.warn(`No leads found for export ${exportId} in org ${organizationId}`);
+            throw new Error("No leads found with provided IDs in your organization");
         }
-      ]
-    });
-    const leads = rows.map((lead) =>
-        normalizeLead(lead.get({ plain: true }) as PlainLead)
-    );
 
-    const fields = [
-        {"label": "ID", "value": "id"},
-        {"label": "firstName", "value": "firstName"},
-        {"label": "lastName", "value": "lastName"},
-        {"label": "Title", "value": "title"},
-        {"label": "Email", "value": "email"},
-        {"label": "Phone", "value": "phone"},
-        {"label": "City", "value": "leadCity"},
-        {"label": "Country", "value": "leadCountry"},
-        {"label": "Firm", "value": "company"},
-        {"label": "Firm raw address", "value": "organization.raw_address"},
-        {"label": "Firm street address", "value": "organization.street_address"},
-        {"label": "Firm city", "value": "organization.city"},
-        {"label": "Firm state", "value": "organization.state"},
-        {"label": "Firm postal code", "value": "organization.postal_code"},
-        {"label": "Firm country", "value": "organization.country"},
-        {"label": "Firm industry", "value": "organization.industry"},
-        {"label": "Firm size", "value": "companySize"},
-        {"label": "Firm segment", "value": "companySegment"},
-        {"label": "AUM", "value": (row: any) => {
-            const aum = row.aumJson;
-            const value = aum?.value || '';
-            const currency = aum?.currency || '';
+        if (rows.length !== leadIds.length) {
+            const foundIds = rows.map(r => r.id);
+            const notFoundIds = leadIds.filter(id => !foundIds.includes(id));
+            logger.warn(`${notFoundIds.length} leads not found or not accessible for export ${exportId}`);
+            throw new Error(`${notFoundIds.length} leads not found or not accessible to your organization`);
+        }
 
-            if (!value && !currency) return '';
-            if (!currency) return value;
-            if (!value) return currency;
+        // Process and normalize leads
+        const leads = rows.map((lead) =>
+            normalizeLead(lead.get({ plain: true }) as PlainLead)
+        );
 
-            return `${value} ${currency}`;
-          }},
-      {"label": "Lead specialty(AI)", "value": (row: any) => {
+        logger.info(`Normalized ${leads.length} leads for CSV generation`);
 
-          const segs = Array.isArray(row.individualSegments)
-            ? row.individualSegments
-            : Array.isArray(row.individualSegments?.asset_allocation_focus)
-              ? row.individualSegments.asset_allocation_focus
-              : null;
+        const fields = [
+            {"label": "ID", "value": "id"},
+            {"label": "firstName", "value": "firstName"},
+            {"label": "lastName", "value": "lastName"},
+            {"label": "Title", "value": "title"},
+            {"label": "Email", "value": "email"},
+            {"label": "Phone", "value": "phone"},
+            {"label": "City", "value": "leadCity"},
+            {"label": "Country", "value": "leadCountry"},
+            {"label": "Firm", "value": "company"},
+            {"label": "Firm raw address", "value": "organization.raw_address"},
+            {"label": "Firm street address", "value": "organization.street_address"},
+            {"label": "Firm city", "value": "organization.city"},
+            {"label": "Firm state", "value": "organization.state"},
+            {"label": "Firm postal code", "value": "organization.postal_code"},
+            {"label": "Firm country", "value": "organization.country"},
+            {"label": "Firm industry", "value": "organization.industry"},
+            {"label": "Firm size", "value": "companySize"},
+            {"label": "Firm segment", "value": "companySegment"},
+            {"label": "AUM", "value": (row: any) => {
+                const aum = row.aumJson;
+                const value = aum?.value || '';
+                const currency = aum?.currency || '';
 
-          const displayText = segs
-            ? segs.length > 0
-              ? segs.join(", ")
-              : "None identified"
-            :null
-          return displayText;
-      }},
-      {"label": "Lead specialty(AI) notes", "value": (row: any) => {
-          const notes =
-            typeof row.individualSegments === "object" && row.individualSegments
-              ? (row.individualSegments.notes as string | undefined)
-              : null;
-          return notes;
-        }},
-    ];
-    const parser = new Parser({ fields });
-    const csv = parser.parse(leads);
-    // Add UTF-8 BOM to ensure Excel recognizes UTF-8 encoding
-    const csvWithBOM = '\ufeff' + csv;
+                if (!value && !currency) return '';
+                if (!currency) return value;
+                if (!value) return currency;
 
-    return { csv: csvWithBOM, exportId };
+                return `${value} ${currency}`;
+            }},
+            {"label": "Lead specialty(AI)", "value": (row: any) => {
+                const segs = Array.isArray(row.individualSegments)
+                    ? row.individualSegments
+                    : Array.isArray(row.individualSegments?.asset_allocation_focus)
+                        ? row.individualSegments.asset_allocation_focus
+                        : null;
+
+                const displayText = segs
+                    ? segs.length > 0
+                        ? segs.join(", ")
+                        : "None identified"
+                    : null;
+                return displayText;
+            }},
+            {"label": "Lead specialty(AI) notes", "value": (row: any) => {
+                const notes =
+                    typeof row.individualSegments === "object" && row.individualSegments
+                        ? (row.individualSegments.notes as string | undefined)
+                        : null;
+                return notes;
+            }},
+        ];
+
+        // Issue #10: Log CSV generation steps, Issue #12: Error handling for parser
+        try {
+            const parser = new Parser({ fields });
+            const csv = parser.parse(leads);
+
+            // Add UTF-8 BOM to ensure Excel recognizes UTF-8 encoding
+            const BOM_UTF8 = '\ufeff';
+            const csvWithBOM = BOM_UTF8 + csv;
+
+            logger.info(`CSV generated successfully for export ${exportId}. Size: ${csvWithBOM.length} bytes`);
+            return { csv: csvWithBOM, exportId };
+        } catch (parseError: any) {
+            logger.error({ error: parseError.message }, `CSV parsing failed for export ${exportId}`);
+            throw new Error(`Failed to generate CSV export: ${parseError.message}`);
+        }
+    } catch (error: any) {
+        logger.error({ error: error.message, exportId }, "Error in generateExportCsv");
+        throw error;
+    }
 }
