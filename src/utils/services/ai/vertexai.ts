@@ -25,7 +25,7 @@ interface VertexAIResponse {
 class VertexAIService {
   private projectId: string = "";
   private location: string = "us-central1";
-  private model: string = "gemini-1.5-flash";
+  private model: string = "gemini-3.5-flash";
   private maxTokens: number = 2000;
   private temperature: number = 0.0;
   private auth: GoogleAuth | null = null;
@@ -55,7 +55,7 @@ class VertexAIService {
       process.env.GOOGLE_CLOUD_PROJECT ||
       "ornate-casing-444308-t1"; // From ai-config.json
     this.location = config?.location || process.env.GCP_LOCATION || "us-central1";
-    this.model = config?.model || process.env.VERTEX_AI_MODEL || "gemini-1.5-flash";
+    this.model = config?.model || process.env.VERTEX_AI_MODEL || "gemini-3.5-flash";
     this.maxTokens = config?.maxTokens || parseInt(process.env.VERTEX_AI_MAX_TOKENS || "2000");
     this.temperature = config?.temperature || parseFloat(process.env.VERTEX_AI_TEMPERATURE || "0.0");
 

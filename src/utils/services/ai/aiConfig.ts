@@ -39,7 +39,7 @@ class AIConfigManager {
           process.env.GOOGLE_CLOUD_PROJECT ||
           "ornate-casing-444308-t1",
         location: process.env.GCP_LOCATION || "us-central1",
-        model: process.env.VERTEX_AI_MODEL || "gemini-1.5-flash",
+        model: process.env.VERTEX_AI_MODEL || "gemini-3.5-flash",
         maxTokens: parseInt(process.env.VERTEX_AI_MAX_TOKENS || "2000"),
         temperature: parseFloat(process.env.VERTEX_AI_TEMPERATURE || "0.0"),
       },

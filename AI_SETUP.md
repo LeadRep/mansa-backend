@@ -42,7 +42,7 @@ GCP_LOCATION=us-central1
 GOOGLE_CLOUD_PROJECT=ornate-casing-444308-t1
 
 # Vertex AI Model Configuration
-VERTEX_AI_MODEL=gemini-1.5-flash
+VERTEX_AI_MODEL=gemini-3.5-flash
 VERTEX_AI_MAX_TOKENS=2000
 VERTEX_AI_TEMPERATURE=0.0
 
@@ -162,18 +162,77 @@ interface VertexAIConfig {
 | `AI_PROVIDER` | "openai" or "vertexai" | "openai" |
 | `GCP_PROJECT_ID` | Google Cloud Project ID | "ornate-casing-444308-t1" |
 | `GCP_LOCATION` | GCP region | "us-central1" |
-| `VERTEX_AI_MODEL` | Model to use | "gemini-1.5-flash" |
+| `VERTEX_AI_MODEL` | Model to use | "gemini-3.5-flash" |
 | `VERTEX_AI_MAX_TOKENS` | Max output tokens | "2000" |
 | `VERTEX_AI_TEMPERATURE` | Response temperature | "0.0" |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Path to GCP credentials file | (optional) |
 
 ## Available Vertex AI Models
 
-- `gemini-1.5-flash` - Fast, efficient model for quick tasks
-- `gemini-1.5-pro` - More powerful model for complex reasoning
-- `gemini-2.0-flash` (if available) - Latest model
-- `text-bison` - Text generation model
-- `text-unicorn` - High-performance text model
+### Latest (Recommended)
+- `gemini-3.5-flash` - **DEFAULT** - Latest fast, efficient model for quick tasks and real-time applications
+- `gemini-3.5-pro` - Latest powerful model for complex reasoning and detailed analysis
+- `gemini-3.1-flash` - Advanced fast model with improved capabilities
+- `gemini-3.1-pro` - Advanced pro model with better reasoning
+
+### Previous Versions
+- `gemini-2.0-flash` - Previous generation fast model
+- `gemini-2.0-pro` - Previous generation pro model
+- `gemini-1.5-flash` - Earlier fast, efficient model
+- `gemini-1.5-pro` - Earlier more powerful model
+
+### Legacy Models
+- `text-bison` - Text generation model (not recommended)
+- `text-unicorn` - High-performance text model (not recommended)
+
+## Gemini 3.5 & 3.1 Models Guide
+
+### Gemini 3.5 Series (Recommended Default)
+
+**Best for**: Production applications, real-time use cases, cost-sensitive workloads
+
+**Gemini 3.5 Flash** (Default)
+- ✅ Fastest inference time
+- ✅ Lowest cost
+- ✅ Great for structured data extraction
+- ✅ Ideal for lead evaluation and classification
+- 📊 Context window: 100k tokens
+- 🎯 Use case: Real-time lead scoring, email generation, quick analysis
+
+**Gemini 3.5 Pro**
+- ✅ Better reasoning capabilities
+- ✅ Improved accuracy on complex tasks
+- ✅ Good for multi-step analysis
+- 📊 Context window: 100k tokens
+- 🎯 Use case: Detailed lead evaluation, preference analysis, strategy planning
+
+### Gemini 3.1 Series (Advanced)
+
+**Best for**: Complex reasoning, research, detailed analysis
+
+**Gemini 3.1 Flash**
+- ✅ Enhanced speed over 3.5 Flash
+- ✅ Better multi-step reasoning
+- ✅ Improved code generation
+- 📊 Context window: 100k tokens
+- 🎯 Use case: Complex filtering, multi-criteria evaluation
+
+**Gemini 3.1 Pro**
+- ✅ Advanced reasoning capabilities
+- ✅ Excellent for complex analysis
+- ✅ Better instruction following
+- 📊 Context window: 100k tokens
+- 🎯 Use case: Strategic analysis, comprehensive lead evaluation
+
+### Quick Comparison Table
+
+| Feature | 3.5 Flash | 3.5 Pro | 3.1 Flash | 3.1 Pro |
+|---------|-----------|---------|-----------|---------|
+| Speed | ⚡⚡⚡ | ⚡⚡ | ⚡⚡⚡ | ⚡⚡ |
+| Cost | 💰 | 💰💰💰 | 💰💰 | 💰💰💰💰 |
+| Reasoning | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Accuracy | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Default** | ✓ | - | - | - |
 
 ## Error Handling
 
@@ -242,9 +301,10 @@ The service automatically retries on rate limits. To reduce issues:
 
 ### Model Selection
 
-- **For speed**: Use `gemini-1.5-flash` (recommended default)
-- **For quality**: Use `gemini-1.5-pro`
-- **For long contexts**: Use `gemini-1.5-pro`
+- **For speed & efficiency** (Recommended): Use `gemini-3.5-flash` or `gemini-3.1-flash`
+- **For quality & reasoning**: Use `gemini-3.5-pro` or `gemini-3.1-pro`
+- **For long contexts**: Use `gemini-3.5-pro` or `gemini-3.1-pro`
+- **Legacy/fallback**: `gemini-1.5-flash` (still available but older)
 
 ### Temperature Settings
 
@@ -260,11 +320,21 @@ The service automatically retries on rate limits. To reduce issues:
 
 ## Cost Estimation
 
-Vertex AI pricing varies by model. Reference:
+Vertex AI pricing varies by model. Current pricing (as of June 2026):
+
+### Gemini 3.5 Series (Latest)
+- **Gemini 3.5 Flash**: ~$0.075/1M input tokens, ~$0.30/1M output tokens (most cost-effective)
+- **Gemini 3.5 Pro**: ~$3.50/1M input tokens, ~$10.50/1M output tokens
+
+### Gemini 3.1 Series (Advanced)
+- **Gemini 3.1 Flash**: ~$0.15/1M input tokens, ~$0.60/1M output tokens
+- **Gemini 3.1 Pro**: ~$4.50/1M input tokens, ~$13.50/1M output tokens
+
+### Previous Versions (Legacy)
 - **Gemini 1.5 Flash**: ~$0.075/1M input tokens, ~$0.30/1M output tokens
 - **Gemini 1.5 Pro**: ~$3.50/1M input tokens, ~$10.50/1M output tokens
 
-Monitor usage via Google Cloud Console.
+**Recommendation**: Use `gemini-3.5-flash` for best cost-performance ratio. Monitor usage via Google Cloud Console.
 
 ## Files Created
 
