@@ -5,14 +5,17 @@ import MonthlyQuotas from "../../models/MonthlyQuotas";
 import Users from "../../models/Users";
 import { Op, Sequelize } from "sequelize";
 import { formatMonthYear } from "../aciControllers/utils";
+import Organizations from "../../models/Organizations";
 
 // Get all organizations with their quotas
 export const getOrganizationQuotas = async (request: Request, response: Response) => {
   try {
-    const { search = "", page = 1, limit = 20 } = request.query;
+    const { search = "", page = 1, limit = 20, month = "", year = "" } = request.query;
     const offset = (Number(page) - 1) * Number(limit);
 
-    logger.info(`Fetching organization quotas: search="${search}", page=${page}, limit=${limit}`);
+    logger.info(
+      `Fetching organization quotas: search="${search}", month="${month}", year="${year}", page=${page}, limit=${limit}`
+    );
 
     // Build where clause for search on MonthlyQuotas
     const monthStart = formatMonthYear(new Date());
@@ -24,7 +27,7 @@ export const getOrganizationQuotas = async (request: Request, response: Response
       where: whereClause,
       limit: Number(limit),
       offset: offset,
-      order: [["updated_at", "DESC"]],
+      order: [["updatedAt", "DESC"]],
     });
 
     // Get organization/user details for each quota
@@ -32,16 +35,30 @@ export const getOrganizationQuotas = async (request: Request, response: Response
     const orgIds = rows.map((q: any) => q.organization_id);
 
     if (orgIds.length > 0) {
+      const orgs = await Organizations.findAll({
+        where: {
+          organization_id: { [Op.in]: orgIds },
+        },
+        attributes: ["organization_id", "name"],
+      });
+
       const users = await Users.findAll({
         where: {
           organization_id: { [Op.in]: orgIds },
         },
-        attributes: ["id", "organization_id", "organization_name", "email"],
+        attributes: ["id", "organization_id", "companyName", "email"],
       });
 
+      // Create map from organizations
+      const orgMap = new Map();
+      orgs.forEach((org: any) => {
+        orgMap.set(org.organization_id, org.name || "Unknown");
+      });
+
+      // Use organization name from Organizations table, fallback to companyName from Users
       users.forEach((user: any) => {
         organizationsMap.set(user.organization_id, {
-          organizationName: user.organization_name || "Unknown",
+          organizationName: orgMap.get(user.organization_id) || user.companyName || "Unknown",
           email: user.email || "",
         });
       });
@@ -59,7 +76,20 @@ export const getOrganizationQuotas = async (request: Request, response: Response
 
     const totalPages = Math.ceil(filteredRows.length / Number(limit));
 
-    logger.info(`Found ${filteredRows.length} organizations with quotas`);
+    // Get available months for filtering
+    const availableMonths = await MonthlyQuotas.findAll({
+      attributes: ["startDate"],
+      group: ["startDate"],
+      raw: true,
+      order: [["startDate", "DESC"]],
+    });
+
+    const uniqueMonths = availableMonths
+      .map((q: any) => q.startDate)
+      .filter((date: string) => date && typeof date === "string")
+      .filter((value: string, index: number, self: string[]) => self.indexOf(value) === index);
+
+    logger.info(`Found ${filteredRows.length} organizations with quotas. Available months: ${uniqueMonths.length}`);
 
     return sendResponse(response, 200, "Organizations fetched successfully", {
       organizations: filteredRows.map((quota: any) => {
@@ -68,17 +98,19 @@ export const getOrganizationQuotas = async (request: Request, response: Response
           email: "",
         };
         return {
-          id: quota.id,
           organizationId: quota.organization_id,
           organizationName: orgInfo.organizationName,
           email: orgInfo.email,
-          quotaLimit: quota.quota_limit,
           remaining: quota.remaining,
-          used: quota.quota_limit - quota.remaining,
-          usagePercentage: quota.quota_limit > 0 ? Math.round((quota.quota_limit - quota.remaining) / quota.quota_limit * 100) : 0,
-          updatedAt: quota.updated_at,
+          startDate: quota.startDate,
+          updatedAt: quota.updatedAt,
         };
       }),
+      availableMonths: uniqueMonths,
+      currentFilter: {
+        month: month || "",
+        year: year || "",
+      },
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -107,25 +139,28 @@ export const getOrganizationQuotaDetails = async (request: Request, response: Re
       return sendResponse(response, 404, "Quota not found for this organization");
     }
 
-    // Get organization/user details
+    // Get organization and user details
+    const org = await Organizations.findOne({
+      where: { organization_id: organizationId },
+      attributes: ["organization_id", "name"],
+    });
+
     const user = await Users.findOne({
       where: { organization_id: organizationId },
-      attributes: ["id", "organization_id", "organization_name", "email", "subscription_tier"],
+      attributes: ["id", "organization_id", "companyName", "email"],
     });
+
+    const organizationName = org?.name || user?.companyName || "Unknown";
 
     return sendResponse(response, 200, "Quota details fetched successfully", {
       id: quota.id,
       organizationId: quota.organization_id,
-      organizationName: user?.organization_name || "Unknown",
+      organizationName: organizationName,
       email: user?.email || "",
-      subscriptionTier: user?.subscription_tier || "free",
-      quotaLimit: quota.quota_limit,
       remaining: quota.remaining,
-      used: quota.quota_limit - quota.remaining,
-      usagePercentage: quota.quota_limit > 0 ? Math.round((quota.quota_limit - quota.remaining) / quota.quota_limit * 100) : 0,
-      resetDate: quota.reset_date,
-      createdAt: quota.created_at,
-      updatedAt: quota.updated_at,
+      startDate: quota.startDate,
+      createdAt: quota.createdAt,
+      updatedAt: quota.updatedAt,
     });
   } catch (error: any) {
     logger.error(error, "Error fetching quota details");
@@ -133,26 +168,18 @@ export const getOrganizationQuotaDetails = async (request: Request, response: Re
   }
 };
 
-// Update organization quota
+// Update organization quota remaining
 export const updateOrganizationQuota = async (request: Request, response: Response) => {
   try {
     const { organizationId } = request.params;
-    const { quotaLimit, remaining } = request.body;
+    const { remaining } = request.body;
 
     // Validate input
-    if (typeof quotaLimit !== "number" && typeof remaining !== "number") {
-      return sendResponse(
-        response,
-        400,
-        "Must provide either quotaLimit or remaining value"
-      );
+    if (typeof remaining !== "number") {
+      return sendResponse(response, 400, "Must provide remaining value");
     }
 
-    if (typeof quotaLimit === "number" && quotaLimit < 0) {
-      return sendResponse(response, 400, "quotaLimit must be non-negative");
-    }
-
-    if (typeof remaining === "number" && remaining < 0) {
+    if (remaining < 0) {
       return sendResponse(response, 400, "remaining must be non-negative");
     }
 
@@ -168,29 +195,17 @@ export const updateOrganizationQuota = async (request: Request, response: Respon
       return sendResponse(response, 404, "Quota not found for this organization");
     }
 
-    // Update quota
-    if (typeof quotaLimit === "number") {
-      quota.quota_limit = quotaLimit;
-    }
-
-    if (typeof remaining === "number") {
-      quota.remaining = remaining;
-    }
-
+    quota.remaining = remaining;
     await quota.save();
 
-    logger.info(
-      `Quota updated for org ${organizationId}: new limit=${quota.quota_limit}, remaining=${quota.remaining}`
-    );
+    logger.info(`Quota updated for org ${organizationId}: new remaining=${quota.remaining}`);
 
     return sendResponse(response, 200, "Quota updated successfully", {
       id: quota.id,
       organizationId: quota.organization_id,
-      quotaLimit: quota.quota_limit,
       remaining: quota.remaining,
-      used: quota.quota_limit - quota.remaining,
-      usagePercentage: quota.quota_limit > 0 ? Math.round((quota.quota_limit - quota.remaining) / quota.quota_limit * 100) : 0,
-      updatedAt: quota.updated_at,
+      startDate: quota.startDate,
+      updatedAt: quota.updatedAt,
     });
   } catch (error: any) {
     logger.error(error, "Error updating quota");
@@ -198,10 +213,11 @@ export const updateOrganizationQuota = async (request: Request, response: Respon
   }
 };
 
-// Reset quota for an organization (set remaining to quota_limit)
+// Reset quota for an organization (set remaining to high value)
 export const resetOrganizationQuota = async (request: Request, response: Response) => {
   try {
     const { organizationId } = request.params;
+    const { remaining = 10000 } = request.body; // Default reset value
 
     logger.info(`Resetting quota for org: ${organizationId}`);
     const monthStart = formatMonthYear(new Date());
@@ -214,8 +230,7 @@ export const resetOrganizationQuota = async (request: Request, response: Respons
     }
 
     const previousRemaining = quota.remaining;
-    quota.remaining = quota.quota_limit;
-    quota.reset_date = new Date();
+    quota.remaining = remaining;
 
     await quota.save();
 
@@ -226,10 +241,9 @@ export const resetOrganizationQuota = async (request: Request, response: Respons
     return sendResponse(response, 200, "Quota reset successfully", {
       id: quota.id,
       organizationId: quota.organization_id,
-      quotaLimit: quota.quota_limit,
       remaining: quota.remaining,
       previousRemaining,
-      resetDate: quota.reset_date,
+      updatedAt: quota.updatedAt,
     });
   } catch (error: any) {
     logger.error(error, "Error resetting quota");
@@ -256,7 +270,7 @@ export const bulkUpdateQuotas = async (request: Request, response: Response) => 
 
     for (const update of updates) {
       try {
-        const { organizationId, quotaLimit, remaining } = update;
+        const { organizationId, remaining } = update;
 
         if (!organizationId) {
           results.errors.push({
@@ -280,16 +294,17 @@ export const bulkUpdateQuotas = async (request: Request, response: Response) => 
           continue;
         }
 
-        if (typeof quotaLimit === "number") {
-          quota.quota_limit = quotaLimit;
-        }
-
         if (typeof remaining === "number") {
           quota.remaining = remaining;
+          await quota.save();
+          results.success++;
+        } else {
+          results.errors.push({
+            organizationId,
+            error: "remaining value must be a number",
+          });
+          results.failed++;
         }
-
-        await quota.save();
-        results.success++;
       } catch (err: any) {
         results.errors.push({
           organizationId: update.organizationId,
