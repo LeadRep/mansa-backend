@@ -17,10 +17,9 @@ export const getOrganizationQuotas = async (request: Request, response: Response
       `Fetching organization quotas: search="${search}", month="${month}", year="${year}", page=${page}, limit=${limit}`
     );
 
-    // Build where clause for search on MonthlyQuotas
-    const monthStart = formatMonthYear(new Date());
-    const whereClause: any = {startDate: monthStart};
-
+    // Build where clause for month/year filter (default current month if not provided)
+    const monthStart = month && year ? `${month} ${year}` : formatMonthYear(new Date());
+    const whereClause: any = { startDate: monthStart };
     // Get all quotas with pagination
     const { rows, count } = await MonthlyQuotas.findAndCountAll({
       where: whereClause,
