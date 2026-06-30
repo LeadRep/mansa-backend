@@ -139,7 +139,7 @@ export async function checkAndDecrementQuotaAtomic(organizationId: string, count
 
         const affectedRows = Array.isArray(result) ? result : result?.[0];
         if (!affectedRows || affectedRows.length === 0) {
-            logger.error(`Failed to decrement quota for org ${organizationId} in period ${currentMonthYear}`);
+            logger.error(`Failed to decrement quota for org ${organizationId} in period ${monthStart}`);
             return { ok: false, message: "Failed to update quota", remaining: quota.remaining };
         }
 

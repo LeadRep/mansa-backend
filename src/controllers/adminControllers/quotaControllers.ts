@@ -22,7 +22,6 @@ export const getOrganizationQuotas = async (request: Request, response: Response
     const whereClause: any = {startDate: monthStart};
 
     // Get all quotas with pagination
-
     const { rows, count } = await MonthlyQuotas.findAndCountAll({
       where: whereClause,
       limit: Number(limit),
@@ -183,9 +182,7 @@ export const updateOrganizationQuota = async (request: Request, response: Respon
       return sendResponse(response, 400, "remaining must be non-negative");
     }
 
-    logger.info(
-      `Updating quota for org ${organizationId}: quotaLimit=${quotaLimit}, remaining=${remaining}`
-    );
+    logger.info(`Updating quota for org ${organizationId}: remaining=${remaining}`);
     const monthStart = formatMonthYear(new Date());
     const quota = await MonthlyQuotas.findOne({
       where: { organization_id: organizationId, startDate: monthStart },
