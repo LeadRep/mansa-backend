@@ -38,13 +38,25 @@ function validateExportIds(ids: any): { valid: boolean; error?: string } {
 
 export const exportLeads = async (request: Request & { user?: any }, response: Response) => {
     try {
+        logger.info(`exportLeads request received from user ${request.user?.id}`);
+
         const userId = request.user?.id;
         logger.info(`exportLeads initiated for user ${userId}`);
 
+        if (!userId) {
+            logger.warn(`exportLeads failed: No user ID in request`);
+            return sendResponse(response, 401, "User not authenticated");
+        }
+
         const user = await Users.findOne({ where: { id: userId } });
-        if (!user || !user.organization_id) {
-            logger.warn(`exportLeads failed: User not found or missing organization for userId ${userId}`);
-            return sendResponse(response, 401, "User or organization not found");
+        if (!user) {
+            logger.warn(`exportLeads failed: User not found for userId ${userId}`);
+            return sendResponse(response, 401, "User not found");
+        }
+
+        if (!user.organization_id) {
+            logger.warn(`exportLeads failed: User has no organization for userId ${userId}`);
+            return sendResponse(response, 401, "Organization not found");
         }
 
         const organizationId = user.organization_id;
@@ -52,6 +64,8 @@ export const exportLeads = async (request: Request & { user?: any }, response: R
 
         // Issue #1: Validate IDs input
         const { ids } = request.body;
+        logger.info(`Validating ${ids?.length || 0} lead IDs`);
+
         const validation = validateExportIds(ids);
         if (!validation.valid) {
             const errorMsg = validation.error || "Invalid export request";
@@ -62,6 +76,7 @@ export const exportLeads = async (request: Request & { user?: any }, response: R
         logger.info(`Exporting ${ids.length} leads for user ${userId} from org ${organizationId}`);
 
         // Issue #2: Check and decrement quota atomically using database operation
+        logger.info(`Checking quota for org ${organizationId}, count: ${ids.length}`);
         const quotaResult = await checkAndDecrementQuotaAtomic(organizationId, ids.length);
         if (!quotaResult.ok) {
             const quotaErrorMsg = quotaResult.message || "Quota check failed";
