@@ -3,6 +3,7 @@ import logger from "../../logger";
 import sendResponse from "../../utils/http/sendResponse";
 import MonthlyQuotas from "../../models/MonthlyQuotas";
 import Users from "../../models/Users";
+import Organizations from "../../models/Organizations";
 import { Op } from "sequelize";
 
 // Get all organizations with their quotas
@@ -26,16 +27,30 @@ export const getOrganizationQuotas = async (request: Request, response: Response
     const orgIds = rows.map((q: any) => q.organization_id);
 
     if (orgIds.length > 0) {
+      const orgs = await Organizations.findAll({
+        where: {
+          organization_id: { [Op.in]: orgIds },
+        },
+        attributes: ["organization_id", "name"],
+      });
+
       const users = await Users.findAll({
         where: {
           organization_id: { [Op.in]: orgIds },
         },
-        attributes: ["id", "organization_id", "organization_name", "email"],
+        attributes: ["id", "organization_id", "companyName", "email"],
       });
 
+      // Create map from organizations
+      const orgMap = new Map();
+      orgs.forEach((org: any) => {
+        orgMap.set(org.organization_id, org.name || "Unknown");
+      });
+
+      // Use organization name from Organizations table, fallback to companyName from Users
       users.forEach((user: any) => {
         organizationsMap.set(user.organization_id, {
-          organizationName: user.organization_name || "Unknown",
+          organizationName: orgMap.get(user.organization_id) || user.companyName || "Unknown",
           email: user.email || "",
         });
       });
@@ -99,18 +114,24 @@ export const getOrganizationQuotaDetails = async (request: Request, response: Re
       return sendResponse(response, 404, "Quota not found for this organization");
     }
 
-    // Get organization/user details
+    // Get organization and user details
+    const org = await Organizations.findOne({
+      where: { organization_id: organizationId },
+      attributes: ["organization_id", "name"],
+    });
+
     const user = await Users.findOne({
       where: { organization_id: organizationId },
-      attributes: ["id", "organization_id", "organization_name", "email", "subscription_tier"],
+      attributes: ["id", "organization_id", "companyName", "email"],
     });
+
+    const organizationName = org?.name || user?.companyName || "Unknown";
 
     return sendResponse(response, 200, "Quota details fetched successfully", {
       id: quota.id,
       organizationId: quota.organization_id,
-      organizationName: user?.organization_name || "Unknown",
+      organizationName: organizationName,
       email: user?.email || "",
-      subscriptionTier: user?.subscription_tier || "free",
       remaining: quota.remaining,
       startDate: quota.startDate,
       createdAt: quota.createdAt,
