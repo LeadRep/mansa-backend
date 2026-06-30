@@ -196,8 +196,18 @@ export async function checkAndDecrementQuotaAtomic(organizationId: string, count
 
         return { ok: true, remaining: updatedQuota?.remaining ?? 0 };
     } catch (error: any) {
-        logger.error({ error: error.message }, "Error in checkAndDecrementQuotaAtomic");
-        throw error;
+        logger.error({
+            error: error.message,
+            stack: error.stack,
+            organizationId,
+            count
+        }, "Error in checkAndDecrementQuotaAtomic");
+        // Return error object instead of throwing to maintain consistency
+        return {
+            ok: false,
+            message: `Error checking quota: ${error.message}`,
+            remaining: null
+        };
     }
 }
 
