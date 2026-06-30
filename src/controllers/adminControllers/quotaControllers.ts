@@ -9,14 +9,25 @@ import { Op } from "sequelize";
 // Get all organizations with their quotas
 export const getOrganizationQuotas = async (request: Request, response: Response) => {
   try {
-    const { search = "", page = 1, limit = 20 } = request.query;
+    const { search = "", page = 1, limit = 20, month = "", year = "" } = request.query;
     const offset = (Number(page) - 1) * Number(limit);
 
-    logger.info(`Fetching organization quotas: search="${search}", page=${page}, limit=${limit}`);
+    logger.info(
+      `Fetching organization quotas: search="${search}", month="${month}", year="${year}", page=${page}, limit=${limit}`
+    );
+
+    // Build where clause for month/year filter
+    const whereClause: any = {};
+    if (month && year) {
+      // Filter by startDate format: "Mon YYYY" (e.g., "Jun 2026")
+      const searchDate = `${month} ${year}`;
+      whereClause.startDate = searchDate;
+      logger.info(`Filtering by startDate: ${searchDate}`);
+    }
 
     // Get all quotas with pagination
     const { rows, count } = await MonthlyQuotas.findAndCountAll({
-      where: {},
+      where: whereClause,
       limit: Number(limit),
       offset: offset,
       order: [["updatedAt", "DESC"]],
@@ -68,7 +79,20 @@ export const getOrganizationQuotas = async (request: Request, response: Response
 
     const totalPages = Math.ceil(filteredRows.length / Number(limit));
 
-    logger.info(`Found ${filteredRows.length} organizations with quotas`);
+    // Get available months for filtering
+    const availableMonths = await MonthlyQuotas.findAll({
+      attributes: ["startDate"],
+      group: ["startDate"],
+      raw: true,
+      order: [["startDate", "DESC"]],
+    });
+
+    const uniqueMonths = availableMonths
+      .map((q: any) => q.startDate)
+      .filter((date: string) => date && typeof date === "string")
+      .filter((value: string, index: number, self: string[]) => self.indexOf(value) === index);
+
+    logger.info(`Found ${filteredRows.length} organizations with quotas. Available months: ${uniqueMonths.length}`);
 
     return sendResponse(response, 200, "Organizations fetched successfully", {
       organizations: filteredRows.map((quota: any) => {
@@ -77,7 +101,6 @@ export const getOrganizationQuotas = async (request: Request, response: Response
           email: "",
         };
         return {
-          id: quota.id,
           organizationId: quota.organization_id,
           organizationName: orgInfo.organizationName,
           email: orgInfo.email,
@@ -86,6 +109,11 @@ export const getOrganizationQuotas = async (request: Request, response: Response
           updatedAt: quota.updatedAt,
         };
       }),
+      availableMonths: uniqueMonths,
+      currentFilter: {
+        month: month || "",
+        year: year || "",
+      },
       pagination: {
         page: Number(page),
         limit: Number(limit),
