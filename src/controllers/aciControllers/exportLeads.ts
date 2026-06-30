@@ -139,13 +139,13 @@ export async function checkAndDecrementQuotaAtomic(organizationId: string, count
 
         const affectedRows = Array.isArray(result) ? result : result?.[0];
         if (!affectedRows || affectedRows.length === 0) {
-            logger.error(`Failed to decrement quota for org ${organizationId}`);
+            logger.error(`Failed to decrement quota for org ${organizationId} in period ${currentMonthYear}`);
             return { ok: false, message: "Failed to update quota", remaining: quota.remaining };
         }
 
         // Fetch updated quota
         const updatedQuota = await MonthlyQuotas.findOne({ where: { organization_id: organizationId , startDate: monthStart } });
-        logger.info(`Quota decremented for org ${organizationId}: ${count} leads. New remaining: ${updatedQuota?.remaining}`);
+        logger.info(`Quota decremented for org ${organizationId} (${monthStart}): ${count} leads. New remaining: ${updatedQuota?.remaining}`);
 
         return { ok: true, remaining: updatedQuota?.remaining ?? 0 };
     } catch (error: any) {
