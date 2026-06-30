@@ -1,6 +1,6 @@
 import express from "express";
 import { userAuth } from "../middlewares/userAuth";
-import { getACIQuotas } from "../controllers/americanCenturyinvestment/getACIQuotas";
+import { getACIQuotas } from "../controllers/aciControllers/getACIQuotas";
 import { getAciLeads } from "../controllers/aciControllers/getAciLeads";
 import {exportLeads} from "../controllers/aciControllers/exportLeads";
 import { createLeadTicket, listTickets, listTicketsForLead } from '../controllers/aciControllers/leadTicketsController';

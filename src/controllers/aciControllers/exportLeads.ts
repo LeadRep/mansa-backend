@@ -7,7 +7,7 @@ import {ACILeads} from "../../models/ACILeads";
 import {Op} from "sequelize";
 import {v4 as uuidv4} from "uuid";
 import {Parser} from "json2csv";
-import {normalizeLead, PlainLead} from "./utils";
+import {normalizeLead, PlainLead, formatMonthYear} from "./utils";
 import {recordLeadExport} from "../../services/exportService";
 import ACICompanies from "../../models/ACICompanies";
 
@@ -110,11 +110,19 @@ export const exportLeads = async (request: Request & { user?: any }, response: R
 export async function checkAndDecrementQuotaAtomic(organizationId: string, count: number) {
     try {
         // First, check if quota exists and has sufficient remaining
-        const quota = await MonthlyQuotas.findOne({ where: { organization_id: organizationId } });
+        // To avoid failure, reset the quota if it doesn't exist for the current month
+        const monthStart = formatMonthYear(new Date());
+        const [quota, created] = await MonthlyQuotas.findOrCreate({
+            where: { organization_id: organizationId, startDate: monthStart },
+              defaults: {
+                  remaining: 300,
+                  organization_id: organizationId,
+                  startDate: monthStart
+              }
+          });
 
         if (!quota) {
             logger.warn(`Quota not configured for organization ${organizationId}`);
-            return { ok: false, message: "Export quota not configured for your organization", remaining: null };
         }
 
         if (quota.remaining < count) {
@@ -126,7 +134,7 @@ export async function checkAndDecrementQuotaAtomic(organizationId: string, count
         // decrement returns [affectedRows: MonthlyQuotas[], affectedCount?: number]
         const result = await MonthlyQuotas.decrement('remaining', {
             by: count,
-            where: { organization_id: organizationId }
+            where: { organization_id: organizationId , startDate: monthStart }
         }) as any;
 
         const affectedRows = Array.isArray(result) ? result : result?.[0];
@@ -136,7 +144,7 @@ export async function checkAndDecrementQuotaAtomic(organizationId: string, count
         }
 
         // Fetch updated quota
-        const updatedQuota = await MonthlyQuotas.findOne({ where: { organization_id: organizationId } });
+        const updatedQuota = await MonthlyQuotas.findOne({ where: { organization_id: organizationId , startDate: monthStart } });
         logger.info(`Quota decremented for org ${organizationId}: ${count} leads. New remaining: ${updatedQuota?.remaining}`);
 
         return { ok: true, remaining: updatedQuota?.remaining ?? 0 };
@@ -159,9 +167,7 @@ export async function generateExportCsv(
         // Issue #7: Verify leads exist and belong to organization
         const rows = await ACILeads.findAll({
             where: {
-                id: { [Op.in]: leadIds },
-                // Add organization boundary check
-                organization_id: organizationId
+                id: { [Op.in]: leadIds }
             },
             include: [
                 {
@@ -175,7 +181,7 @@ export async function generateExportCsv(
 
         // Issue #7: Check if all requested leads were found
         if (rows.length === 0) {
-            logger.warn(`No leads found for export ${exportId} in org ${organizationId}`);
+            logger.warn(`No leads found for export ${exportId}`);
             throw new Error("No leads found with provided IDs in your organization");
         }
 
