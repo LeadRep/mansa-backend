@@ -13,52 +13,73 @@ export const getOrganizationQuotas = async (request: Request, response: Response
 
     logger.info(`Fetching organization quotas: search="${search}", page=${page}, limit=${limit}`);
 
-    // Build where clause for search
+    // Build where clause for search on MonthlyQuotas
     const whereClause: any = {};
-    if (search && typeof search === "string" && search.trim()) {
-      whereClause[Op.or] = [
-        Sequelize.where(Sequelize.col("Users.organization_name"), Op.iLike, `%${search}%`),
-      ];
-    }
 
+    // Get all quotas with pagination
     const { rows, count } = await MonthlyQuotas.findAndCountAll({
       where: whereClause,
-      include: [
-        {
-          model: Users,
-          as: "organization",
-          attributes: ["id", "organization_name", "email"],
-          required: false,
-          duplicating: false,
-        },
-      ],
       limit: Number(limit),
       offset: offset,
-      order: [["created_at", "DESC"]],
-      subQuery: false,
-      distinct: true,
+      order: [["updated_at", "DESC"]],
     });
 
-    const totalPages = Math.ceil(count / Number(limit));
+    // Get organization/user details for each quota
+    const organizationsMap = new Map();
+    const orgIds = rows.map((q: any) => q.organization_id);
 
-    logger.info(`Found ${count} organizations with quotas`);
+    if (orgIds.length > 0) {
+      const users = await Users.findAll({
+        where: {
+          organization_id: { [Op.in]: orgIds },
+        },
+        attributes: ["id", "organization_id", "organization_name", "email"],
+      });
+
+      users.forEach((user: any) => {
+        organizationsMap.set(user.organization_id, {
+          organizationName: user.organization_name || "Unknown",
+          email: user.email || "",
+        });
+      });
+    }
+
+    // Apply search filter to results
+    let filteredRows = rows;
+    if (search && typeof search === "string" && search.trim()) {
+      const searchLower = search.toLowerCase();
+      filteredRows = rows.filter((quota: any) => {
+        const orgName = organizationsMap.get(quota.organization_id)?.organizationName || "";
+        return orgName.toLowerCase().includes(searchLower);
+      });
+    }
+
+    const totalPages = Math.ceil(filteredRows.length / Number(limit));
+
+    logger.info(`Found ${filteredRows.length} organizations with quotas`);
 
     return sendResponse(response, 200, "Organizations fetched successfully", {
-      organizations: rows.map((quota: any) => ({
-        id: quota.id,
-        organizationId: quota.organization_id,
-        organizationName: quota.organization?.organization_name || "Unknown",
-        email: quota.organization?.email || "",
-        quotaLimit: quota.quota_limit,
-        remaining: quota.remaining,
-        used: quota.quota_limit - quota.remaining,
-        usagePercentage: quota.quota_limit > 0 ? Math.round((quota.quota_limit - quota.remaining) / quota.quota_limit * 100) : 0,
-        updatedAt: quota.updated_at,
-      })),
+      organizations: filteredRows.map((quota: any) => {
+        const orgInfo = organizationsMap.get(quota.organization_id) || {
+          organizationName: "Unknown",
+          email: "",
+        };
+        return {
+          id: quota.id,
+          organizationId: quota.organization_id,
+          organizationName: orgInfo.organizationName,
+          email: orgInfo.email,
+          quotaLimit: quota.quota_limit,
+          remaining: quota.remaining,
+          used: quota.quota_limit - quota.remaining,
+          usagePercentage: quota.quota_limit > 0 ? Math.round((quota.quota_limit - quota.remaining) / quota.quota_limit * 100) : 0,
+          updatedAt: quota.updated_at,
+        };
+      }),
       pagination: {
         page: Number(page),
         limit: Number(limit),
-        total: count,
+        total: filteredRows.length,
         pages: totalPages,
       },
     });
@@ -77,26 +98,24 @@ export const getOrganizationQuotaDetails = async (request: Request, response: Re
 
     const quota = await MonthlyQuotas.findOne({
       where: { organization_id: organizationId },
-      include: [
-        {
-          model: Users,
-          as: "organization",
-          attributes: ["id", "organization_name", "email", "subscription_tier"],
-          required: false,
-        },
-      ],
     });
 
     if (!quota) {
       return sendResponse(response, 404, "Quota not found for this organization");
     }
 
+    // Get organization/user details
+    const user = await Users.findOne({
+      where: { organization_id: organizationId },
+      attributes: ["id", "organization_id", "organization_name", "email", "subscription_tier"],
+    });
+
     return sendResponse(response, 200, "Quota details fetched successfully", {
       id: quota.id,
       organizationId: quota.organization_id,
-      organizationName: quota.organization?.organization_name || "Unknown",
-      email: quota.organization?.email || "",
-      subscriptionTier: quota.organization?.subscription_tier || "free",
+      organizationName: user?.organization_name || "Unknown",
+      email: user?.email || "",
+      subscriptionTier: user?.subscription_tier || "free",
       quotaLimit: quota.quota_limit,
       remaining: quota.remaining,
       used: quota.quota_limit - quota.remaining,
