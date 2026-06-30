@@ -20,6 +20,13 @@ import {
   getGeo,
   getActiveUsersByOrg,
 } from "../controllers/adminControllers/analytics";
+import {
+  getOrganizationQuotas,
+  getOrganizationQuotaDetails,
+  updateOrganizationQuota,
+  resetOrganizationQuota,
+  bulkUpdateQuotas,
+} from "../controllers/adminControllers/quotaControllers";
 import path from "path";
 import fs from "fs";
 import multer, { FileFilterCallback } from "multer";
@@ -90,5 +97,12 @@ adminRoutes.put("/blogs/:id", updateBlogPost);
 adminRoutes.delete("/blogs/:id", deleteBlogPost);
 adminRoutes.post("/blogs/uploads", upload.single("image"), uploadBlogImage);
 adminRoutes.post("/invite-user", adminInviteUser);
+
+// Quota Management Routes
+adminRoutes.get("/quotas", getOrganizationQuotas);
+adminRoutes.get("/quotas/:organizationId", getOrganizationQuotaDetails);
+adminRoutes.put("/quotas/:organizationId", updateOrganizationQuota);
+adminRoutes.post("/quotas/:organizationId/reset", resetOrganizationQuota);
+adminRoutes.post("/quotas/bulk-update", bulkUpdateQuotas);
 
 export default adminRoutes;
