@@ -4,6 +4,7 @@ import Users from "../../models/Users";
 import sendResponse from "../../utils/http/sendResponse";
 import MonthlyQuotas from "../../models/MonthlyQuotas";
 import {ACILeads} from "../../models/ACILeads";
+import { GeneralLeads } from "../../models/GeneralLeads";
 import {Op} from "sequelize";
 import {v4 as uuidv4} from "uuid";
 import {Parser} from "json2csv";
@@ -190,7 +191,8 @@ export async function generateExportCsv(
         logger.info(`Generating CSV for export ${exportId}: ${leadIds.length} leads`);
 
         // Issue #7: Verify leads exist and belong to organization
-        const rows = await ACILeads.findAll({
+        // Try ACILeads first (ACI-specific leads)
+        let aciRows = await ACILeads.findAll({
             where: {
                 id: { [Op.in]: leadIds }
             },
@@ -202,23 +204,24 @@ export async function generateExportCsv(
             ]
         });
 
-        logger.info(`Found ${rows.length} leads matching export criteria (requested: ${leadIds.length})`);
+        logger.info(`Found ${aciRows.length} leads in ACILeads (requested: ${leadIds.length})`);
 
         // Issue #7: Check if all requested leads were found
+
         if (rows.length === 0) {
             logger.warn(`No leads found for export ${exportId}`);
             throw new Error("No leads found with provided IDs in your organization");
         }
 
-        if (rows.length !== leadIds.length) {
-            const foundIds = rows.map(r => r.id);
+        if (allRows.length !== leadIds.length) {
+            const foundIds = allRows.map(r => r.id);
             const notFoundIds = leadIds.filter(id => !foundIds.includes(id));
             logger.warn(`${notFoundIds.length} leads not found or not accessible for export ${exportId}`);
             throw new Error(`${notFoundIds.length} leads not found or not accessible to your organization`);
         }
 
         // Process and normalize leads
-        const leads = rows.map((lead) =>
+        const leads = allRows.map((lead) =>
             normalizeLead(lead.get({ plain: true }) as PlainLead)
         );
 
