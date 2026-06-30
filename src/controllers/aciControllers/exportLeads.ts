@@ -129,6 +129,38 @@ export async function checkAndDecrementQuotaAtomic(organizationId: string, count
 
         if (!quota) {
             logger.warn(`Quota not configured for organization ${organizationId} in period ${currentMonthYear}`);
+            // Fallback: Check if ANY quota exists for this org (for backward compatibility)
+            const anyQuota = await MonthlyQuotas.findOne({
+                where: { organization_id: organizationId },
+                order: [['startDate', 'DESC']],
+            });
+
+            if (anyQuota) {
+                logger.info(`Found quota for different period: ${anyQuota.startDate}. Using that instead.`);
+                // Use the most recent quota if current month doesn't exist
+                if (anyQuota.remaining < count) {
+                    logger.warn(`Quota exceeded for org ${organizationId}: remaining=${anyQuota.remaining}, requested=${count}`);
+                    return { ok: false, message: "Quota exceeded", remaining: anyQuota.remaining };
+                }
+
+                const result = await MonthlyQuotas.decrement('remaining', {
+                    by: count,
+                    where: { organization_id: organizationId, startDate: anyQuota.startDate }
+                }) as any;
+
+                const affectedRows = Array.isArray(result) ? result : result?.[0];
+                if (!affectedRows || affectedRows.length === 0) {
+                    logger.error(`Failed to decrement quota for org ${organizationId}`);
+                    return { ok: false, message: "Failed to update quota", remaining: anyQuota.remaining };
+                }
+
+                const updatedQuota = await MonthlyQuotas.findOne({
+                    where: { organization_id: organizationId, startDate: anyQuota.startDate }
+                });
+
+                return { ok: true, remaining: updatedQuota?.remaining ?? 0 };
+            }
+
             return { ok: false, message: "Export quota not configured for your organization", remaining: null };
         }
 
