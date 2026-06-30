@@ -90,7 +90,8 @@ export const normalizeLead = (lead: PlainLead) => {
         leadCity: lead.city ?? null,
         leadCountry: lead.country ?? null,
         company: organizationName,
-        companyUuid: lead.org_info?.id ?? null,
+        companyUuid: lead.org_info?.id ?? null,
+
         country: organizationCountry,
         email: lead.email ?? organization?.email ?? null,
         phone: lead.phone ?? organization?.phone ?? null,
@@ -110,3 +111,6 @@ export const normalizeLead = (lead: PlainLead) => {
         individualSegments: individualSegmentsJSON
     };
 };
+
+export const formatMonthYear = (date: Date) =>
+           date.toLocaleString("default", { month: "short", year: "numeric" });

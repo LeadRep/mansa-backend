@@ -3,11 +3,7 @@ import sendResponse from "../../utils/http/sendResponse";
 import logger from "../../logger";
 import Users from "../../models/Users";
 import MonthlyQuotas from "../../models/MonthlyQuotas";
-
-
-const formatMonthYear = (date: Date) =>
-    date.toLocaleString("default", { month: "short", year: "numeric" });
-
+import { formatMonthYear } from "./utils";
 
 export const getACIQuotas = async (request: Request, response: Response) => {
     try {

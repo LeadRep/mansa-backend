@@ -8,7 +8,7 @@ import { GeneralLeads } from "../../models/GeneralLeads";
 import {Op} from "sequelize";
 import {v4 as uuidv4} from "uuid";
 import {Parser} from "json2csv";
-import {normalizeLead, PlainLead} from "./utils";
+import {normalizeLead, PlainLead, formatMonthYear} from "./utils";
 import {recordLeadExport} from "../../services/exportService";
 import ACICompanies from "../../models/ACICompanies";
 
@@ -125,59 +125,20 @@ export const exportLeads = async (request: Request & { user?: any }, response: R
 // Issue #2 & #6: Use atomic database operation for quota decrement
 export async function checkAndDecrementQuotaAtomic(organizationId: string, count: number) {
     try {
-        // Get current month/year in format "Mon YYYY" (e.g., "Jun 2026")
-        const now = new Date();
-        const months = [
-            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-        ];
-        const currentMonthYear = `${months[now.getMonth()]} ${now.getFullYear()}`;
-
-        logger.info(`Checking quota for org ${organizationId} for period: ${currentMonthYear}`);
-
-        // First, check if quota exists for current month and has sufficient remaining
-        const quota = await MonthlyQuotas.findOne({
-            where: {
-                organization_id: organizationId,
-                startDate: currentMonthYear
-            }
-        });
+        // First, check if quota exists and has sufficient remaining
+        // To avoid failure, reset the quota if it doesn't exist for the current month
+        const monthStart = formatMonthYear(new Date());
+        const [quota, created] = await MonthlyQuotas.findOrCreate({
+            where: { organization_id: organizationId, startDate: monthStart },
+              defaults: {
+                  remaining: 300,
+                  organization_id: organizationId,
+                  startDate: monthStart
+              }
+          });
 
         if (!quota) {
-            logger.warn(`Quota not configured for organization ${organizationId} in period ${currentMonthYear}`);
-            // Fallback: Check if ANY quota exists for this org (for backward compatibility)
-            const anyQuota = await MonthlyQuotas.findOne({
-                where: { organization_id: organizationId },
-                order: [['startDate', 'DESC']],
-            });
-
-            if (anyQuota) {
-                logger.info(`Found quota for different period: ${anyQuota.startDate}. Using that instead.`);
-                // Use the most recent quota if current month doesn't exist
-                if (anyQuota.remaining < count) {
-                    logger.warn(`Quota exceeded for org ${organizationId}: remaining=${anyQuota.remaining}, requested=${count}`);
-                    return { ok: false, message: "Quota exceeded", remaining: anyQuota.remaining };
-                }
-
-                const result = await MonthlyQuotas.decrement('remaining', {
-                    by: count,
-                    where: { organization_id: organizationId, startDate: anyQuota.startDate }
-                }) as any;
-
-                const affectedRows = Array.isArray(result) ? result : result?.[0];
-                if (!affectedRows || affectedRows.length === 0) {
-                    logger.error(`Failed to decrement quota for org ${organizationId}`);
-                    return { ok: false, message: "Failed to update quota", remaining: anyQuota.remaining };
-                }
-
-                const updatedQuota = await MonthlyQuotas.findOne({
-                    where: { organization_id: organizationId, startDate: anyQuota.startDate }
-                });
-
-                return { ok: true, remaining: updatedQuota?.remaining ?? 0 };
-            }
-
-            return { ok: false, message: "Export quota not configured for your organization", remaining: null };
+            logger.warn(`Quota not configured for organization ${organizationId}. quota is reset - TO BE INVESTIGATED`);
         }
 
         if (quota.remaining < count) {
@@ -189,26 +150,18 @@ export async function checkAndDecrementQuotaAtomic(organizationId: string, count
         // decrement returns [affectedRows: MonthlyQuotas[], affectedCount?: number]
         const result = await MonthlyQuotas.decrement('remaining', {
             by: count,
-            where: {
-                organization_id: organizationId,
-                startDate: currentMonthYear
-            }
+            where: { organization_id: organizationId , startDate: monthStart }
         }) as any;
 
         const affectedRows = Array.isArray(result) ? result : result?.[0];
         if (!affectedRows || affectedRows.length === 0) {
-            logger.error(`Failed to decrement quota for org ${organizationId} in period ${currentMonthYear}`);
+            logger.error(`Failed to decrement quota for org ${organizationId} in period ${monthStart}`);
             return { ok: false, message: "Failed to update quota", remaining: quota.remaining };
         }
 
         // Fetch updated quota
-        const updatedQuota = await MonthlyQuotas.findOne({
-            where: {
-                organization_id: organizationId,
-                startDate: currentMonthYear
-            }
-        });
-        logger.info(`Quota decremented for org ${organizationId} (${currentMonthYear}): ${count} leads. New remaining: ${updatedQuota?.remaining}`);
+        const updatedQuota = await MonthlyQuotas.findOne({ where: { organization_id: organizationId , startDate: monthStart } });
+        logger.info(`Quota decremented for org ${organizationId} (${monthStart}): ${count} leads. New remaining: ${updatedQuota?.remaining}`);
 
         return { ok: true, remaining: updatedQuota?.remaining ?? 0 };
     } catch (error: any) {
@@ -241,8 +194,7 @@ export async function generateExportCsv(
         // Try ACILeads first (ACI-specific leads)
         let aciRows = await ACILeads.findAll({
             where: {
-                id: { [Op.in]: leadIds },
-                organization_id: organizationId
+                id: { [Op.in]: leadIds }
             },
             include: [
                 {
@@ -254,43 +206,21 @@ export async function generateExportCsv(
 
         logger.info(`Found ${aciRows.length} leads in ACILeads (requested: ${leadIds.length})`);
 
-        // If not all leads found in ACILeads, try GeneralLeads (org-wide cache)
-        let allRows: any[] = aciRows;
-        if (aciRows.length < leadIds.length) {
-            logger.info(`Searching for remaining leads in GeneralLeads cache`);
-            const foundInACI = aciRows.map(r => r.id);
-            const missingIds = leadIds.filter(id => !foundInACI.includes(id));
-
-            const generalRows = await GeneralLeads.findAll({
-                where: {
-                    id: { [Op.in]: missingIds },
-                    organization_id: organizationId
-                }
-            });
-
-            logger.info(`Found ${generalRows.length} additional leads in GeneralLeads`);
-
-            // Combine results from both tables
-            allRows = [...aciRows, ...generalRows];
-        }
-
-        logger.info(`Found ${allRows.length} leads total matching export criteria (requested: ${leadIds.length})`);
-
         // Issue #7: Check if all requested leads were found
-        if (allRows.length === 0) {
-            logger.warn(`No leads found for export ${exportId} in org ${organizationId} (checked both ACILeads and GeneralLeads)`);
+
+        if (aciRows.length === 0) {
+            logger.warn(`No leads found for export ${exportId}`);
             throw new Error("No leads found with provided IDs in your organization");
         }
 
-        if (allRows.length !== leadIds.length) {
-            const foundIds = allRows.map(r => r.id);
+        if (aciRows.length !== leadIds.length) {
+            const foundIds = aciRows.map(r => r.id);
             const notFoundIds = leadIds.filter(id => !foundIds.includes(id));
             logger.warn(`${notFoundIds.length} leads not found or not accessible for export ${exportId}`);
-            throw new Error(`${notFoundIds.length} leads not found or not accessible to your organization`);
         }
 
         // Process and normalize leads
-        const leads = allRows.map((lead) =>
+        const leads = aciRows.map((lead) =>
             normalizeLead(lead.get({ plain: true }) as PlainLead)
         );
 

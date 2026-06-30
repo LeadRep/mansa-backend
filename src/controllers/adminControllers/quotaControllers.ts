@@ -3,8 +3,9 @@ import logger from "../../logger";
 import sendResponse from "../../utils/http/sendResponse";
 import MonthlyQuotas from "../../models/MonthlyQuotas";
 import Users from "../../models/Users";
-import Organizations from "../../models/Organizations";
 import { Op } from "sequelize";
+import { formatMonthYear } from "../aciControllers/utils";
+import Organizations from "../../models/Organizations";
 
 // Get all organizations with their quotas
 export const getOrganizationQuotas = async (request: Request, response: Response) => {
@@ -16,15 +17,9 @@ export const getOrganizationQuotas = async (request: Request, response: Response
       `Fetching organization quotas: search="${search}", month="${month}", year="${year}", page=${page}, limit=${limit}`
     );
 
-    // Build where clause for month/year filter
-    const whereClause: any = {};
-    if (month && year) {
-      // Filter by startDate format: "Mon YYYY" (e.g., "Jun 2026")
-      const searchDate = `${month} ${year}`;
-      whereClause.startDate = searchDate;
-      logger.info(`Filtering by startDate: ${searchDate}`);
-    }
-
+    // Build where clause for month/year filter (default current month if not provided)
+    const monthStart = month && year ? `${month} ${year}` : formatMonthYear(new Date());
+    const whereClause: any = { startDate: monthStart };
     // Get all quotas with pagination
     const { rows, count } = await MonthlyQuotas.findAndCountAll({
       where: whereClause,
@@ -133,9 +128,9 @@ export const getOrganizationQuotaDetails = async (request: Request, response: Re
     const { organizationId } = request.params;
 
     logger.info(`Fetching quota details for org: ${organizationId}`);
-
+    const monthStart = formatMonthYear(new Date());
     const quota = await MonthlyQuotas.findOne({
-      where: { organization_id: organizationId },
+      where: { organization_id: organizationId, startDate: monthStart },
     });
 
     if (!quota) {
@@ -187,9 +182,9 @@ export const updateOrganizationQuota = async (request: Request, response: Respon
     }
 
     logger.info(`Updating quota for org ${organizationId}: remaining=${remaining}`);
-
+    const monthStart = formatMonthYear(new Date());
     const quota = await MonthlyQuotas.findOne({
-      where: { organization_id: organizationId },
+      where: { organization_id: organizationId, startDate: monthStart },
     });
 
     if (!quota) {
@@ -221,9 +216,9 @@ export const resetOrganizationQuota = async (request: Request, response: Respons
     const { remaining = 10000 } = request.body; // Default reset value
 
     logger.info(`Resetting quota for org: ${organizationId}`);
-
+    const monthStart = formatMonthYear(new Date());
     const quota = await MonthlyQuotas.findOne({
-      where: { organization_id: organizationId },
+      where: { organization_id: organizationId, startDate: monthStart },
     });
 
     if (!quota) {
