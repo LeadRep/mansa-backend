@@ -3,7 +3,7 @@ import logger from "../../logger";
 import sendResponse from "../../utils/http/sendResponse";
 import MonthlyQuotas from "../../models/MonthlyQuotas";
 import Users from "../../models/Users";
-import { Op, Sequelize } from "sequelize";
+import { Op } from "sequelize";
 import { formatMonthYear } from "../aciControllers/utils";
 import Organizations from "../../models/Organizations";
 
