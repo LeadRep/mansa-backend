@@ -208,20 +208,19 @@ export async function generateExportCsv(
 
         // Issue #7: Check if all requested leads were found
 
-        if (rows.length === 0) {
+        if (aciRows.length === 0) {
             logger.warn(`No leads found for export ${exportId}`);
             throw new Error("No leads found with provided IDs in your organization");
         }
 
-        if (allRows.length !== leadIds.length) {
-            const foundIds = allRows.map(r => r.id);
+        if (aciRows.length !== leadIds.length) {
+            const foundIds = aciRows.map(r => r.id);
             const notFoundIds = leadIds.filter(id => !foundIds.includes(id));
             logger.warn(`${notFoundIds.length} leads not found or not accessible for export ${exportId}`);
-            throw new Error(`${notFoundIds.length} leads not found or not accessible to your organization`);
         }
 
         // Process and normalize leads
-        const leads = allRows.map((lead) =>
+        const leads = aciRows.map((lead) =>
             normalizeLead(lead.get({ plain: true }) as PlainLead)
         );
 
