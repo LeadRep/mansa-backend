@@ -109,11 +109,26 @@ export const exportLeads = async (request: Request & { user?: any }, response: R
 // Issue #2 & #6: Use atomic database operation for quota decrement
 export async function checkAndDecrementQuotaAtomic(organizationId: string, count: number) {
     try {
-        // First, check if quota exists and has sufficient remaining
-        const quota = await MonthlyQuotas.findOne({ where: { organization_id: organizationId } });
+        // Get current month/year in format "Mon YYYY" (e.g., "Jun 2026")
+        const now = new Date();
+        const months = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+        const currentMonthYear = `${months[now.getMonth()]} ${now.getFullYear()}`;
+
+        logger.info(`Checking quota for org ${organizationId} for period: ${currentMonthYear}`);
+
+        // First, check if quota exists for current month and has sufficient remaining
+        const quota = await MonthlyQuotas.findOne({
+            where: {
+                organization_id: organizationId,
+                startDate: currentMonthYear
+            }
+        });
 
         if (!quota) {
-            logger.warn(`Quota not configured for organization ${organizationId}`);
+            logger.warn(`Quota not configured for organization ${organizationId} in period ${currentMonthYear}`);
             return { ok: false, message: "Export quota not configured for your organization", remaining: null };
         }
 
@@ -126,18 +141,26 @@ export async function checkAndDecrementQuotaAtomic(organizationId: string, count
         // decrement returns [affectedRows: MonthlyQuotas[], affectedCount?: number]
         const result = await MonthlyQuotas.decrement('remaining', {
             by: count,
-            where: { organization_id: organizationId }
+            where: {
+                organization_id: organizationId,
+                startDate: currentMonthYear
+            }
         }) as any;
 
         const affectedRows = Array.isArray(result) ? result : result?.[0];
         if (!affectedRows || affectedRows.length === 0) {
-            logger.error(`Failed to decrement quota for org ${organizationId}`);
+            logger.error(`Failed to decrement quota for org ${organizationId} in period ${currentMonthYear}`);
             return { ok: false, message: "Failed to update quota", remaining: quota.remaining };
         }
 
         // Fetch updated quota
-        const updatedQuota = await MonthlyQuotas.findOne({ where: { organization_id: organizationId } });
-        logger.info(`Quota decremented for org ${organizationId}: ${count} leads. New remaining: ${updatedQuota?.remaining}`);
+        const updatedQuota = await MonthlyQuotas.findOne({
+            where: {
+                organization_id: organizationId,
+                startDate: currentMonthYear
+            }
+        });
+        logger.info(`Quota decremented for org ${organizationId} (${currentMonthYear}): ${count} leads. New remaining: ${updatedQuota?.remaining}`);
 
         return { ok: true, remaining: updatedQuota?.remaining ?? 0 };
     } catch (error: any) {
