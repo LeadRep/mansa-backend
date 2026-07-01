@@ -29,7 +29,7 @@ export async function recordLeadExport(leadIds: string[], userId: string, organi
     await LeadExport.bulkCreate(records, { transaction: tx, validate: false });
 
     // decrement MonthlyQuotas remaining by number of leads exported within the transaction
-    await MonthlyQuotas.decrement('remaining', { by: records.length, where: { organization_id } });
+//     await MonthlyQuotas.decrement('remaining', { by: records.length, where: { organization_id } });
 
     return job;
   });
