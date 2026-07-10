@@ -37,6 +37,10 @@ import {
   userCompanies,
   userCompanyFilterOptions,
 } from "../controllers/usersControllers/userCompanies";
+import {
+  uploadProfilePicture,
+  getUserProfile,
+} from "../controllers/usersControllers/profileController";
 
 const usersRoutes = express.Router();
 const dealNotesUploadDir = path.join(__dirname, "../../uploads/tmp");
@@ -74,6 +78,25 @@ const dealPhotoUpload = multer({
     return cb(null, true);
   },
   limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+const profilePictureUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      cb(null, dealNotesUploadDir);
+    },
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname || "");
+      cb(null, `profile-${crypto.randomUUID()}${ext}`);
+    },
+  }),
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("Only image uploads are allowed"));
+    }
+    return cb(null, true);
+  },
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 usersRoutes.post("/register", registerUserWithOrganization);
 usersRoutes.post("/login", loginUser);
@@ -139,5 +162,14 @@ usersRoutes.post(
 );
 usersRoutes.put("/deal/:dealId/stages", userAuth, updateDealStages);
 usersRoutes.delete("/deal/:dealId/stages/:stageId", userAuth, deleteStage);
+
+// Profile routes
+usersRoutes.get("/profile", userAuth, getUserProfile);
+usersRoutes.post(
+  "/profile/picture",
+  userAuth,
+  profilePictureUpload.single("picture"),
+  uploadProfilePicture
+);
 
 export default usersRoutes;
