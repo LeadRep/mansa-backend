@@ -75,13 +75,19 @@ export const uploadProfilePicture = async (
       }
 
       logger.error(
-        { error: uploadError.message },
+        {
+          error: uploadError.message,
+          stack: uploadError.stack,
+          code: uploadError.code
+        },
         `Failed to upload profile picture for user ${userId}`
       );
       return sendResponse(
         response,
         500,
-        "Failed to upload profile picture to storage"
+        "Failed to upload profile picture to storage",
+        null,
+        uploadError.message
       );
     }
   } catch (error: any) {
