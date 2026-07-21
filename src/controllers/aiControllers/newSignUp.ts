@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import sendResponse from "../../utils/http/sendResponse";
 import axios from "axios";
 import dotenv from "dotenv";
-import { AIResponse, getCRMInsights } from "./customerPreference";
+import { AIResponse, getCRMInsights, getCRMInsightsFromWizard } from "./customerPreference";
 import logger from "../../logger";
 
 dotenv.config();
@@ -41,7 +41,68 @@ const normalizeWebsite = (website: unknown): string => {
 };
 
 export const newSignUp = async (request: Request, response: Response) => {
-  const { keyword, website } = request.body;
+  const { keyword, website, business, audience, country } = request.body;
+
+  // Wizard mode: two conversational answers instead of a single keyword prompt.
+  if (
+    typeof business === "string" &&
+    business.trim().length > 0 &&
+    typeof audience === "string" &&
+    audience.trim().length > 0
+  ) {
+    try {
+      const cleanWebsite = normalizeWebsite(website);
+      let insights: AIResponse | null = null;
+      let attempts = 0;
+      do {
+        insights = await getCRMInsightsFromWizard(
+          business.trim(),
+          audience.trim(),
+          cleanWebsite,
+          typeof country === "string" ? country : ""
+        );
+        attempts++;
+      } while (
+        (insights === null || typeof insights !== "object") &&
+        attempts < 3
+      );
+
+      if (!insights || typeof insights !== "object") {
+        sendResponse(
+          response,
+          502,
+          "Failed to generate onboarding profile",
+          null,
+          "AI service returned no result"
+        );
+        return;
+      }
+
+      sendResponse(response, 200, "success", {
+        user: {
+          firstName: "",
+          lastName: "",
+          companyName: "",
+          website: cleanWebsite,
+          country: typeof country === "string" ? country : "",
+          role: "",
+        },
+        insights,
+      });
+      return;
+    } catch (error: any) {
+      logger.error(error, "Error in newSignUp wizard mode:");
+      sendResponse(
+        response,
+        500,
+        "Internal Server Error",
+        null,
+        error.message || "Something went wrong"
+      );
+      return;
+    }
+  }
+
   try {
     const messages = [
       {
