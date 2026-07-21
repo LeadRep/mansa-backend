@@ -14,6 +14,17 @@ export type IntroMailSender = {
   companyId?: string | null;
 };
 
+export type IntroMailTone = "formal" | "warm" | "short";
+
+const TONE_INSTRUCTIONS: Record<IntroMailTone, string> = {
+  formal:
+    "Tone: formal and professional. Use polite openings, precise language, and no contractions.",
+  warm:
+    "Tone: warm and conversational. First-person, friendly, use contractions, sound like a peer.",
+  short:
+    "Tone: extremely concise. Aim for under 60 words in the body. Cut niceties, keep the CTA.",
+};
+
 const safeTrim = (value: unknown): string =>
   typeof value === "string" ? value.trim() : "";
 
@@ -269,7 +280,8 @@ Risques liés aux marchés émergents : L'investissement dans la région Afrique
 export const generateIntroMailForLead = async (
   customer: any,
   lead: any,
-  sender?: IntroMailSender | null
+  sender?: IntroMailSender | null,
+  tone?: IntroMailTone | null
 ): Promise<IntroMail> => {
 
   // Check if this is a BFS-like account
@@ -287,13 +299,13 @@ export const generateIntroMailForLead = async (
   const senderDisplay = getSenderDisplay(sender);
   const preferredLanguage = getPreferredLanguage(customer);
   const languageInstructions = getLanguageInstructions(preferredLanguage);
+  const toneInstruction = tone ? TONE_INSTRUCTIONS[tone] : "";
 
   try {
     const messages = [
       {
         role: "system",
-        content:
-          "You generate concise B2B intro emails and output only JSON with double-quoted keys. ${languageInstructions}",
+        content: `You generate concise B2B intro emails and output only JSON with double-quoted keys. ${languageInstructions}`,
       },
       {
         role: "user",
@@ -303,7 +315,7 @@ export const generateIntroMailForLead = async (
           senderDisplay
         )}\n\nGenerate ONE intro email for this lead:\n${JSON.stringify(
           lead
-        )}\n\nReturn only JSON object with this shape:\n{\n  \"subject\": \"string\",\n  \"body\": \"string\"\n}\n\nTemplate guidance:\n- Subject should match: Helping {{role/company type}} with {{measurable outcome}}\n- Greeting line: Hi {{first name}}\n- Include a short observation hook\n- Include a short value proposition\n- Include one-line CTA for a 3-minute intro call\n- Include signature placeholder with First name Last name / Company\n\n${languageInstructions}`,
+        )}\n\nReturn only JSON object with this shape:\n{\n  \"subject\": \"string\",\n  \"body\": \"string\"\n}\n\nTemplate guidance:\n- Subject should match: Helping {{role/company type}} with {{measurable outcome}}\n- Greeting line: Hi {{first name}}\n- Include a short observation hook\n- Include a short value proposition\n- Include one-line CTA for a 3-minute intro call\n- Include signature placeholder with First name Last name / Company\n\n${languageInstructions}${toneInstruction ? "\n" + toneInstruction : ""}`,
       },
     ];
 

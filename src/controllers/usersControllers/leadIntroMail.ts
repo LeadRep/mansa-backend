@@ -9,7 +9,15 @@ import { generateMicrosoftAuthUrl } from "./contacts/microsoft/microsoftConfig";
 import {
   generateIntroMailForLead,
   normalizeIntroMail,
+  type IntroMailTone,
 } from "../leadsController/introMail";
+
+const VALID_TONES: readonly IntroMailTone[] = ["formal", "warm", "short"] as const;
+const parseTone = (value: unknown): IntroMailTone | null => {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase() as IntroMailTone;
+  return (VALID_TONES as readonly string[]).includes(normalized) ? normalized : null;
+};
 const getLeadByOwner = async (leadId: string, ownerId: string) =>
   Leads.findOne({ where: { id: leadId, owner_id: ownerId } });
 
@@ -59,6 +67,27 @@ export const getOrGenerateLeadIntroMail = async (req: Request, res: Response) =>
     const lead = await getLeadByOwner(leadId, userId);
     if (!lead) {
       sendResponse(res, 404, "Lead not found");
+      return;
+    }
+
+    const tone = parseTone(req.body?.tone ?? (req.query as any)?.tone);
+
+    // If the caller requested a specific tone, always regenerate — but do not
+    // overwrite the cached default draft so subsequent default requests are fast.
+    if (tone) {
+      const customerPref = await CustomerPref.findOne({ where: { userId } });
+      const introMail = await generateIntroMailForLead(
+        customerPref,
+        lead.get({ plain: true }),
+        senderProfile,
+        tone
+      );
+      sendResponse(res, 200, "Intro mail generated", {
+        leadId: lead.id,
+        intro_mail: introMail,
+        generated: true,
+        tone,
+      });
       return;
     }
 

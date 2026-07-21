@@ -231,6 +231,100 @@ export async function getCRMInsights(
   }
 }
 
+/**
+ * Wizard-mode ICP/BP generator. Feeds two free-text answers (what the company
+ * does, who they sell to) instead of scraping full firmographics. Returns the
+ * same {ideal_customer_profile, buyer_persona} shape as getCRMInsights so the
+ * downstream signup flow doesn't need to branch.
+ */
+export async function getCRMInsightsFromWizard(
+  business: string,
+  audience: string,
+  website: string = "",
+  country: string = ""
+): Promise<AIResponse | null> {
+  let websiteContent = "";
+  const safeWebsite = website?.trim();
+  if (safeWebsite && isLikelyUrl(safeWebsite)) {
+    websiteContent = await scrapeWebsiteContent(normalizeUrl(safeWebsite));
+  }
+
+  const messages = [
+    {
+      role: "system",
+      content:
+        "You are a CRM intelligence assistant. Given two onboarding answers from a sales rep, produce an Ideal Customer Profile (ICP) and Buyer Persona describing that rep's *target customers* (not the rep's own company). Output valid JSON only, matching the schema exactly — no extra text, no markdown.",
+    },
+    {
+      role: "user",
+      content: `
+      Onboarding answers:
+      - "What does your company do?": "${business}"
+      - "Who do you sell to?": "${audience}"
+      - Website: ${website || "N/A"}
+      - Country: ${country || "Global"}
+      - Website Content: ${websiteContent || ""}
+
+      Use these to generate:
+      1. An *Ideal Customer Profile (ICP)* — the typical organization the rep targets.
+      2. A *fictional Buyer Persona* — a decision-maker inside that ICP.
+
+      Rules:
+      - Every field in the schema must be present. If unknown, use "" (or [] for arrays).
+      - Never describe the rep's own company — describe the customers they sell to.
+
+      Return this exact JSON structure:
+      {
+        "ideal_customer_profile": {
+          "industry": "",
+          "company_size": [""],
+          "geographical_focus": "",
+          "revenue": [""],
+          "tech_stack": "",
+          "growth_stage": "",
+          "pain_points": "",
+          "buying_triggers": "",
+          "decision_making_process": ""
+        },
+        "buyer_persona": {
+          "name": "",
+          "role": "",
+          "similar_titles": "",
+          "person_seniorities": [""],
+          "gender": "",
+          "department": "",
+          "age_range": "min-max",
+          "locations": "",
+          "responsibilities": "",
+          "income_level": "",
+          "business_model": "",
+          "challenges": "",
+          "goals": "",
+          "buying_power": "",
+          "objections": "",
+          "preferred_communication_channel": "",
+          "motivation": "",
+          "buying_trigger": ""
+        }
+      }
+
+      Constraints for enum-like fields:
+      - revenue: pick from ["Less than $1M","$1M-$10M","$10M-$50M","$50M-$100M","$100M-$250M","$250M-$500M","$500M-$1B","$1B-$10B","$10B+"] or [] if unknown.
+      - company_size: pick from ["1-10","11-50","51-200","201-500","501-1,000","1,001-5,000","5,001-10,000","10,001+"] or [] if unknown.
+      - person_seniorities: pick from ["owner","founder","c_suite","partner","vp","head","director","manager","senior","entry","intern"] or [] if unknown.
+      Output ONLY the JSON object.`,
+    },
+  ];
+
+  try {
+    const response = await aiService.request({ messages, max_tokens: 1800 });
+    return response.data as AIResponse;
+  } catch (error: any) {
+    logger.error(error, "Error fetching wizard AI response:");
+    return null;
+  }
+}
+
 export const customerPreference = async (req: Request, res: Response) => {
   const { companyName, role, website, country } = req.body;
 
