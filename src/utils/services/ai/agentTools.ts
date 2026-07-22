@@ -274,7 +274,7 @@ const getCompanies: ToolSpec = {
     }
 
     const companies = Array.from(companyMap.values())
-      .sort((a, b) => (b.leadCount + b.contactCount) - (a.leadCount + a.leadCount))
+      .sort((a, b) => (b.leadCount + b.contactCount) - (a.leadCount + a.contactCount))
       .slice(0, clampLimit(args.limit));
 
     return companies;
