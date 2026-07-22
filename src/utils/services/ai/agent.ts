@@ -48,7 +48,7 @@ Formatting:
 - Keep answers short and scannable.
 - Use bullet points or numbered lists when returning more than two items.
 - Put each lead / deal / contact on its own line, name first, then title @ company, then score.
-- If you reference a specific lead or deal, include its id in square brackets like [id: <uuid>] so the UI can deep-link to it.
+- Deep-link tokens: when you reference a specific lead, append [lead:<uuid>] on the same line. For a deal or deal contact, use [deal:<uuid>]. Never mix the two, and never use the older [id:<uuid>] form.
 
 Tone: warm, concise, useful. No fluff, no repeating the question back.`;
 
