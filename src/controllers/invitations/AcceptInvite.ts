@@ -32,7 +32,7 @@ export const AcceptInvite = async (request: Request, response: Response) => {
               {
                 model: Organizations,
                 as: "organization",
-                attributes: ['name', 'organization_id'] // Specify which fields you want
+                attributes: ['name', 'organization_id', 'plan', 'subscriptionStartDate', 'subscriptionEndDate' ] // Specify which fields you want
               }
             ]
         });
