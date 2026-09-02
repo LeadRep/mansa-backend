@@ -25,9 +25,20 @@ import {
   getChatSession,
   listChatSessions,
 } from "../controllers/aiControllers/chatSessions";
+import {
+  getPublicBotConfig,
+  streamPublicChat,
+  captureLead,
+} from "../controllers/aiControllers/publicChatController";
 // import { findPeople } from "../controllers/aiControllers/findPeople.js";
 
 const aiRoutes = express.Router();
+
+// Public Landing Page AI Chatbot routes (Unauthenticated for visitors)
+aiRoutes.get("/public-chat/config", getPublicBotConfig);
+aiRoutes.post("/public-chat/stream", streamPublicChat);
+aiRoutes.post("/public-chat/lead-capture", captureLead);
+
 // SECURITY: Requires authentication to prevent resource abuse and unauthorized AI operations
 aiRoutes.post("/customer-pref", userAuth, customerPreference);
 aiRoutes.post("/leads-prompt", userAuth, leadsPrompt);

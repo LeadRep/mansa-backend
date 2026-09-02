@@ -88,15 +88,31 @@ class AIConfigManager {
 
 export const aiConfigManager = new AIConfigManager();
 
-// Helper function to get the appropriate AI service
+// Helper function to get the appropriate AI service with automatic fallback
 export async function getAIService() {
   const provider = aiConfigManager.getProvider();
 
   if (provider === "vertexai") {
     const { getVertexAIService } = await import("./vertexai");
-    return getVertexAIService(aiConfigManager.getVertexAIConfig());
+    const vertexService = getVertexAIService(aiConfigManager.getVertexAIConfig());
+    const openAIModule = await import("./openai");
+
+    return {
+      ...vertexService,
+      generateContent: async (prompt: string, options?: any) => {
+        try {
+          return await vertexService.generateContent(prompt, options);
+        } catch (err: any) {
+          logger.warn(
+            { err: err.message },
+            "Vertex AI failed or forbidden. Falling back to configured OpenAI endpoint..."
+          );
+          return await openAIModule.getAICompletion(prompt);
+        }
+      },
+    };
   } else {
-    // Default to OpenAI or a wrapper
+    // Default to OpenAI
     const module = await import("./openai");
     return {
       generateContent: module.getAICompletion,

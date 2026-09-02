@@ -37,6 +37,7 @@ import {
   userCompanies,
   userCompanyFilterOptions,
 } from "../controllers/usersControllers/userCompanies";
+import { searchCompanyPeople } from "../controllers/usersControllers/companyPeople";
 import {
   uploadProfilePicture,
   getUserProfile,
@@ -107,6 +108,7 @@ usersRoutes.post("/reset-password", resetPassword);
 usersRoutes.get("/leads", userAuth, userLeads);
 usersRoutes.get("/companies", userAuth, userCompanies);
 usersRoutes.get("/companies/filter-options", userAuth, userCompanyFilterOptions);
+usersRoutes.get("/companies/:companyId/people", userAuth, searchCompanyPeople);
 usersRoutes.post("/leads/share", userAuth, shareLeads);
 usersRoutes.post("/leads/:leadId/intro-mail", userAuth, getOrGenerateLeadIntroMail);
 usersRoutes.post(

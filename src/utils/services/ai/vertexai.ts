@@ -8,6 +8,7 @@ interface VertexAIConfig {
   projectId: string;
   location: string;
   model: string;
+  apiKey?: string;
   maxTokens?: number;
   temperature?: number;
 }
@@ -25,7 +26,8 @@ interface VertexAIResponse {
 class VertexAIService {
   private projectId: string = "";
   private location: string = "us-central1";
-  private model: string = "gemini-3.5-flash";
+  private model: string = "gemini-1.5-flash";
+  private apiKey: string = "";
   private maxTokens: number = 2000;
   private temperature: number = 0.0;
   private auth: GoogleAuth | null = null;
@@ -38,7 +40,15 @@ class VertexAIService {
   }
 
   private loadConfig(config?: Partial<VertexAIConfig>) {
-    // Try to load from ai-config.json
+    // Check for API key in config or environment variables
+    this.apiKey =
+      config?.apiKey ||
+      process.env.VERTEX_API_KEY ||
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      "";
+
+    // Try to load from ai-config.json if not using api key
     try {
       const configPath = path.join(process.cwd(), "secrets", "ai-config.json");
       if (fs.existsSync(configPath)) {
@@ -53,28 +63,38 @@ class VertexAIService {
       config?.projectId ||
       process.env.GCP_PROJECT_ID ||
       process.env.GOOGLE_CLOUD_PROJECT ||
-      "ornate-casing-444308-t1"; // From ai-config.json
+      "ornate-casing-444308-t1";
     this.location = config?.location || process.env.GCP_LOCATION || "us-central1";
-    this.model = config?.model || process.env.VERTEX_AI_MODEL || "gemini-3.5-flash";
+    
+    // Normalize model name (fallback from invalid 'gemini-3.5-flash')
+    let rawModel = config?.model || process.env.VERTEX_AI_MODEL || "gemini-1.5-flash";
+    if (rawModel.toLowerCase().includes("3.5")) {
+      rawModel = "gemini-1.5-flash";
+    }
+    this.model = rawModel;
     this.maxTokens = config?.maxTokens || parseInt(process.env.VERTEX_AI_MAX_TOKENS || "2000");
     this.temperature = config?.temperature || parseFloat(process.env.VERTEX_AI_TEMPERATURE || "0.0");
 
-    logger.info(`Vertex AI configured: project=${this.projectId}, model=${this.model}`);
+    if (this.apiKey) {
+      logger.info(`Vertex AI / Gemini configured with API Key: model=${this.model}`);
+    } else {
+      logger.info(`Vertex AI configured with ADC: project=${this.projectId}, model=${this.model}`);
+    }
   }
 
   private async initializeAuth() {
+    // If API Key is configured, OAuth ADC is optional
+    if (this.apiKey) {
+      return;
+    }
+
     try {
-      // Use Application Default Credentials (ADC)
-      // The SDK will look for GOOGLE_APPLICATION_CREDENTIALS env var
-      // or use the default credentials from the system
       this.auth = new GoogleAuth({
         scopes: ["https://www.googleapis.com/auth/cloud-platform"],
       });
-
       logger.info("Vertex AI authentication initialized with ADC");
     } catch (error: any) {
-      logger.error(error, "Failed to initialize Vertex AI authentication");
-      throw new Error("Could not initialize Vertex AI authentication");
+      logger.warn(error, "Vertex AI ADC not initialized; will rely on API key or fallback");
     }
   }
 
@@ -84,7 +104,6 @@ class VertexAIService {
         throw new Error("Auth not initialized");
       }
 
-      // Check if token is still valid (with 5 min buffer)
       if (this.accessToken && Date.now() < this.tokenExpiry - 5 * 60 * 1000) {
         return this.accessToken;
       }
@@ -97,9 +116,7 @@ class VertexAIService {
       }
 
       this.accessToken = tokenResponse.token;
-      // Google access tokens expire in ~1 hour, set expiry 55 minutes from now
       this.tokenExpiry = Date.now() + 55 * 60 * 1000;
-
       return this.accessToken;
     } catch (error: any) {
       logger.error(error, "Error getting access token for Vertex AI");
@@ -115,61 +132,98 @@ class VertexAIService {
     let attempt = 0;
     let lastErr: any = null;
 
+    let targetModel = options?.model || this.model;
+    if (targetModel.toLowerCase().includes("3.5")) {
+      targetModel = "gemini-1.5-flash";
+    }
+
     const config = {
       ...options,
-      model: options?.model || this.model,
+      model: targetModel,
       maxTokens: options?.maxTokens || this.maxTokens,
       temperature: options?.temperature ?? this.temperature,
     };
 
-    while (attempt < maxAttempts) {
-      try {
-        const accessToken = await this.getAccessToken();
+    const currentApiKey =
+      options?.apiKey ||
+      this.apiKey ||
+      process.env.VERTEX_API_KEY ||
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      "";
 
-        const endpoint = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${config.model}:generateContent`;
-
-        const requestBody = {
-          contents: [
+    const requestBody = {
+      contents: [
+        {
+          role: "user",
+          parts: [
             {
-              role: "user",
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
+              text: prompt,
             },
           ],
-          generationConfig: {
-            maxOutputTokens: config.maxTokens,
-            temperature: config.temperature,
-          },
-        };
+        },
+      ],
+      generationConfig: {
+        maxOutputTokens: config.maxTokens,
+        temperature: config.temperature,
+      },
+    };
 
-        const response = await axios.post<VertexAIResponse>(endpoint, requestBody, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-          timeout: 30000,
-        });
+    while (attempt < maxAttempts) {
+      try {
+        let response: any;
 
-        // Extract text from Vertex AI response
+        // Path A: Use API Key (Google AI Studio / Gemini Endpoint)
+        if (currentApiKey) {
+          const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${currentApiKey}`;
+          try {
+            response = await axios.post<VertexAIResponse>(geminiEndpoint, requestBody, {
+              headers: {
+                "Content-Type": "application/json",
+              },
+              timeout: 30000,
+            });
+          } catch (apiErr: any) {
+            // If generativelanguage 404/error, attempt Vertex AI endpoint with API key
+            const vertexKeyEndpoint = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${config.model}:generateContent?key=${currentApiKey}`;
+            response = await axios.post<VertexAIResponse>(vertexKeyEndpoint, requestBody, {
+              headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": currentApiKey,
+              },
+              timeout: 30000,
+            });
+          }
+        } else {
+          // Path B: Use OAuth 2.0 Access Token via ADC
+          const accessToken = await this.getAccessToken();
+          const endpoint = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${config.model}:generateContent`;
+
+          response = await axios.post<VertexAIResponse>(endpoint, requestBody, {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            timeout: 30000,
+          });
+        }
+
+        // Extract text from response
         let content =
           response.data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
           "";
 
         if (!content) {
-          throw new Error("No content in Vertex AI response");
+          throw new Error("No content in Vertex AI / Gemini response");
         }
 
-        // Handle JSON code blocks
         if (content.startsWith("```json")) {
           content = content.substring(7, content.length - 3).trim();
         } else if (content.startsWith("```")) {
           content = content.substring(3, content.length - 3).trim();
         }
 
-        logger.info(`Vertex AI completion successful on attempt ${attempt + 1}`);
+        logger.info(`Vertex AI / Gemini completion successful on attempt ${attempt + 1}`);
         return content;
       } catch (error: any) {
         lastErr = error;
@@ -182,7 +236,7 @@ class VertexAIService {
             status,
             error: error.message,
           },
-          "Vertex AI API error"
+          "Vertex AI / Gemini API error"
         );
 
         if (error.response?.data) {
