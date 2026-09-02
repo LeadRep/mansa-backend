@@ -98,6 +98,36 @@ adminRoutes.delete("/blogs/:id", deleteBlogPost);
 adminRoutes.post("/blogs/uploads", upload.single("image"), uploadBlogImage);
 adminRoutes.post("/invite-user", adminInviteUser);
 
+import {
+  listKnowledgeSources,
+  uploadDocument,
+  createTextSource,
+  toggleKnowledgeSource,
+  deleteKnowledgeSource,
+  reindexKnowledgeSource,
+  getBotConfig,
+  updateBotConfig,
+  testRAGQuery,
+  getVisitorConversations,
+} from "../controllers/adminControllers/knowledgeBaseController";
+
+const docUpload = multer({
+  dest: uploadTempDir,
+  limits: { fileSize: 25 * 1024 * 1024 },
+});
+
+// Knowledge Base & AI Chatbot Management Routes
+adminRoutes.get("/knowledge", listKnowledgeSources);
+adminRoutes.post("/knowledge/upload", docUpload.single("file"), uploadDocument);
+adminRoutes.post("/knowledge/text", createTextSource);
+adminRoutes.patch("/knowledge/:id/toggle", toggleKnowledgeSource);
+adminRoutes.delete("/knowledge/:id", deleteKnowledgeSource);
+adminRoutes.post("/knowledge/:id/reindex", reindexKnowledgeSource);
+adminRoutes.get("/bot-config", getBotConfig);
+adminRoutes.put("/bot-config", updateBotConfig);
+adminRoutes.post("/knowledge/test-query", testRAGQuery);
+adminRoutes.get("/knowledge/conversations", getVisitorConversations);
+
 // Quota Management Routes
 adminRoutes.get("/quotas", getOrganizationQuotas);
 adminRoutes.get("/quotas/:organizationId", getOrganizationQuotaDetails);
