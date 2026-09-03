@@ -151,15 +151,21 @@ export async function generateEmbedding(
 }
 
 /**
- * Batch generate embeddings for multiple chunks.
+ * Batch generate embeddings for multiple chunks in parallel.
  */
 export async function generateBatchEmbeddings(
-  texts: string[]
+  texts: string[],
+  concurrency = 8
 ): Promise<number[][]> {
-  const results: number[][] = [];
-  for (const text of texts) {
-    const vec = await generateEmbedding(text, "RETRIEVAL_DOCUMENT");
-    results.push(vec);
+  const results: number[][] = new Array(texts.length);
+  for (let i = 0; i < texts.length; i += concurrency) {
+    const batch = texts.slice(i, i + concurrency);
+    const batchResults = await Promise.all(
+      batch.map((text) => generateEmbedding(text, "RETRIEVAL_DOCUMENT"))
+    );
+    for (let j = 0; j < batchResults.length; j++) {
+      results[i + j] = batchResults[j];
+    }
   }
   return results;
 }

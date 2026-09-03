@@ -29,9 +29,23 @@ export async function parseDocumentFile(
 
   if (ext === ".pdf" || mimeType === "application/pdf") {
     const dataBuffer = fs.readFileSync(filePath);
-    const pdf = typeof pdfParse === "function" ? pdfParse : require("pdf-parse");
-    const parsed = await pdf(dataBuffer);
-    text = parsed.text || "";
+    const pdfLib = typeof pdfParse === "object" || typeof pdfParse === "function" ? pdfParse : require("pdf-parse");
+
+    if (pdfLib?.PDFParse) {
+      // pdf-parse v2+ class API
+      const instance = new pdfLib.PDFParse({ data: dataBuffer });
+      const parsed = await instance.getText();
+      text = parsed?.text || "";
+    } else if (typeof pdfLib === "function") {
+      // pdf-parse v1 function API
+      const parsed = await pdfLib(dataBuffer);
+      text = parsed?.text || "";
+    } else if (pdfLib?.default && typeof pdfLib.default === "function") {
+      const parsed = await pdfLib.default(dataBuffer);
+      text = parsed?.text || "";
+    } else {
+      throw new Error("Unable to initialize PDF parser");
+    }
   } else if (
     ext === ".txt" ||
     ext === ".md" ||
