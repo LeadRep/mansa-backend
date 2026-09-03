@@ -8,6 +8,7 @@ export interface PublicChatSessionAttributes {
   visitorName?: string | null;
   visitorEmail?: string | null;
   visitorCompany?: string | null;
+  visitorPhone?: string | null;
   pageUrl?: string | null;
   referrer?: string | null;
   metadata?: any;
@@ -22,6 +23,7 @@ type PublicChatSessionCreationAttributes = Optional<
   | "visitorName"
   | "visitorEmail"
   | "visitorCompany"
+  | "visitorPhone"
   | "pageUrl"
   | "referrer"
   | "metadata"
@@ -40,6 +42,7 @@ export class PublicChatSession
   public visitorName!: string | null;
   public visitorEmail!: string | null;
   public visitorCompany!: string | null;
+  public visitorPhone!: string | null;
   public pageUrl!: string | null;
   public referrer!: string | null;
   public metadata!: any;
@@ -72,6 +75,10 @@ PublicChatSession.init(
       allowNull: true,
     },
     visitorCompany: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    visitorPhone: {
       type: DataTypes.STRING,
       allowNull: true,
     },

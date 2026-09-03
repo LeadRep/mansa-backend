@@ -1,11 +1,13 @@
 import { Request, Response } from "express";
 import fs from "fs";
 import path from "path";
+import { Op } from "sequelize";
 import KnowledgeSource from "../../models/KnowledgeSource";
 import KnowledgeChunk from "../../models/KnowledgeChunk";
 import BotConfig from "../../models/BotConfig";
 import PublicChatSession from "../../models/PublicChatSession";
 import PublicChatMessage from "../../models/PublicChatMessage";
+import { UnresolvedQuestion } from "../../models/UnresolvedQuestion";
 import { parseDocumentFile, cleanText } from "../../utils/services/ai/documentParser";
 import { chunkText } from "../../utils/services/ai/chunking";
 import { generateBatchEmbeddings } from "../../utils/services/ai/embeddings";
@@ -479,5 +481,176 @@ export const getVisitorConversations = async (req: Request, res: Response): Prom
   } catch (error: any) {
     logger.error({ error }, "Error fetching visitor conversations");
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * GET /v1/admin/knowledge-gaps
+ * List unresolved or low-confidence questions
+ */
+export const getUnresolvedQuestions = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = (page - 1) * limit;
+    const status = (req.query.status as string) || "pending";
+    const search = (req.query.search as string)?.trim() || "";
+
+    const whereClause: any = {
+      ownerType: "admin",
+    };
+
+    if (status && status !== "all") {
+      whereClause.status = status;
+    }
+
+    if (search) {
+      whereClause.question = {
+        [Op.iLike]: `%${search}%`,
+      };
+    }
+
+    const { count, rows: questions } = await UnresolvedQuestion.findAndCountAll({
+      where: whereClause,
+      order: [
+        ["frequency", "DESC"],
+        ["lastAskedAt", "DESC"],
+      ],
+      limit,
+      offset,
+    });
+
+    const pendingCount = await UnresolvedQuestion.count({
+      where: { ownerType: "admin", status: "pending" },
+    });
+
+    res.json({
+      success: true,
+      total: count,
+      pendingCount,
+      page,
+      totalPages: Math.ceil(count / limit),
+      questions,
+    });
+  } catch (error: any) {
+    logger.error({ error }, "Error fetching unresolved questions");
+    res.status(500).json({ success: false, message: error.message || "Failed to fetch knowledge gaps." });
+  }
+};
+
+/**
+ * POST /v1/admin/knowledge-gaps/:id/resolve
+ * Provide an answer to an unresolved question and automatically create/index an FAQ knowledge source
+ */
+export const resolveUnresolvedQuestion = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { question, answer } = req.body;
+
+    if (!answer || !answer.trim()) {
+      res.status(400).json({ success: false, message: "Answer is required." });
+      return;
+    }
+
+    const gap = await UnresolvedQuestion.findByPk(id);
+    if (!gap) {
+      res.status(404).json({ success: false, message: "Unresolved question not found." });
+      return;
+    }
+
+    const finalQuestion = (question && question.trim()) || gap.question;
+    const cleanAnswer = answer.trim();
+
+    // 1. Create a new structured KnowledgeSource FAQ entry
+    const faqTitle = `FAQ: ${finalQuestion.slice(0, 60)}${finalQuestion.length > 60 ? "..." : ""}`;
+    const faqContent = `Question: ${finalQuestion}\nAnswer: ${cleanAnswer}`;
+
+    const source = await KnowledgeSource.create({
+      ownerType: "admin",
+      title: faqTitle,
+      type: "text",
+      fileType: "text/plain",
+      fileSize: Buffer.byteLength(faqContent, "utf-8"),
+      content: faqContent,
+      status: "processing",
+      chunkCount: 0,
+      tokenCount: 0,
+      isActive: true,
+      metadata: {
+        resolvedFromGapId: gap.id,
+        question: finalQuestion,
+      },
+    });
+
+    // 2. Chunk & Embed FAQ entry
+    const chunks = chunkText(faqContent, { chunkSize: 800, chunkOverlap: 100 });
+    const chunkTexts = chunks.map((c) => c.content);
+    const embeddings = await generateBatchEmbeddings(chunkTexts);
+
+    let totalTokens = 0;
+    const chunkRecords = chunks.map((c, i) => {
+      totalTokens += c.tokenCount;
+      return {
+        sourceId: source.id,
+        chunkIndex: c.chunkIndex,
+        content: c.content,
+        tokenCount: c.tokenCount,
+        embedding: embeddings[i] || [],
+        metadata: { sourceTitle: faqTitle },
+      };
+    });
+
+    await KnowledgeChunk.bulkCreate(chunkRecords);
+
+    await source.update({
+      chunkCount: chunks.length,
+      tokenCount: totalTokens,
+      status: "ready",
+    });
+
+    // 3. Mark the gap as resolved
+    await gap.update({
+      status: "resolved",
+      suggestedAnswer: cleanAnswer,
+      resolvedSourceId: source.id,
+    });
+
+    res.json({
+      success: true,
+      message: "Answer added and indexed into Knowledge Base successfully.",
+      gap,
+      source,
+    });
+  } catch (error: any) {
+    logger.error({ error }, "Error resolving unresolved question");
+    res.status(500).json({ success: false, message: error.message || "Failed to resolve question." });
+  }
+};
+
+/**
+ * DELETE /v1/admin/knowledge-gaps/:id
+ * Dismiss or delete an unresolved question
+ */
+export const dismissUnresolvedQuestion = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const action = req.query.action as string; // 'ignore' | 'delete'
+
+    const gap = await UnresolvedQuestion.findByPk(id);
+    if (!gap) {
+      res.status(404).json({ success: false, message: "Unresolved question not found." });
+      return;
+    }
+
+    if (action === "delete") {
+      await gap.destroy();
+      res.json({ success: true, message: "Question removed." });
+    } else {
+      await gap.update({ status: "ignored" });
+      res.json({ success: true, message: "Question marked as ignored." });
+    }
+  } catch (error: any) {
+    logger.error({ error }, "Error dismissing unresolved question");
+    res.status(500).json({ success: false, message: error.message || "Failed to dismiss question." });
   }
 };

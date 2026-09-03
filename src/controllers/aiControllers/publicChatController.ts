@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import BotConfig from "../../models/BotConfig";
 import PublicChatSession from "../../models/PublicChatSession";
 import PublicChatMessage from "../../models/PublicChatMessage";
+import { UnresolvedQuestion } from "../../models/UnresolvedQuestion";
 import { retrieveRelevantChunks, buildRAGPrompt } from "../../utils/services/ai/ragEngine";
 import { getAIService } from "../../utils/services/ai/aiConfig";
 import logger from "../../logger";
@@ -159,6 +160,51 @@ export const streamPublicChat = async (req: Request, res: Response): Promise<voi
       sources: sourceReferences,
     });
 
+    // 7. Track Knowledge Gap / Unresolved Question if similarity is low or no chunks match
+    const topSimilarity = retrievedChunks[0]?.similarity || 0;
+    const isLowConfidence =
+      retrievedChunks.length === 0 ||
+      topSimilarity < 0.48 ||
+      fullAnswer.toLowerCase().includes("not mentioned in our knowledge base") ||
+      fullAnswer.toLowerCase().includes("contact our team for more details");
+
+    if (isLowConfidence && userText.trim().length > 4) {
+      (async () => {
+        try {
+          const normalized = userText.trim();
+          const existingGap = await UnresolvedQuestion.findOne({
+            where: {
+              ownerType: "admin",
+              question: normalized,
+              status: "pending",
+            },
+          });
+
+          if (existingGap) {
+            await existingGap.update({
+              frequency: existingGap.frequency + 1,
+              lastAskedAt: new Date(),
+              lastBotResponse: fullAnswer.slice(0, 1000),
+              similarityScore: topSimilarity,
+            });
+          } else {
+            await UnresolvedQuestion.create({
+              ownerType: "admin",
+              question: normalized,
+              frequency: 1,
+              status: "pending",
+              lastAskedAt: new Date(),
+              lastBotResponse: fullAnswer.slice(0, 1000),
+              similarityScore: topSimilarity,
+              visitorId: clientVisitorId,
+            });
+          }
+        } catch (gapErr) {
+          logger.warn({ gapErr }, "Error logging unresolved question gap");
+        }
+      })();
+    }
+
     emit({ type: "done" });
     res.end();
   } catch (error: any) {
@@ -178,7 +224,7 @@ export const streamPublicChat = async (req: Request, res: Response): Promise<voi
  */
 export const captureLead = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { visitorId, sessionId, name, email, company } = req.body;
+    const { visitorId, sessionId, name, email, company, phone } = req.body;
 
     if (!email || !email.trim()) {
       res.status(400).json({ success: false, message: "Email is required." });
@@ -200,6 +246,7 @@ export const captureLead = async (req: Request, res: Response): Promise<void> =>
         visitorName: name?.trim() || session.visitorName,
         visitorEmail: email.trim(),
         visitorCompany: company?.trim() || session.visitorCompany,
+        visitorPhone: phone?.trim() || session.visitorPhone,
       });
     } else if (visitorId) {
       session = await PublicChatSession.create({
@@ -207,6 +254,7 @@ export const captureLead = async (req: Request, res: Response): Promise<void> =>
         visitorName: name?.trim(),
         visitorEmail: email.trim(),
         visitorCompany: company?.trim(),
+        visitorPhone: phone?.trim(),
       });
     }
 
