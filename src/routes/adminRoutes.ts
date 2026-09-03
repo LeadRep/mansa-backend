@@ -109,6 +109,9 @@ import {
   updateBotConfig,
   testRAGQuery,
   getVisitorConversations,
+  getUnresolvedQuestions,
+  resolveUnresolvedQuestion,
+  dismissUnresolvedQuestion,
 } from "../controllers/adminControllers/knowledgeBaseController";
 
 const docUpload = multer({
@@ -127,6 +130,9 @@ adminRoutes.get("/bot-config", getBotConfig);
 adminRoutes.put("/bot-config", updateBotConfig);
 adminRoutes.post("/knowledge/test-query", testRAGQuery);
 adminRoutes.get("/knowledge/conversations", getVisitorConversations);
+adminRoutes.get("/knowledge-gaps", getUnresolvedQuestions);
+adminRoutes.post("/knowledge-gaps/:id/resolve", resolveUnresolvedQuestion);
+adminRoutes.delete("/knowledge-gaps/:id", dismissUnresolvedQuestion);
 
 // Quota Management Routes
 adminRoutes.get("/quotas", getOrganizationQuotas);
