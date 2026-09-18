@@ -25,7 +25,11 @@ export const userCustomerPref = async (
       sendResponse(response, 404, "Not found");
       return;
     }
-    sendResponse(response, 200, "successful", pref);
+
+    const sanitizedPref: any = pref.get({ plain: true });
+    delete sanitizedPref.lemlistApiKeyEncrypted;
+
+    sendResponse(response, 200, "successful", sanitizedPref);
     return;
   } catch (error: any) {
     logger.error(error, "Error in userCustomerPref:");
