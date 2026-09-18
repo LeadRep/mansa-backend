@@ -42,6 +42,14 @@ import {
   uploadProfilePicture,
   getUserProfile,
 } from "../controllers/usersControllers/profileController";
+import {
+  connectLemlist,
+  disconnectLemlist,
+} from "../controllers/usersControllers/integrations/lemlistIntegration";
+import {
+  listLemlistCampaigns,
+  sendLeadsToLemlist,
+} from "../controllers/usersControllers/integrations/sendLeadsToLemlist";
 
 const usersRoutes = express.Router();
 const dealNotesUploadDir = path.join(__dirname, "../../uploads/tmp");
@@ -173,5 +181,10 @@ usersRoutes.post(
   profilePictureUpload.single("picture"),
   uploadProfilePicture
 );
+
+usersRoutes.get("/integrations/lemlist/campaigns", userAuth, listLemlistCampaigns);
+usersRoutes.post("/integrations/lemlist/connect", userAuth, connectLemlist);
+usersRoutes.post("/integrations/lemlist/disconnect", userAuth, disconnectLemlist);
+usersRoutes.post("/integrations/lemlist/send-leads", userAuth, sendLeadsToLemlist);
 
 export default usersRoutes;

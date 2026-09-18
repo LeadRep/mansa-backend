@@ -10,6 +10,7 @@ import {
 import { AIResponse } from "../aiControllers/customerPreference";
 import logger from "../../logger";
 import { runLeadGeneration } from "../leadsController/leadGenSelector";
+import { getAppSettingsObject } from "../../utils/lemlistIntegrationState";
 
 export const updateCustomerPref = async (
   request: JwtPayload,
@@ -143,7 +144,53 @@ export const updateCustomerPref = async (
 
     // Include other optional fields if provided
     if (appSettings !== undefined) {
-      updateData.appSettings = appSettings;
+      const previousSettings = getAppSettingsObject(customer.appSettings);
+
+      const nextSettings = getAppSettingsObject(appSettings);
+
+      const previousIntegrations = previousSettings.integrations ?? {};
+      const nextIntegrations = nextSettings.integrations ?? {};
+      const previousLemlistLegacy = previousSettings.lemlist ?? previousSettings.Lemlist ?? {};
+      const nextLemlistLegacy = nextSettings.lemlist ?? nextSettings.Lemlist ?? {};
+
+      const previousLemlist = {
+        ...(previousIntegrations.Lemlist ?? {}),
+        ...previousLemlistLegacy,
+        ...(previousIntegrations.lemlist ?? {}),
+      };
+      const nextLemlist = {
+        ...(nextIntegrations.Lemlist ?? {}),
+        ...nextLemlistLegacy,
+        ...(nextIntegrations.lemlist ?? {}),
+      };
+
+      const mergedLemlist = { ...previousLemlist, ...nextLemlist };
+
+      const cleanedPreviousSettings = { ...previousSettings };
+      const cleanedNextSettings = { ...nextSettings };
+      delete cleanedPreviousSettings.lemlist;
+      delete cleanedPreviousSettings.Lemlist;
+      delete cleanedNextSettings.lemlist;
+      delete cleanedNextSettings.Lemlist;
+
+      const cleanedPreviousIntegrations = { ...previousIntegrations };
+      const cleanedNextIntegrations = { ...nextIntegrations };
+      delete cleanedPreviousIntegrations.Lemlist;
+      delete cleanedNextIntegrations.Lemlist;
+
+      updateData.appSettings = {
+        ...cleanedPreviousSettings,
+        ...cleanedNextSettings,
+        integrations: {
+          ...cleanedPreviousIntegrations,
+          ...cleanedNextIntegrations,
+          lemlist: mergedLemlist,
+        },
+      };
+
+      if (nextLemlist.connected === false) {
+        updateData.lemlistApiKeyEncrypted = null;
+      }
     }
 
     // Only reset lead generation if ICP or BP changed
