@@ -35,21 +35,66 @@ const decryptSecret = (cipherText: string): string => {
 const getLemlistAuthHeader = (apiKey: string) =>
   `Basic ${Buffer.from(`:${apiKey}`).toString("base64")}`;
 
+const getLemlistErrorCode = (data: any, error: any): string | null => {
+  const codeCandidates = [
+    data?.code,
+    data?.errorCode,
+    data?.error?.code,
+    data?.error?.errorCode,
+    data?.detail?.code,
+    data?.messageCode,
+  ];
+
+  for (const candidate of codeCandidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim().toUpperCase();
+    }
+  }
+
+  const serialized = JSON.stringify(data ?? {});
+  const rawErrorMessage = typeof error?.message === "string" ? error.message : "";
+  if (
+    serialized.includes("LEAD_ALREADY_IN_CAMPAIGN") ||
+    rawErrorMessage.includes("LEAD_ALREADY_IN_CAMPAIGN")
+  ) {
+    return "LEAD_ALREADY_IN_CAMPAIGN";
+  }
+
+  return null;
+};
+
+const getFriendlyLemlistErrorMessage = (code: string | null, fallback: string) => {
+  if (code === "LEAD_ALREADY_IN_CAMPAIGN") {
+    return "One or more selected leads are already in this Lemlist campaign.";
+  }
+
+  if (code === "LEAD_ALREADY_IN_OTHER_CAMPAIGN") {
+    return "One or more selected leads are already assigned to another Lemlist campaign.";
+  }
+
+  return fallback;
+};
+
 const getUpstreamErrorDetails = (error: any) => {
   const status = error?.response?.status as number | undefined;
   const data = error?.response?.data;
+  const code = getLemlistErrorCode(data, error);
   const messageFromData =
+    (typeof data === "string" && data) ||
     (typeof data?.message === "string" && data.message) ||
     (typeof data?.error === "string" && data.error) ||
+    (typeof data?.error?.message === "string" && data.error.message) ||
     (typeof data?.detail === "string" && data.detail) ||
     null;
 
-  const message =
+  const rawMessage =
     messageFromData ||
     (typeof error?.message === "string" ? error.message : null) ||
     "Request to Lemlist failed";
 
-  return { status, data, message };
+  const message = getFriendlyLemlistErrorMessage(code, rawMessage);
+
+  return { status, data, message, code };
 };
 
 const isValidHttpUrl = (value?: string | null) => {
@@ -129,9 +174,10 @@ const toLemlistFallbackPayload = (lead: any) => {
 
 const queueLeadToLemlist = async (campaignId: string, authHeader: string, lead: any) => {
   const primaryPayload = toLemlistLeadPayload(lead);
+  const endpoint = `${LEMLIST_API_BASE}/campaigns/${campaignId}/leads?updateStrategy=overwrite`;
 
   try {
-    return await axios.post(`${LEMLIST_API_BASE}/campaigns/${campaignId}/leads`, primaryPayload, {
+    return await axios.post(endpoint, primaryPayload, {
       headers: {
         Authorization: authHeader,
         Accept: "application/json",
@@ -156,7 +202,7 @@ const queueLeadToLemlist = async (campaignId: string, authHeader: string, lead: 
 
     const fallbackPayload = toLemlistFallbackPayload(lead);
 
-    return axios.post(`${LEMLIST_API_BASE}/campaigns/${campaignId}/leads`, fallbackPayload, {
+    return axios.post(endpoint, fallbackPayload, {
       headers: {
         Authorization: authHeader,
         Accept: "application/json",
@@ -376,6 +422,7 @@ export const sendLeadsToLemlist = async (request: Request, response: Response) =
         return {
           status: details.status ?? null,
           message: details.message,
+          code: details.code,
         };
       });
 

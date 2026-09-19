@@ -58,6 +58,7 @@ export interface CustomerPrefAttributes {
   currentPage?: number;
   demoMode?: boolean;
   appSettings?: JSON | null;
+  lemlistApiKeyEncrypted?: string | null;
 
 }
 
@@ -133,6 +134,11 @@ CustomerPref.init(
     },
     appSettings: {
       type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: null,
+    },
+    lemlistApiKeyEncrypted: {
+      type: DataTypes.TEXT,
       allowNull: true,
       defaultValue: null,
     }
