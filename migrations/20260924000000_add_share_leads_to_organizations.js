@@ -3,10 +3,7 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     const tableName = 'Organizations';
-    const definition = await queryInterface
-      .describeTable(tableName)
-      .then((table) => table)
-      .catch(() => null);
+const definition = await queryInterface.describeTable(tableName);
 
     if (!definition) {
       return;
