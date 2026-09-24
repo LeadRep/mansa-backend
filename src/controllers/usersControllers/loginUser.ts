@@ -9,6 +9,7 @@ import {
 import { verifyGoogleToken } from "../../utils/services/verifyGoogleToken";
 import { verifyMicrosoftToken } from "../../utils/services/verifyMicrosoftToken";
 import logger from "../../logger";
+import Organizations from "../../models/Organizations";
 
 export const loginUser = async (request: Request, response: Response) => {
   try {
@@ -28,7 +29,17 @@ export const loginUser = async (request: Request, response: Response) => {
       userEmail = microsoftDetails.preferred_username || "";
     }
 
-    const user = await Users.findOne({ where: { email: userEmail.trim().toLowerCase() } });
+    const user = await Users.findOne({
+      where: { email: userEmail.trim().toLowerCase() },
+      include: [
+        {
+          model: Organizations,
+          as: "organization",
+          attributes: ["organization_id", "name", "imModule", "basicModules", "demoAccount"],
+          required: false,
+        },
+      ],
+    });
 
     if (!user) {
       return sendResponse(response, 400, `${userEmail.trim().toLowerCase()} not found`);
@@ -46,7 +57,13 @@ export const loginUser = async (request: Request, response: Response) => {
     const token = generateToken(data);
     const refreshToken = generateRefreshToken(data);
 
-    const userResponse = { ...user.get(), password: undefined };
+    const plainUser = user.get({ plain: true }) as any;
+    const userResponse = {
+      ...plainUser,
+      password: undefined,
+      // Keep a flattened fallback for older frontend checks.
+      imModule: Boolean(plainUser?.organization?.imModule ?? plainUser?.imModule),
+    };
 
     return sendResponse(response, 200, "Login successful", {
       user: userResponse,
