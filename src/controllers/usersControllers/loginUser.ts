@@ -35,7 +35,7 @@ export const loginUser = async (request: Request, response: Response) => {
         {
           model: Organizations,
           as: "organization",
-          attributes: ["organization_id", "name", "imModule", "basicModules", "demoAccount"],
+attributes: ["organization_id", "name", "imModule", "basicModules", "demoAccount", "shareLeads"],
           required: false,
         },
       ],
