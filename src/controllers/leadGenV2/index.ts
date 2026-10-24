@@ -16,6 +16,7 @@ import { buildUserLeads } from "./buildUserLeads";
 import { ApolloPerson } from "./types";
 import { relaxSearchParams } from "./relaxSearchParams";
 import Users from "../../models/Users";
+import { getLeadGenLogger } from "../../utils/leadGenLogger";
 
 const normalizeQueryParams = (value: unknown): unknown => {
   if (Array.isArray(value)) {
@@ -47,15 +48,21 @@ export const leadGenV2 = async (
   restart?: boolean,
   expand?: boolean
 ) => {
+  const log = getLeadGenLogger();
+  const startedAt = Date.now();
   try {
     const userLeads = await Leads.findAll({
       where: { owner_id: userId },
       attributes: ["external_id"],
     });
+    log.info(
+      { totalLeads, restart: Boolean(restart), expand: Boolean(expand), existingLeads: userLeads.length },
+      "leadGenV2 started"
+    );
 
     const customerPref = await CustomerPref.findOne({ where: { userId } });
     if (!customerPref) {
-      console.error("ICP/BP data not found", userId);
+      log.error("leadGenV2 aborted: ICP/BP data not found");
       emitLeadGenerationStatus(userId, {
         status: "failed",
         message: "Buyer profile not configured. Please set up your ICP/BP.",
@@ -94,6 +101,10 @@ export const leadGenV2 = async (
     }
 
     const baseQueryParams = await getSearchParams(customerPref);
+    log.info(
+      { restart: Boolean(restart), currentPage, totalPages, queryParams: baseQueryParams },
+      "leadGenV2 search parameters resolved"
+    );
 
     const existingLeadIds = new Set(
       userLeads
@@ -114,6 +125,10 @@ export const leadGenV2 = async (
       if (missingCount <= 0) {
         return;
       }
+      log.info(
+        { missingCount, totalLeads, queryParams },
+        "Searching cached leads (GeneralLeads) before calling Apollo"
+      );
 
       const excludeExternalIds = [...new Set([...existingLeadIds, ...collectedLeadIds])];
       const cached = await searchGeneralLeads(
@@ -139,10 +154,20 @@ export const leadGenV2 = async (
         leadsToEvaluate.push(person);
       }
 
+      log.info(
+        { cachedFound: cached.people.length, collectedSoFar: leadsToEvaluate.length, totalLeads },
+        "Cached lead search done"
+      );
+
       if (leadsToEvaluate.length >= totalLeads) {
+        log.info("Enough leads from cache, Apollo search not needed");
         return;
       }
 
+      log.info(
+        { stillMissing: totalLeads - leadsToEvaluate.length, currentPage, totalPages, expand: Boolean(expand) },
+        "Not enough cached leads, calling Apollo people search"
+      );
       const apolloResult = await collectApolloLeads(
         queryParams,
         currentPage,
@@ -159,10 +184,22 @@ export const leadGenV2 = async (
       totalPages = apolloResult.totalPages;
 
       if (!apolloResult.apolloLeadIds.length) {
+        log.warn(
+          { currentPage, totalPages },
+          "Apollo search returned no new leads"
+        );
         return;
       }
 
+      log.info(
+        { count: apolloResult.apolloLeadIds.length },
+        "Enriching Apollo leads"
+      );
       const enrichedLeads = await apolloEnrichedPeople(apolloResult.apolloLeadIds);
+      log.info(
+        { requested: apolloResult.apolloLeadIds.length, enriched: enrichedLeads.length },
+        "Apollo enrichment done"
+      );
       await persistApolloResults(enrichedLeads);
 
       for (const lead of enrichedLeads) {
@@ -179,6 +216,10 @@ export const leadGenV2 = async (
 
     const finishWithNoLeads = async () => {
       const message = "No lead found, please update buyer persona";
+      log.warn(
+        { expand: Boolean(expand), durationMs: Date.now() - startedAt },
+        "leadGenV2 finished with no leads"
+      );
       if (!expand) {
         customerPref.currentPage = 1;
         await customerPref.save();
@@ -209,6 +250,18 @@ export const leadGenV2 = async (
       while (leadsToEvaluate.length < totalLeads) {
         const relaxedParams = relaxSearchParams(aiQueryParams);
         reachedRelaxBaseline = areQueryParamsEqual(aiQueryParams, relaxedParams);
+        const removedFilters = Object.keys(aiQueryParams ?? {}).filter(
+          (key) => !(key in relaxedParams)
+        );
+        log.info(
+          {
+            collected: leadsToEvaluate.length,
+            totalLeads,
+            removedFilters,
+            reachedRelaxBaseline,
+          },
+          "Expansion: relaxing search parameters and re-triggering search"
+        );
         aiQueryParams = relaxedParams;
 
         // Relaxation is transient: keep the broadened query in-memory only so
@@ -239,6 +292,10 @@ export const leadGenV2 = async (
     }
 
     const filteredLeads = filterLowQualityLeads(leadsToEvaluate);
+    log.info(
+      { before: leadsToEvaluate.length, after: filteredLeads.length },
+      "Low quality lead filter applied"
+    );
 
     if (!filteredLeads.length) {
       return finishWithNoLeads();
@@ -248,6 +305,11 @@ export const leadGenV2 = async (
       customerPref,
       filteredLeads,
       senderProfile
+    );
+
+    log.info(
+      { evaluated: evaluationResults.length, submitted: filteredLeads.length },
+      "AI evaluation done"
     );
 
     const scoredLeads = buildUserLeads(
@@ -270,9 +332,24 @@ export const leadGenV2 = async (
     const remainingSlots = Math.max(0, maxAllowedLeads - currentNewLeadsCount);
     const leadsToCreate = remainingSlots > 0 ? scoredLeads.slice(0, remainingSlots) : [];
 
+    log.info(
+      {
+        scored: scoredLeads.length,
+        maxAllowedLeads,
+        currentNewLeadsCount,
+        remainingSlots,
+        toCreate: leadsToCreate.length,
+      },
+      "Applying new-lead quota"
+    );
+
     const createdLeads = await Leads.bulkCreate(leadsToCreate, {
       returning: true,
     });
+    log.info(
+      { created: createdLeads.length, requested: totalLeads, durationMs: Date.now() - startedAt },
+      "leadGenV2 leads created"
+    );
 
     if (createdLeads?.length) {
       emitLeadUpdate(userId, {
@@ -283,6 +360,10 @@ export const leadGenV2 = async (
     const needsExpansion =
       !expand && remainingSlots > 0 && createdLeads.length < totalLeads;
     if (needsExpansion) {
+      log.info(
+        { missingCount: totalLeads - createdLeads.length, foundCount: createdLeads.length },
+        "Fewer leads than requested, prompting user for expansion"
+      );
       customerPref.currentPage = 1;
       await customerPref.save();
       emitLeadExpansionPrompt(userId, {
@@ -315,7 +396,10 @@ export const leadGenV2 = async (
       status: "failed",
       message: "Lead generation failed. Please try again.",
     });
-    console.error("leadGenV2 error", error.message);
+    log.error(
+      { err: error, durationMs: Date.now() - startedAt },
+      "leadGenV2 failed"
+    );
     return null;
   }
 };

@@ -87,7 +87,7 @@ export const refreshLeads = async (request: JwtPayload, response: Response) => {
       missingCount: 0,
     });
 
-    runLeadGeneration(userId, targetLeadCount, true).catch(
+    runLeadGeneration(userId, targetLeadCount, true, false, "refresh_leads").catch(
       (generationError: any) => {
         logger.error("Lead generation error:", generationError.message);
       }

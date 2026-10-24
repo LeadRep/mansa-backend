@@ -139,7 +139,7 @@ export const registerUserWithOrganization = async (req: Request, res: Response) 
         status: SequenceStatus.SENT,
       },
     })
-    runLeadGeneration(userId, 10);
+    runLeadGeneration(userId, 10, false, false, "registration");
     return;
   } catch (error: any) {
     logger.error(error, "User Registration Error:");
