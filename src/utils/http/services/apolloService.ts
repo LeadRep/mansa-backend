@@ -1,5 +1,5 @@
 // src/utils/services/apolloService.ts
-import logger from '../../../logger';
+import logger from '../../logWithReqId';
 import { apiClient, ApiResponse } from '../apiClient';
 import { RequestConfig } from "../RequestConfig";
 import { getCurrentUser, getLeadGenContext, RequestUserContext } from "../../requestContext";
