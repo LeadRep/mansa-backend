@@ -221,7 +221,7 @@ export const updateCustomerPref = async (
 
       sendResponse(response, 200, "Customer preferences updated successfully");
 
-      runLeadGeneration(userId, targetLeadCount, true).catch(
+      runLeadGeneration(userId, targetLeadCount, true, false, "customer_pref_update").catch(
         (generationError: any) => {
           logger.error(
             generationError,

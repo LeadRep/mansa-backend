@@ -8,6 +8,7 @@ import {emitLeadUpdate} from "../../utils/socket";
 import {normalizeIntroMail} from "./introMail";
 import Users from "../../models/Users";
 import logger from "../../logger";
+import { getLeadGenLogger } from "../../utils/leadGenLogger";
 import {getBfsLikeAccounts} from "../../utils/env";
 import BfsLeads from "../../models/BfsLeads";
 import {QueryTypes, Sequelize} from "sequelize";
@@ -37,7 +38,9 @@ export const step2LeadGen = async (
   totalLeads: number,
   restart?: boolean
 ) => {
-  logger.info(`generating leads (step2LeadGen) for user:${userId}`);
+  const log = getLeadGenLogger();
+  const startedAt = Date.now();
+  log.info({ totalLeads, restart: Boolean(restart) }, "step2LeadGen (v1) started");
   try {
     const userLeads = await Leads.findAll({
       where: { owner_id: userId },
@@ -53,7 +56,7 @@ export const step2LeadGen = async (
     };
     const customerPref = await CustomerPref.findOne({ where: { userId } });
     if (!customerPref) {
-      console.error("Customer preferences not found for user:", userId);
+      log.error("step2LeadGen aborted: customer preferences not found");
       return null;
     }
     customerPref.leadsGenerationStatus = LeadsGenerationStatus.ONGOING;
@@ -67,6 +70,7 @@ export const step2LeadGen = async (
     let totalPages = customerPref.totalPages;
     let reachedEndOfResults = false;
     if (restart) {
+      log.info({ existingLeads: userLeads.length }, "Restart requested: resetting pagination and deleting existing leads");
       customerPref.currentPage = 1;
       customerPref.totalPages = 0;
       await customerPref.save();
@@ -75,17 +79,18 @@ export const step2LeadGen = async (
       currentPage = 1;
     }
     if (!aiQueryParams) {
+      log.info("No saved AI query params, generating them");
       aiQueryParams = await aiPeopleSearchQuery(customerPref);
       await customerPref.update({ aiQueryParams });
     }
+    log.info({ currentPage, totalPages, queryParams: aiQueryParams, existingLeads: userLeads.length }, "step2LeadGen search parameters resolved");
     const leadsToEvaluate: any[] = [];
     const collectedLeadIds: string[] = [];
     const leadsFromBfsPool: any[] = [];
 
     const bfsAccounts = getBfsLikeAccounts();
     const organizationId = user?.organization_id;
-    logger.info(`BFS-like accounts: ${bfsAccounts.size}`);
-    logger.info(`organization ID: ${organizationId}`);
+    log.info({ bfsAccounts: bfsAccounts.size, organizationId }, "Checking BFS pool eligibility");
 
     try {
       if (organizationId && bfsAccounts.has(organizationId)) {
@@ -103,13 +108,13 @@ export const step2LeadGen = async (
           collectedLeadIds.push(...ids);
         }
 
-        logger.info(`BFS-like leads found: ${bfsLeads.length}`);
-        logger.info(`BFS-like leads to evaluate: ${leadsToEvaluate.length}`);
-        logger.info(`BFS-like leads from BFS pool: ${leadsFromBfsPool.length}`);
-        logger.info(`BFS-like leads collected: ${collectedLeadIds.length}`);
+        log.info(
+          { found: bfsLeads.length, toEvaluate: leadsToEvaluate.length, totalLeads },
+          "BFS pool leads collected"
+        );
       }
     } catch (error: any) {
-      logger.error(`Error fetching BFS-like leads: ${error.message}`);
+      log.error({ err: error }, "Error fetching BFS-like leads");
     }
 
 
@@ -121,6 +126,10 @@ export const step2LeadGen = async (
 
       const pageToFetch = currentPage;
       const searchParams = aiQueryParams;
+      log.info(
+        { page: pageToFetch, totalPages, collected: leadsToEvaluate.length, missing: totalLeads - leadsToEvaluate.length },
+        "Not enough leads yet, calling Apollo people search"
+      );
 
       const apolloResponse = await apolloPeopleSearch(
         searchParams,
@@ -133,6 +142,7 @@ export const step2LeadGen = async (
       }
 
       if (!Array.isArray(people) || people.length === 0) {
+        log.info({ page: pageToFetch }, "Apollo returned an empty page, end of results");
         reachedEndOfResults = true;
         currentPage = pageToFetch;
         break;
@@ -159,7 +169,13 @@ export const step2LeadGen = async (
         }
       }
 
+      log.info(
+        { page: pageProcessed, totalPages, returned: people.length, collected: leadsToEvaluate.length, target: totalLeads },
+        "Apollo page processed"
+      );
+
       if (totalPages && pageProcessed >= totalPages) {
+        log.info("Reached last Apollo page");
         reachedEndOfResults = true;
         currentPage = totalPages;
         break;
@@ -173,6 +189,7 @@ export const step2LeadGen = async (
     await customerPref.save();
 
     if (!leadsToEvaluate.length) {
+      log.warn({ durationMs: Date.now() - startedAt }, "step2LeadGen finished with no leads");
       return {
         leads: [],
         message: "No lead found, please update buyer persona",
@@ -181,14 +198,14 @@ export const step2LeadGen = async (
 
     const enrichedLeads = await apolloEnrichedPeople(collectedLeadIds);
 
-    logger.info(`enriched ${enrichedLeads.length} leads (step2LeadGen)`);
+    log.info({ requested: collectedLeadIds.length, enriched: enrichedLeads.length }, "Apollo enrichment done");
     const aiEvaluation = await aiEvaluatedLeads(
       customerPref,
       enrichedLeads,
       senderProfile
     );
 
-    logger.info(`evaluated ${aiEvaluation.length} leads (step2LeadGen)`);
+    log.info({ submitted: enrichedLeads.length, evaluated: aiEvaluation.length }, "AI evaluation done");
 
     const scoredLeads = enrichedLeads.reduce((acc: any[], lead: any) => {
       const aiScore = aiEvaluation.find(
@@ -235,17 +252,18 @@ export const step2LeadGen = async (
     }, []);
 
     if (!scoredLeads.length) {
+      log.warn({ durationMs: Date.now() - startedAt }, "step2LeadGen finished: no lead scored");
       return {
         leads: [],
         message: "No lead found, please update buyer persona",
       };
     }
-    logger.info(`scored ${scoredLeads.length} leads (step2LeadGen)`);
+    log.info({ scored: scoredLeads.length }, "Leads scored");
 
     const createdLeads = await Leads.bulkCreate(scoredLeads, {
       returning: true,
     });
-    logger.info(`added ${scoredLeads.length} leads to DB (step2LeadGen)`);
+    log.info({ created: createdLeads.length, requested: totalLeads, durationMs: Date.now() - startedAt }, "step2LeadGen leads created");
 
     if (createdLeads?.length) {
       emitLeadUpdate(userId, {
@@ -253,7 +271,7 @@ export const step2LeadGen = async (
       });
     }
     if (leadsFromBfsPool.length) {
-      logger.info(`adding ${leadsFromBfsPool.length} leads from BFS pool to DB (step2LeadGen)`);
+      log.info({ count: leadsFromBfsPool.length }, "Recording BFS pool leads as loaded for organization");
       try {
         await BfsLeadsOrganizations.bulkCreate(
           leadsFromBfsPool.map(
@@ -287,7 +305,7 @@ export const step2LeadGen = async (
         { where: { userId } }
       );
     }
-    console.error("step2LeadGen error", error.message);
+    log.error({ err: error, durationMs: Date.now() - startedAt }, "step2LeadGen failed");
     return null;
   }
 };

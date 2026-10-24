@@ -1,6 +1,8 @@
 // src/utils/services/apolloService.ts
+import logger from '../../../logger';
 import { apiClient, ApiResponse } from '../apiClient';
-import {RequestConfig} from "../RequestConfig";
+import { RequestConfig } from "../RequestConfig";
+import { getCurrentUser, getLeadGenContext, RequestUserContext } from "../../requestContext";
 
 /**
  * Service for interacting with the Apollo.io HTTP API.
@@ -28,21 +30,40 @@ export class ApolloService {
    * @returns A promise that resolves to the API client's `ApiResponse<T>` wrapper
    *          containing the Apollo API response.
    */
-  async request<T = any>(endpoint: string, data?: any, config: RequestConfig = {}): Promise<ApiResponse<T>> {
+  async request<T = any>(
+    endpoint: string,
+    data?: any,
+    config: RequestConfig = {},
+    userContext?: RequestUserContext,
+  ): Promise<ApiResponse<T>> {
     const normalizedEndpoint = endpoint.replace(/^\/+/, '');
+    const caller = userContext ?? getCurrentUser();
+
+    const leadGen = getLeadGenContext();
+
+    logger.info({
+      leadGenRunId: leadGen?.runId ?? null,
+      leadGenTrigger: leadGen?.trigger ?? null,
+      userId: caller?.id ?? null,
+      userFirstName: caller?.firstName ?? null,
+      endpoint: normalizedEndpoint,
+      payload: data ?? null,
+    }, 'Apollo request initiated on behalf of user');
+
     return apiClient.post<T>(
       `${this.baseUrl}/${normalizedEndpoint}`,
       data,
       {
-      ...config,
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Content-Type': 'application/json',
-        accept: "application/json",
-        'x-api-key': this.apiKey,
-        ...config.headers,
+        ...config,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Content-Type': 'application/json',
+          accept: "application/json",
+          'x-api-key': this.apiKey,
+          ...config.headers,
+        },
       },
-    });
+    );
   }
 }
 

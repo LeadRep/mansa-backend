@@ -12,6 +12,7 @@ import {
   httpLoggingMiddleware,
 } from "./middlewares/httpLoggingMiddleware";
 import path from "path";
+import { attachRequestContext } from "./middlewares/requestId";
 // import * as glob from "glob";
 // import serveFavicon from "serve-favicon";
 import indexRoutes from "./routes/indexRoutes";
@@ -49,6 +50,7 @@ app.use(
   })
 );
 app.use(pinoHttpMiddleware);
+app.use(attachRequestContext);
 app.use(cookieParser());
 const uploadsRoot = path.resolve(process.cwd(), "uploads");
 app.use("/uploads", express.static(uploadsRoot));
