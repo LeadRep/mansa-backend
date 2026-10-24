@@ -14,7 +14,7 @@ import { apolloOrganizationSearch } from "./leadsController/apolloOrganizationSe
 export const test = async (req: Request, res: Response) => {
   try {
     const userId = "aa862323-f8b5-48a8-a97a-a601b6f6acca";
-    const newLeads = await runLeadGeneration(userId, 10, true);
+    const newLeads = await runLeadGeneration(userId, 10, true, false, "test");
     // const searchResponse = await axios.post(
     //   "https://api.apollo.io/v1/mixed_people/search",
     //   {

@@ -1,6 +1,7 @@
 import { aiEvaluatedLeads } from "../leadsController/aiEvaluatedLeads";
 import { ApolloPerson } from "./types";
 import { IntroMailSender } from "../leadsController/introMail";
+import { getLeadGenLogger } from "../../utils/leadGenLogger";
 
 export const evaluateLeads = async (
   customerPref: any,
@@ -22,7 +23,7 @@ export const evaluateLeads = async (
   }
 
   if (!Array.isArray(evaluationResults)) {
-    console.error("Invalid evaluation results structure:", aiEvaluation);
+    getLeadGenLogger().error({ aiEvaluation }, "Invalid evaluation results structure");
     return [];
   }
 

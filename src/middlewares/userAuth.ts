@@ -1,5 +1,6 @@
 import { NextFunction, Response, Request } from "express";
 import Users from "../models/Users";
+import { setCurrentUser } from "../utils/requestContext";
 import { verifyToken } from "../utils/services/token";
 
 export const userAuth = async (
@@ -41,6 +42,13 @@ export const userAuth = async (
     }
 
     request.user = decode;
+    setCurrentUser({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+    });
     // update lastSeen timestamp for activity tracking
     try {
       await Users.update(

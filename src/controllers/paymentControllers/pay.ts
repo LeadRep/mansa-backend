@@ -282,7 +282,7 @@ export const successPayment = async (
       const userResponse = { ...userDetails?.get(), password: undefined };
 
       sendResponse(response, 200, "Payment Successful", { user: userResponse });
-      runLeadGeneration(userId, 24);
+      runLeadGeneration(userId, 24, false, false, "payment");
       return;
     } else {
       response.json({

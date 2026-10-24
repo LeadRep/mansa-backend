@@ -1,6 +1,7 @@
 import { NextFunction, Response, Request } from "express";
 import Users, { userRole } from "../models/Users";
 import { verifyToken } from "../utils/services/token";
+import { setCurrentUser } from "../utils/requestContext";
 
 export const adminAuth = async (
     request: Request,
@@ -49,7 +50,21 @@ export const adminAuth = async (
             return;
         }
 
-        request.user = decode;
+        request.user = {
+            ...decode,
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+        };
+        setCurrentUser({
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+        });
         next();
     } catch (error: any) {
         response.status(401).json({
