@@ -6,7 +6,7 @@ type LogArgs = [message: string, ...args: any[]] | [obj: any, message?: string, 
 const addReqId = (obj?: any) => {
   const reqId = getRequestId();
   if (!reqId) return obj;
-  return { ...(obj || {}), reqId };
+  return obj instanceof Error ? { err: obj, reqId } : { ...(obj || {}), reqId };
 };
 
 export const info = (...args: LogArgs) => {
