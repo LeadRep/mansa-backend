@@ -1,4 +1,5 @@
 import logger from "../../logger";
+import { normalizeEmployeeRanges } from "../../utils/normalizeEmployeeRanges";
 import { apolloService } from "../../utils/http/services/apolloService";
 import { persistApolloResults } from "../leadGenV2/persistApolloResults";
 
@@ -20,7 +21,13 @@ export const apolloPeopleSearch = async (
     effectiveParams.per_page = 100;
     effectiveParams.page = page || 1;
 
-    if (!effectiveParams.organization_num_employees_ranges) {
+    // Saved params may contain ranges Apollo rejects (e.g. "501,1,000", "10,001+").
+    const employeeRanges = normalizeEmployeeRanges(
+      effectiveParams.organization_num_employees_ranges
+    );
+    if (employeeRanges.length) {
+      effectiveParams.organization_num_employees_ranges = employeeRanges;
+    } else {
       delete effectiveParams.organization_num_employees_ranges;
     }
 

@@ -1,6 +1,7 @@
 import { Op } from "sequelize";
 import { GeneralLeads } from "../../models/GeneralLeads";
 import { ApolloPerson } from "./types";
+import { normalizeEmployeeRanges } from "../../utils/normalizeEmployeeRanges";
 
 const uniqStrings = (value: unknown): string[] => {
   if (!Array.isArray(value)) {
@@ -174,7 +175,7 @@ export const searchGeneralLeads = async (
   excludeExternalIds: string[],
   limit: number
 ) => {
-  const employeeRanges = uniqStrings(aiQueryParams?.organization_num_employees_ranges)
+  const employeeRanges = normalizeEmployeeRanges(aiQueryParams?.organization_num_employees_ranges)
     .map(parseEmployeeRange)
     .filter((range): range is { min: number; max: number } => Boolean(range));
   const revenueMin = parseLooseNumber(aiQueryParams?.["revenue_range[min]"]);
