@@ -1,5 +1,6 @@
 import { aiService } from "../../utils/http/services/aiService";
 import logger from "../../logger";
+import { normalizeEmployeeRanges } from "../../utils/normalizeEmployeeRanges";
 
 export const aiPeopleSearchQuery = async (customers: any) => {
   try {
@@ -59,6 +60,12 @@ export const aiPeopleSearchQuery = async (customers: any) => {
       "revenue_range[max]",
       "person_seniorities",
     ];
+
+    if (Array.isArray(result?.organization_num_employees_ranges)) {
+      result.organization_num_employees_ranges = normalizeEmployeeRanges(
+        result.organization_num_employees_ranges
+      );
+    }
 
     keysToClean.forEach((key) => {
       const value = result?.[key];
