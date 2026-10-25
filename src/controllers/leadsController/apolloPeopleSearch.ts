@@ -5,6 +5,14 @@ import { persistApolloResults } from "../leadGenV2/persistApolloResults";
 
 type ApolloSearchParams = Record<string, any> | null | undefined;
 
+const toRevenueNumber = (value: unknown): number | undefined => {
+  const parsed =
+    typeof value === "string" ? Number(value.replace(/[,\s]/g, "")) : value;
+  return typeof parsed === "number" && Number.isFinite(parsed) && parsed >= 0
+    ? Math.round(parsed)
+    : undefined;
+};
+
 export const apolloPeopleSearch = async (
   searchParams: ApolloSearchParams,
   page?: number
@@ -31,11 +39,16 @@ export const apolloPeopleSearch = async (
       delete effectiveParams.organization_num_employees_ranges;
     }
 
-    const revenueMin = effectiveParams["revenue_range[min]"];
-    const revenueMax = effectiveParams["revenue_range[max]"];
-    if (revenueMin === "" && revenueMax === "") {
-      delete effectiveParams["revenue_range[min]"];
-      delete effectiveParams["revenue_range[max]"];
+    // Apollo ignores literal "revenue_range[min]" keys in a JSON body; they must be nested.
+    const revenueMin = toRevenueNumber(effectiveParams["revenue_range[min]"]);
+    const revenueMax = toRevenueNumber(effectiveParams["revenue_range[max]"]);
+    delete effectiveParams["revenue_range[min]"];
+    delete effectiveParams["revenue_range[max]"];
+    if (revenueMin !== undefined || revenueMax !== undefined) {
+      effectiveParams.revenue_range = {
+        ...(revenueMin !== undefined ? { min: revenueMin } : {}),
+        ...(revenueMax !== undefined ? { max: revenueMax } : {}),
+      };
     }
 
     if (
