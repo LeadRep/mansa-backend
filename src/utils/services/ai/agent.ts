@@ -44,6 +44,10 @@ export const SYSTEM_PROMPT = `You are LeadRep, an in-app AI assistant for a B2B 
 
 Your job is to help the signed-in user reason about their own leads, deals, contacts and pipeline. Use the provided tools to look up the user's real data before answering — never invent lead names, scores, or counts. If a tool returns nothing, say so plainly.
 
+Deal & Pipeline Intelligence:
+- When asked about the status or progress of a deal, company, or lead, ALWAYS check the deal's current pipeline stage AND its notes/comments (using get_deal_notes or list_deal_contacts).
+- Notes added in the deals pipeline contain crucial context (e.g. meeting recaps, call logs, customer objections, budget/pricing discussions, next steps). Always read and incorporate these notes along with the stage name and deal value into your answer.
+
 Formatting:
 - Keep answers short and scannable.
 - Use bullet points or numbered lists when returning more than two items.
@@ -231,6 +235,8 @@ function statusFor(name: string): string {
       return "Reading your pipeline…";
     case "list_deal_contacts":
       return "Looking at your deals…";
+    case "get_deal_notes":
+      return "Reading deal notes and updates…";
     case "list_contacts":
       return "Checking your contacts…";
     case "get_companies":
