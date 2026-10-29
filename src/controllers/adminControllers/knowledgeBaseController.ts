@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { Op } from "sequelize";
 import KnowledgeSource from "../../models/KnowledgeSource";
 import KnowledgeChunk from "../../models/KnowledgeChunk";
@@ -12,6 +13,7 @@ import { parseDocumentFile, cleanText } from "../../utils/services/ai/documentPa
 import { chunkText } from "../../utils/services/ai/chunking";
 import { generateBatchEmbeddings } from "../../utils/services/ai/embeddings";
 import { answerRAGQuery, retrieveRelevantChunks } from "../../utils/services/ai/ragEngine";
+import { uploadFileToGcs } from "../../utils/storage/gcs";
 import logger from "../../logger";
 
 /**
@@ -416,6 +418,74 @@ export const updateBotConfig = async (req: Request, res: Response): Promise<void
   } catch (error: any) {
     logger.error({ error }, "Error updating bot config");
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Upload bot avatar image
+ */
+export const uploadBotAvatar = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ success: false, message: "No avatar image file provided." });
+      return;
+    }
+
+    const ext = path.extname(req.file.originalname || "").toLowerCase() || ".png";
+    const filename = `bot_${crypto.randomUUID()}${ext}`;
+    let avatarUrl = "";
+
+    // If GCS is configured, attempt upload to GCS
+    if (process.env.GCS_BUCKET) {
+      try {
+        avatarUrl = await uploadFileToGcs({
+          localPath: req.file.path,
+          destination: `avatars/${filename}`,
+          contentType: req.file.mimetype,
+        });
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      } catch (gcsErr) {
+        logger.warn({ gcsErr }, "GCS upload failed for avatar, falling back to local disk storage");
+      }
+    }
+
+    // Fallback to local storage if GCS is not set or failed
+    if (!avatarUrl) {
+      const avatarDir = path.join(process.cwd(), "uploads", "avatars");
+      if (!fs.existsSync(avatarDir)) {
+        fs.mkdirSync(avatarDir, { recursive: true });
+      }
+      const targetPath = path.join(avatarDir, filename);
+      fs.copyFileSync(req.file.path, targetPath);
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      avatarUrl = `/uploads/avatars/${filename}`;
+    }
+
+    // Automatically persist to BotConfig
+    let config = await BotConfig.findOne({ where: { ownerType: "admin" } });
+    if (config) {
+      await config.update({ avatarUrl });
+    } else {
+      config = await BotConfig.create({
+        ownerType: "admin",
+        botName: "LeadRep Assistant",
+        avatarUrl,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Avatar uploaded successfully.",
+      avatarUrl,
+      config,
+    });
+  } catch (error: any) {
+    logger.error({ error }, "Error uploading bot avatar");
+    res.status(500).json({ success: false, message: error.message || "Failed to upload avatar." });
   }
 };
 

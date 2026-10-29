@@ -11,7 +11,9 @@ import {RequestConfig} from "../RequestConfig";
  */
 export class ApolloService {
   private baseUrl = 'https://api.apollo.io/v1';
-  private apiKey = process.env.APOLLO_API_KEY!;
+  private get apiKey(): string {
+    return process.env.APOLLO_API_KEY || '';
+  }
 
   /**
    * Sends a POST request to an Apollo API endpoint using the shared API client.

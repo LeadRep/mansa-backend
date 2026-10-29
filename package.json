@@ -13,7 +13,8 @@
     "apollo:refresh:enqueue": "node dist/scripts/apolloRefresh/enqueueAciLeadRefresh.js",
     "apollo:refresh:fetch": "node dist/scripts/apolloRefresh/fetchAciLeadRefresh.js",
     "apollo:refresh:apply": "node dist/scripts/apolloRefresh/applyAciLeadRefresh.js",
-    "apollo:refresh:apply:dry": "node dist/scripts/apolloRefresh/applyAciLeadRefresh.js --dryRun=true"
+    "apollo:refresh:apply:dry": "node dist/scripts/apolloRefresh/applyAciLeadRefresh.js --dryRun=true",
+    "export:etf-leads": "npx tsx src/scripts/exportEtfSalesLeads.ts"
   },
   "keywords": [],
   "author": "",

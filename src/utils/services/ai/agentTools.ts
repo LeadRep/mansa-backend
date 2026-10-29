@@ -5,9 +5,11 @@
  * that filter. Row limits are enforced server-side.
  */
 import { Op } from "sequelize";
+import { database } from "../../../configs/database/database";
 import { Leads } from "../../../models/Leads";
 import Deals from "../../../models/Deals";
 import { DealContact } from "../../../models/DealContacts";
+import { DealContactNote } from "../../../models/DealContactNotes";
 import Contacts from "../../../models/Contacts";
 
 const MAX_ROWS = 25;
@@ -37,12 +39,14 @@ const orgName = (org: any): string | null => {
 const listLeads: ToolSpec = {
   name: "list_leads",
   description:
-    "List the current user's leads. Optionally filter by status " +
+    "List the current user's leads. Optionally search by query keyword " +
+    "(matching lead name, email, or company name), or filter by status " +
     "(new/saved/viewed/reserve/deleted), category, minimum score, or country. " +
     "Ordered by score descending, then most recent.",
   parameters: {
     type: "object",
     properties: {
+      query: { type: "string", description: "Search by lead name, company name, or email" },
       status: { type: "string", enum: ["new", "saved", "viewed", "reserve", "deleted"] },
       category: { type: "string" },
       minScore: { type: "number", description: "Minimum lead score, 0–100" },
@@ -56,6 +60,15 @@ const listLeads: ToolSpec = {
     if (args.category) where.category = args.category;
     if (typeof args.minScore === "number") where.score = { [Op.gte]: args.minScore };
     if (args.country) where.country = args.country;
+
+    if (args.query && typeof args.query === "string" && args.query.trim()) {
+      const q = `%${args.query.trim()}%`;
+      where[Op.or] = [
+        { full_name: { [Op.iLike]: q } },
+        { email: { [Op.iLike]: q } },
+        database.where(database.cast(database.col("organization"), "text"), { [Op.iLike]: q }),
+      ];
+    }
 
     const rows = await Leads.findAll({
       where,
@@ -182,13 +195,17 @@ const listDeals: ToolSpec = {
 const listDealContacts: ToolSpec = {
   name: "list_deal_contacts",
   description:
-    "List contacts inside the user's deal pipelines. Optionally filter by " +
-    "dealId or stageId. Ordered by deal_value desc.",
+    "List contacts and deals inside the user's deal pipelines. " +
+    "Supports searching by query (lead/contact name, company name, or email), " +
+    "or filtering by dealId or stageId. Returns stage name, deal value, " +
+    "and recent notes/comments added in the pipeline.",
   parameters: {
     type: "object",
     properties: {
+      query: { type: "string", description: "Search by lead name, company name, or email" },
       dealId: { type: "string" },
       stageId: { type: "string" },
+      includeNotes: { type: "boolean", description: "Whether to include notes (default true)" },
       limit: { type: "number", description: "Max rows, default 10, max 25" },
     },
   },
@@ -197,28 +214,202 @@ const listDealContacts: ToolSpec = {
     if (args.dealId) where.deal_id = args.dealId;
     if (args.stageId) where.stage_id = args.stageId;
 
+    if (args.query && typeof args.query === "string" && args.query.trim()) {
+      const q = `%${args.query.trim()}%`;
+      where[Op.or] = [
+        { full_name: { [Op.iLike]: q } },
+        { email: { [Op.iLike]: q } },
+        database.where(database.cast(database.col("organization"), "text"), { [Op.iLike]: q }),
+      ];
+    }
+
     const rows = await DealContact.findAll({
       where,
-      order: [["deal_value", "DESC"]],
+      order: [["deal_value", "DESC"], ["updatedAt", "DESC"]],
       limit: clampLimit(args.limit),
     });
 
+    if (!rows.length) return [];
+
+    // Map stages to human names
+    const deals = await Deals.findAll({ where: { userId: ctx.userId } });
+    const stageMap = new Map<string, string>();
+    for (const d of deals) {
+      const j = (d as any).toJSON();
+      for (const s of (j.stages || [])) {
+        if (s.id) stageMap.set(s.id, s.name || "Unnamed Stage");
+      }
+    }
+
+    // Fetch notes for returned contacts unless explicitly disabled
+    const notesByContact = new Map<string, any[]>();
+    if (args.includeNotes !== false) {
+      const contactIds = rows.map((r: any) => r.id);
+      const notes = await DealContactNote.findAll({
+        where: { deal_contact_id: { [Op.in]: contactIds }, owner_id: ctx.userId },
+        order: [["createdAt", "DESC"]],
+      });
+      for (const n of notes) {
+        const nj = (n as any).toJSON();
+        const list = notesByContact.get(nj.deal_contact_id) || [];
+        list.push({
+          id: nj.id,
+          comment: nj.comment,
+          fileName: nj.file_name,
+          createdAt: nj.createdAt,
+        });
+        notesByContact.set(nj.deal_contact_id, list);
+      }
+    }
+
     return rows.map((r) => {
       const j: any = r.toJSON();
+      const contactNotes = notesByContact.get(j.id) || [];
       return {
         id: j.id,
         dealId: j.deal_id,
         stageId: j.stage_id,
+        stageName: stageMap.get(j.stage_id) || "Unknown Stage",
         name: j.full_name,
         title: j.title,
         company: orgName(j.organization),
         email: j.email,
+        phone: j.phone,
         country: j.country,
         score: j.score,
         deal_value: j.deal_value,
+        notesCount: contactNotes.length,
+        notes: contactNotes.slice(0, 5),
+        latestNote: contactNotes[0]?.comment || null,
         updatedAt: j.updatedAt,
       };
     });
+  },
+};
+
+const getDealNotes: ToolSpec = {
+  name: "get_deal_notes",
+  description:
+    "Retrieve the complete notes, comments, call logs, and latest status for a deal in the pipeline. " +
+    "Provide either a contactId (UUID of the deal contact) or a search query (company name, lead name, or email). " +
+    "Returns current stage name, deal value, and full chronological notes.",
+  parameters: {
+    type: "object",
+    properties: {
+      contactId: { type: "string", description: "The UUID of the deal contact" },
+      query: { type: "string", description: "Search term: company name, lead name, or email" },
+      limit: { type: "number", description: "Max notes to return, default 20" },
+    },
+  },
+  run: async (args, ctx) => {
+    let contacts: DealContact[] = [];
+
+    if (args.contactId) {
+      const c = await DealContact.findOne({
+        where: { id: args.contactId, owner_id: ctx.userId },
+      });
+      if (c) contacts = [c];
+    } else if (args.query && typeof args.query === "string" && args.query.trim()) {
+      const q = `%${args.query.trim()}%`;
+      contacts = await DealContact.findAll({
+        where: {
+          owner_id: ctx.userId,
+          [Op.or]: [
+            { full_name: { [Op.iLike]: q } },
+            { email: { [Op.iLike]: q } },
+            database.where(database.cast(database.col("organization"), "text"), { [Op.iLike]: q }),
+          ],
+        },
+        order: [["deal_value", "DESC"], ["updatedAt", "DESC"]],
+        limit: 10,
+      });
+
+      // If no direct contact match, check if any deal note text matches the query!
+      if (!contacts.length) {
+        const matchingNotes = await DealContactNote.findAll({
+          where: {
+            owner_id: ctx.userId,
+            comment: { [Op.iLike]: q },
+          },
+          attributes: ["deal_contact_id"],
+          limit: 10,
+        });
+        const matchedIds = matchingNotes.map((n: any) => n.deal_contact_id);
+        if (matchedIds.length) {
+          contacts = await DealContact.findAll({
+            where: {
+              id: { [Op.in]: matchedIds },
+              owner_id: ctx.userId,
+            },
+          });
+        }
+      }
+    } else {
+      contacts = await DealContact.findAll({
+        where: { owner_id: ctx.userId },
+        order: [["updatedAt", "DESC"]],
+        limit: 5,
+      });
+    }
+
+    if (!contacts.length) {
+      return { found: false, message: "No matching deal contacts found." };
+    }
+
+    // Map stages
+    const deals = await Deals.findAll({ where: { userId: ctx.userId } });
+    const stageMap = new Map<string, string>();
+    for (const d of deals) {
+      const j = (d as any).toJSON();
+      for (const s of (j.stages || [])) {
+        if (s.id) stageMap.set(s.id, s.name || "Unnamed Stage");
+      }
+    }
+
+    const contactIds = contacts.map((c: any) => c.id);
+    const notes = await DealContactNote.findAll({
+      where: { deal_contact_id: { [Op.in]: contactIds }, owner_id: ctx.userId },
+      order: [["createdAt", "DESC"]],
+      limit: clampLimit(args.limit || 20),
+    });
+
+    const notesByContact = new Map<string, any[]>();
+    for (const n of notes) {
+      const nj = (n as any).toJSON();
+      const list = notesByContact.get(nj.deal_contact_id) || [];
+      list.push({
+        id: nj.id,
+        comment: nj.comment,
+        fileName: nj.file_name,
+        fileUrl: nj.file_url,
+        createdAt: nj.createdAt,
+      });
+      notesByContact.set(nj.deal_contact_id, list);
+    }
+
+    const results = contacts.map((c) => {
+      const cj: any = c.toJSON();
+      const cNotes = notesByContact.get(cj.id) || [];
+      return {
+        contactId: cj.id,
+        name: cj.full_name,
+        title: cj.title,
+        company: orgName(cj.organization),
+        email: cj.email,
+        phone: cj.phone,
+        dealValue: cj.deal_value,
+        stageId: cj.stage_id,
+        stageName: stageMap.get(cj.stage_id) || "Unknown Stage",
+        notesCount: cNotes.length,
+        notes: cNotes,
+        updatedAt: cj.updatedAt,
+      };
+    });
+
+    return {
+      found: true,
+      deals: results,
+    };
   },
 };
 
@@ -400,6 +591,7 @@ export const TOOLS: ToolSpec[] = [
   getLeadById,
   listDeals,
   listDealContacts,
+  getDealNotes,
   listContacts,
   getCompanies,
   aggregateStats,

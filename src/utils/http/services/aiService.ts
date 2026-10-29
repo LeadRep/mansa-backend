@@ -3,8 +3,12 @@ import logger from '../../../logger';
 import {RequestConfig} from "../RequestConfig";
 
 export class AIService {
-  private endpoint = process.env.OPENAI_ENDPOINT!;
-  private apiKey = process.env.OPENAI_API_KEY!;
+  private get endpoint(): string {
+    return process.env.OPENAI_ENDPOINT || '';
+  }
+  private get apiKey(): string {
+    return process.env.OPENAI_API_KEY || '';
+  }
 
   async request<T = any>(data: any, config: RequestConfig = {}): Promise<ApiResponse<T>> {
     const response = await apiClient.post(this.endpoint, data, {

@@ -107,6 +107,7 @@ import {
   reindexKnowledgeSource,
   getBotConfig,
   updateBotConfig,
+  uploadBotAvatar,
   testRAGQuery,
   getVisitorConversations,
   getUnresolvedQuestions,
@@ -128,6 +129,7 @@ adminRoutes.delete("/knowledge/:id", deleteKnowledgeSource);
 adminRoutes.post("/knowledge/:id/reindex", reindexKnowledgeSource);
 adminRoutes.get("/bot-config", getBotConfig);
 adminRoutes.put("/bot-config", updateBotConfig);
+adminRoutes.post("/bot-config/avatar", upload.single("avatar"), uploadBotAvatar);
 adminRoutes.post("/knowledge/test-query", testRAGQuery);
 adminRoutes.get("/knowledge/conversations", getVisitorConversations);
 adminRoutes.get("/knowledge-gaps", getUnresolvedQuestions);
