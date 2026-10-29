@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import logger from "../logger";
 import pinoHttp from "pino-http";
+import { v4 as uuidv4 } from "uuid";
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Custom serializers for request and response
 const serializers = {
@@ -24,6 +27,13 @@ const serializers = {
 export const pinoHttpMiddleware = pinoHttp({
     logger,
     serializers,
+    genReqId: (req, res) => {
+        const incoming = req.headers["x-request-id"];
+        const candidate = Array.isArray(incoming) ? incoming[0] : incoming;
+        const id = candidate && UUID_REGEX.test(candidate) ? candidate : uuidv4();
+        res.setHeader("X-Request-Id", id);
+        return id;
+    },
     customLogLevel: function (res, err) {
         const status = res.statusCode ?? 500;
         if (status >= 500) return "error";

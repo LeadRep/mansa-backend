@@ -86,7 +86,13 @@ export const userLeads = async (req: Request, res: Response) => {
       sendResponse(res, 200, message ?? "Leads gotten", responsePayload);
 
       if (shouldTriggerGeneration) {
-        runLeadGeneration(userId, maxLeads - userLeads.length, false, expand);
+        runLeadGeneration(
+          userId,
+          maxLeads - userLeads.length,
+          false,
+          expand,
+          expand ? "user_leads_expand" : "user_leads_fetch"
+        );
       }
       return;
     }

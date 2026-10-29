@@ -14,6 +14,7 @@ export interface OrganizationsAttributes {
     basicModules?: boolean;
     imModule?: boolean;
     demoAccount?: boolean;
+    shareLeads?: boolean;
     nextRefresh?: Date;
 }
 
@@ -100,6 +101,12 @@ Organizations.init(
           allowNull: false,
           defaultValue: false,
           field: "demo_account", // Maps to snake_case in DB
+        },
+        shareLeads: {
+          type: DataTypes.BOOLEAN,
+          allowNull: false,
+          defaultValue: false,
+          field: "share_leads",
         }
     },
     {

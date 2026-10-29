@@ -1,3 +1,4 @@
+import { withLeadGenContext } from "../../utils/leadGenLogger";
 import { Request, Response } from "express";
 import Users, {userRole} from "../../models/Users";
 import Invitations from "../../models/Invitations";
@@ -32,7 +33,7 @@ export const AcceptInvite = async (request: Request, response: Response) => {
               {
                 model: Organizations,
                 as: "organization",
-                attributes: ['name', 'organization_id'] // Specify which fields you want
+                attributes: ['name', 'organization_id', 'plan', 'subscriptionStartDate', 'subscriptionEndDate' ] // Specify which fields you want
               }
             ]
         });
@@ -94,6 +95,9 @@ export const AcceptInvite = async (request: Request, response: Response) => {
             address: invitation.organization?.address || null,
             country: invitation.organization?.country || null,
             city: invitation.organization?.city || null,
+            subscriptionName: invitation.organization?.plan || "free",
+            subscriptionStartDate: invitation.organization?.subscriptionStartDate || null,
+            subscriptionEndDate: invitation.organization?.subscriptionEndDate || null,
             role: userRole.USER,
             orgRole: invitation.role || "member",
             isBlocked: null,
@@ -158,7 +162,7 @@ export const AcceptInvite = async (request: Request, response: Response) => {
         // Mark invitation as accepted
         await invitation.update({ status: "accepted" });
 
-        step2LeadGen(user.id, 10).catch((err: any) => {
+        withLeadGenContext(user.id, { version: "v1", trigger: "invitation_accepted" }, () => step2LeadGen(user.id, 10)).catch((err: any) => {
             logger.error(err, "step2LeadGen error after accepting invite");
         });
 

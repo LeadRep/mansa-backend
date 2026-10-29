@@ -1,6 +1,7 @@
 import { apolloPeopleSearch } from "../leadsController/apolloPeopleSearch";
 import { CustomerPref } from "../../models/CustomerPref";
 import { ApolloPerson } from "./types";
+import { getLeadGenLogger } from "../../utils/leadGenLogger";
 
 const APOLLO_PER_PAGE = 100;
 const APOLLO_TIMEOUT_MS = 60000; // 1 minute timeout per request
@@ -14,6 +15,7 @@ export const collectApolloLeads = async (
   collectedLeadIds: Set<string>,
   customerPref?: CustomerPref
 ) => {
+  const log = getLeadGenLogger();
   const apolloLeads: ApolloPerson[] = [];
   const apolloLeadIds: string[] = [];
   let reachedEndOfResults = false;
@@ -24,11 +26,12 @@ export const collectApolloLeads = async (
 
   while (collectedLeadIds.size < targetCount && !reachedEndOfResults) {
     if (Date.now() - startTime > APOLLO_TIMEOUT_MS) {
-      console.warn(`Apollo collection timeout exceeded after ${APOLLO_TIMEOUT_MS}ms, stopping collection`);
+      log.warn({ timeoutMs: APOLLO_TIMEOUT_MS, page }, "Apollo collection timeout exceeded, stopping collection");
       break;
     }
     if (maxPages > 0 && page > maxPages) {
       reachedEndOfResults = true;
+      log.info({ page, maxPages }, "Apollo pagination exhausted");
       break;
     }
 
@@ -57,6 +60,7 @@ export const collectApolloLeads = async (
     }
 
     if (!Array.isArray(people) || people.length === 0) {
+      log.info({ page: pageProcessed }, "Apollo returned an empty page, end of results");
       reachedEndOfResults = true;
       break;
     }
@@ -77,6 +81,18 @@ export const collectApolloLeads = async (
       }
     }
 
+    log.info(
+      {
+        page: pageProcessed,
+        maxPages,
+        totalEntries,
+        returned: people.length,
+        newLeadsCollected: apolloLeadIds.length,
+        target: targetCount,
+      },
+      "Apollo page processed"
+    );
+
     if (maxPages && pageProcessed >= maxPages) {
       reachedEndOfResults = true;
       page = maxPages;
@@ -85,5 +101,9 @@ export const collectApolloLeads = async (
 
     page = pageProcessed + 1;
   }
+  log.info(
+    { collected: apolloLeadIds.length, lastPage: page, maxPages, reachedEndOfResults },
+    "Apollo collection finished"
+  );
   return { apolloLeads, apolloLeadIds, currentPage: page, totalPages: maxPages };
 };
